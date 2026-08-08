@@ -58,6 +58,8 @@ const GRID = 8;
 const TREE_TOP = 100;
 const TREE_BOTTOM = PAGE.logicalHeight;
 const MIN_SENTENCE_FONT_SIZE = 18;
+const MAX_SENTENCE_FONT_SIZE = 64;
+const SENTENCE_WIDTH_FILL = 0.98;
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -157,13 +159,20 @@ export function TreeAnalysisEditor({
   }, [originalText]);
 
   const trimmed = originalText.trim();
-  const ratio = measuredWidth / availableWidth;
-  const effectiveSentenceFontSize = Math.min(
-    PAGE.sentenceFontSize,
-    PAGE.sentenceFontSize / Math.max(ratio, 1)
+  const targetSentenceWidth = availableWidth * SENTENCE_WIDTH_FILL;
+  const idealSentenceFontSize = measuredWidth
+    ? PAGE.sentenceFontSize * (targetSentenceWidth / measuredWidth)
+    : PAGE.sentenceFontSize;
+  const effectiveSentenceFontSize = clamp(
+    idealSentenceFontSize,
+    MIN_SENTENCE_FONT_SIZE,
+    MAX_SENTENCE_FONT_SIZE
   );
-  const fits = Boolean(trimmed) && effectiveSentenceFontSize >= MIN_SENTENCE_FONT_SIZE;
-  const nearLimit = fits && effectiveSentenceFontSize < PAGE.sentenceFontSize;
+  const renderedSentenceWidth =
+    measuredWidth * (effectiveSentenceFontSize / PAGE.sentenceFontSize);
+  const ratio = renderedSentenceWidth / availableWidth;
+  const fits = Boolean(trimmed) && renderedSentenceWidth <= availableWidth;
+  const nearLimit = fits && idealSentenceFontSize < MIN_SENTENCE_FONT_SIZE;
   const sentenceFontSizeCqw = `${(effectiveSentenceFontSize / PAGE.logicalWidth) * 100}cqw`;
   const wordCount = trimmed ? trimmed.split(/\s+/u).length : 1;
   const nodeGap = 8;
