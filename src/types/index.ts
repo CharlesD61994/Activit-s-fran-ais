@@ -135,6 +135,7 @@ export type TreeAnalysisNode = {
   id: string;
   x: number;
   y: number;
+  phraseId?: string;
   groupType?: WordGroupType;
   wordClass?: WordClass;
 };
@@ -155,6 +156,17 @@ export type TreeAnalysisScoreBox = {
 export type TreeAnalysisTableCell = {
   text: string;
   isCorrect: boolean;
+  columnSpan?: number;
+};
+
+export type TreeAnalysisPhrase = {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  nodeWidth: number;
+  nodeHeight: number;
 };
 
 export type TreeAnalysisTable = {
@@ -203,6 +215,7 @@ export type Sentence = {
   treeAnalysisRelations?: TreeAnalysisRelation[];
   treeAnalysisScoreBoxes?: TreeAnalysisScoreBox[];
   treeAnalysisTables?: TreeAnalysisTable[];
+  treeAnalysisPhrases?: TreeAnalysisPhrase[];
   assignedGroupIds: string[];
   competitionEnabled?: boolean;
   assignmentStatusByGroup?: Record<string, AssignmentStatus>;

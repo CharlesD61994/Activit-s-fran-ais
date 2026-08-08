@@ -6868,6 +6868,19 @@ textarea {
   max-width: 720px;
 }
 
+.tree-analysis-builder-meta {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.tree-analysis-builder-meta label {
+  display: grid;
+  gap: 5px;
+  font-weight: 750;
+}
+
 .tree-analysis-builder-tools {
   display: flex;
   flex-wrap: wrap;
@@ -7069,7 +7082,32 @@ textarea {
   font-size: 2.367cqw;
   font-weight: 400;
   line-height: 1.15;
-  pointer-events: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+}
+
+.tree-analysis-builder-sentence.active {
+  outline: 2px dashed rgba(35, 96, 180, .45);
+  outline-offset: 4px;
+}
+
+.tree-analysis-name-line {
+  position: absolute;
+  top: 2.2%;
+  left: .8%;
+  display: flex;
+  width: 34%;
+  align-items: end;
+  gap: 8px;
+  font-size: 1.55cqw;
+}
+
+.tree-analysis-name-line span {
+  flex: 1;
+  border-bottom: 1.5px solid #111;
 }
 
 .tree-analysis-lines {
@@ -7164,15 +7202,18 @@ textarea {
   width: 100%;
   height: 100%;
   min-height: 4.5cqw;
-  padding: .6cqw;
+  padding: 1.15cqw .65cqw;
   resize: none;
   border: 0;
   outline: 0;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 1.25cqw;
+  font-size: 1.65cqw;
+  line-height: 1.25;
   text-align: center;
+  field-sizing: content;
+  overflow: hidden;
 }
 
 .tree-analysis-table-cell.correct textarea {
@@ -7191,6 +7232,33 @@ textarea {
   background: rgba(255, 255, 255, .9);
   color: #111;
   cursor: pointer;
+}
+
+.tree-analysis-merge-row {
+  position: absolute;
+  right: 22px;
+  bottom: calc(100% + 5px);
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tree-analysis-table-cell.merged textarea {
+  min-height: 6.5cqw;
+  font-size: 1.8cqw;
+  font-weight: 600;
+}
+
+.tree-print-student .tree-analysis-table-cell.correct {
+  background: #fff;
+}
+
+.tree-print-student .tree-analysis-table-cell.correct textarea {
+  color: #111;
 }
 
 .tree-print-student .tree-analysis-node strong {
@@ -7307,8 +7375,13 @@ textarea {
 
   .tree-analysis-score-box > button,
   .tree-analysis-delete-table,
-  .tree-analysis-correct-cell {
+  .tree-analysis-correct-cell,
+  .tree-analysis-merge-row {
     display: none !important;
+  }
+
+  .tree-analysis-builder-sentence.active {
+    outline: 0;
   }
 
   .tree-analysis-page-shell.builder {

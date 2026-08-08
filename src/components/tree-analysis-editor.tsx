@@ -7,7 +7,6 @@ import {
   useState
 } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   Eye,
@@ -30,6 +29,7 @@ import type {
   SentenceDifficulty,
   TreeAnalysisNode,
   TreeAnalysisPageConfig,
+  TreeAnalysisPhrase,
   TreeAnalysisRelation,
   TreeAnalysisScoreBox,
   TreeAnalysisTable,
@@ -112,7 +112,7 @@ export function TreeAnalysisEditor({
   groups,
   onSave
 }: Props) {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2>(2);
   const [title, setTitle] = useState(initialSentence?.title ?? "");
   const [levelId, setLevelId] = useState(
     initialSentence?.levelId ?? levels[0]?.id ?? ""
@@ -139,6 +139,22 @@ export function TreeAnalysisEditor({
   const [tables, setTables] = useState<TreeAnalysisTable[]>(
     initialSentence?.treeAnalysisTables ?? []
   );
+  const [phrases, setPhrases] = useState<TreeAnalysisPhrase[]>(() => {
+    if (initialSentence?.treeAnalysisPhrases?.length) return initialSentence.treeAnalysisPhrases;
+    if (!initialSentence?.originalText) return [];
+    return [{
+      id: "primary-phrase",
+      text: initialSentence.originalText,
+      x: 8,
+      y: 72,
+      fontSize: initialSentence.treeAnalysisPage?.sentenceFontSize ?? 25,
+      nodeWidth: initialSentence.treeAnalysisPage?.nodeWidth ?? 72,
+      nodeHeight: initialSentence.treeAnalysisPage?.nodeHeight ?? 44
+    }];
+  });
+  const [activePhraseId, setActivePhraseId] = useState<string | null>(() => initialSentence?.treeAnalysisPhrases?.[0]?.id ?? (initialSentence?.originalText ? "primary-phrase" : null));
+  const [phraseModalOpen, setPhraseModalOpen] = useState(false);
+  const [phraseDraft, setPhraseDraft] = useState("");
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [measuredWidth, setMeasuredWidth] = useState(0);
@@ -158,6 +174,8 @@ export function TreeAnalysisEditor({
   const dragRef = useRef<{
     kind: "node" | "score" | "table";
     itemId: string;
+    width: number;
+    height: number;
     offsetX: number;
     offsetY: number;
   } | null>(null);
@@ -285,30 +303,59 @@ export function TreeAnalysisEditor({
     nodes.every((node) => Boolean(node.groupType || node.wordClass));
   const editingNode = nodes.find((node) => node.id === editingNodeId);
 
+  function getNodeDimensions(node: TreeAnalysisNode) {
+    const phrase = phrases.find((item) => item.id === node.phraseId);
+    return { width: phrase?.nodeWidth ?? nodeWidth, height: phrase?.nodeHeight ?? nodeHeight };
+  }
+
   function addNode() {
+    const phrase = phrases.find((item) => item.id === activePhraseId) ?? phrases[0];
+    const currentNodeWidth = phrase?.nodeWidth ?? nodeWidth;
+    const currentNodeHeight = phrase?.nodeHeight ?? nodeHeight;
     const index = nodes.length;
-    const columns = Math.max(1, Math.floor(availableWidth / (nodeWidth + 24)));
+    const columns = Math.max(1, Math.floor(availableWidth / (currentNodeWidth + 24)));
     const x = clamp(
-      snap((index % columns) * (nodeWidth + 24)),
+      snap((index % columns) * (currentNodeWidth + 24)),
       PAGE.marginX,
-      PAGE.logicalWidth - PAGE.marginX - nodeWidth
+      PAGE.logicalWidth - PAGE.marginX - currentNodeWidth
     );
     const y = clamp(
-      snap(120 + Math.floor(index / columns) * (nodeHeight + 36)),
+      snap((phrase?.y ?? 70) + 70 + Math.floor(index / columns) * (currentNodeHeight + 36)),
       TREE_TOP,
-      TREE_BOTTOM - nodeHeight
+      TREE_BOTTOM - currentNodeHeight
     );
 
     const node: TreeAnalysisNode = {
       id: crypto.randomUUID(),
       x,
-      y
+      y,
+      phraseId: phrase?.id
     };
 
     setNodes((current) => [...current, node]);
     setSelectedNodeId(node.id);
     setLinkingParentId(null);
     setAddMenuOpen(false);
+  }
+
+  function addPhrase() {
+    const text = phraseDraft.trim();
+    if (!text) return;
+    const wordCountForPhrase = text.split(/\s+/u).length;
+    const phraseNodeWidth = clamp(Math.floor((PAGE.logicalWidth - 8 * Math.max(0, wordCountForPhrase - 1)) / wordCountForPhrase), 48, 72);
+    const estimatedWidthAt25 = Math.max(1, text.length * 12.5);
+    const fontSize = clamp(25 * ((PAGE.logicalWidth - 20) / estimatedWidthAt25), 18, 96);
+    const phrase: TreeAnalysisPhrase = {
+      id: crypto.randomUUID(), text, x: 8,
+      y: phrases.length === 0 ? 72 : Math.min(phrases[phrases.length - 1].y + 250, 650),
+      fontSize,
+      nodeWidth: phraseNodeWidth,
+      nodeHeight: Math.round(phraseNodeWidth * .61)
+    };
+    setPhrases((current) => [...current, phrase]);
+    setActivePhraseId(phrase.id);
+    setPhraseDraft("");
+    setPhraseModalOpen(false);
   }
 
   function addScoreBox() {
@@ -340,6 +387,8 @@ export function TreeAnalysisEditor({
     const rect = canvas.getBoundingClientRect();
     dragRef.current = {
       kind, itemId: item.id,
+      width: kind === "score" ? 90 : 360,
+      height: kind === "score" ? 60 : 120,
       offsetX: (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width) - item.x,
       offsetY: (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height) - item.y
     };
@@ -409,6 +458,8 @@ export function TreeAnalysisEditor({
     dragRef.current = {
       kind: "node",
       itemId: node.id,
+      width: getNodeDimensions(node).width,
+      height: getNodeDimensions(node).height,
       offsetX:
         (event.clientX - rect.left) * scaleX - node.x,
       offsetY:
@@ -437,7 +488,7 @@ export function TreeAnalysisEditor({
 
     const closestWordCenter = drag.kind === "node" ? wordCenters.reduce<number | null>(
       (closest, center) => {
-        const nodeCenter = logicalX + nodeWidth / 2;
+        const nodeCenter = logicalX + drag.width / 2;
         if (Math.abs(center - nodeCenter) > 18) return closest;
         if (closest === null) return center;
         return Math.abs(center - nodeCenter) < Math.abs(closest - nodeCenter)
@@ -447,7 +498,7 @@ export function TreeAnalysisEditor({
       null
     ) : null;
     if (closestWordCenter !== null) {
-      logicalX = closestWordCenter - nodeWidth / 2;
+      logicalX = closestWordCenter - drag.width / 2;
     }
 
     if (drag.kind === "score") {
@@ -472,12 +523,12 @@ export function TreeAnalysisEditor({
       x: clamp(
         closestWordCenter === null ? snap(logicalX) : logicalX,
         PAGE.marginX,
-        PAGE.logicalWidth - PAGE.marginX - nodeWidth
+        PAGE.logicalWidth - PAGE.marginX - drag.width
       ),
       y: clamp(
         snap(logicalY),
         TREE_TOP,
-        TREE_BOTTOM - nodeHeight
+        TREE_BOTTOM - drag.height
       )
     });
   }
@@ -550,7 +601,7 @@ export function TreeAnalysisEditor({
   }
 
   function saveActivity() {
-    if (!fits || !title.trim() || !levelId) return;
+    if (!phrases.length || !title.trim() || !levelId) return;
     const now = new Date().toISOString();
 
     onSave({
@@ -558,7 +609,7 @@ export function TreeAnalysisEditor({
       activityType: "tree_analysis",
       levelId,
       title: title.trim(),
-      originalText: trimmed,
+      originalText: phrases[0]?.text ?? "",
       difficulty,
       tags: initialSentence?.tags ?? [],
       corrections: [],
@@ -572,6 +623,7 @@ export function TreeAnalysisEditor({
       treeAnalysisRelations: relations,
       treeAnalysisScoreBoxes: scoreBoxes,
       treeAnalysisTables: tables,
+      treeAnalysisPhrases: phrases,
       assignedGroupIds,
       competitionEnabled:
         initialSentence?.competitionEnabled ?? false,
@@ -755,6 +807,10 @@ export function TreeAnalysisEditor({
                   <Plus size={17} />
                   Ajouter un élément
                 </Button>
+                <Button type="button" variant="secondary" onClick={() => setPhraseModalOpen(true)}>
+                  <Plus size={17} />
+                  Ajouter une phrase
+                </Button>
                 <Button type="button" variant="secondary" onClick={toggleFullscreen}>
                   {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
                   {isFullscreen ? "Quitter le plein écran" : "Plein écran"}
@@ -794,6 +850,11 @@ export function TreeAnalysisEditor({
               </div>
             </div>
 
+            <div className="tree-analysis-builder-meta">
+              <label>Titre<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Titre de l’activité" /></label>
+              <label>Niveau<select value={levelId} onChange={(event) => setLevelId(event.target.value)}>{levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label>
+            </div>
+
             {linkingParentId && (
               <div className="tree-analysis-link-hint">
                 <Link2 size={17} />
@@ -823,22 +884,18 @@ export function TreeAnalysisEditor({
               >
                 <div className="tree-analysis-print-safe-guide" />
 
-                <div className="tree-analysis-builder-sentence">
-                  <span style={{ fontSize: sentenceFontSizeCqw }}>
-                    {sentenceWords.map((word, index) => (
-                      <span key={`${word}-${index}`}>
-                        {index > 0 ? " " : ""}
-                        <span
-                          ref={(element) => {
-                            wordRefs.current[index] = element;
-                          }}
-                        >
-                          {word}
-                        </span>
-                      </span>
-                    ))}
-                  </span>
-                </div>
+                <div className="tree-analysis-name-line">Nom : <span /></div>
+                {phrases.map((phrase) => (
+                  <button
+                    type="button"
+                    key={phrase.id}
+                    className={`tree-analysis-builder-sentence ${activePhraseId === phrase.id ? "active" : ""}`}
+                    style={{ left: `${(phrase.x / PAGE.logicalWidth) * 100}%`, top: `${(phrase.y / PAGE.logicalHeight) * 100}%`, fontSize: `${(phrase.fontSize / PAGE.logicalWidth) * 100}cqw` }}
+                    onClick={() => setActivePhraseId(phrase.id)}
+                  >
+                    {phrase.text}
+                  </button>
+                ))}
 
                 <svg
                   className="tree-analysis-lines"
@@ -856,12 +913,15 @@ export function TreeAnalysisEditor({
 
                     if (!parent || !child) return null;
 
+                    const parentSize = getNodeDimensions(parent);
+                    const childSize = getNodeDimensions(child);
+
                     return (
                       <line
                         key={relation.id}
-                        x1={parent.x + nodeWidth / 2}
-                        y1={parent.y + nodeHeight}
-                        x2={child.x + nodeWidth / 2}
+                        x1={parent.x + parentSize.width / 2}
+                        y1={parent.y + parentSize.height}
+                        x2={child.x + childSize.width / 2}
                         y2={child.y}
                       />
                     );
@@ -872,6 +932,7 @@ export function TreeAnalysisEditor({
                   const selected = selectedNodeId === node.id;
                   const linkingParent =
                     linkingParentId === node.id;
+                  const currentNodeSize = getNodeDimensions(node);
 
                   return (
                     <div
@@ -884,8 +945,8 @@ export function TreeAnalysisEditor({
                       style={{
                         left: `${(node.x / PAGE.logicalWidth) * 100}%`,
                         top: `${(node.y / PAGE.logicalHeight) * 100}%`,
-                        width: `${(nodeWidth / PAGE.logicalWidth) * 100}%`,
-                        height: `${(nodeHeight / PAGE.logicalHeight) * 100}%`
+                        width: `${(currentNodeSize.width / PAGE.logicalWidth) * 100}%`,
+                        height: `${(currentNodeSize.height / PAGE.logicalHeight) * 100}%`
                       }}
                       onPointerDown={(event) =>
                         handleNodePointerDown(event, node)
@@ -937,8 +998,9 @@ export function TreeAnalysisEditor({
                     style={{ left: `${(table.x / PAGE.logicalWidth) * 100}%`, top: `${(table.y / PAGE.logicalHeight) * 100}%`, gridTemplateColumns: `repeat(${table.columns}, minmax(0, 1fr))` }}
                     onPointerDown={(event) => startItemDrag(event, "table", table)}
                   >
-                    {table.cells.map((cell, cellIndex) => (
-                      <div key={cellIndex} className={`tree-analysis-table-cell ${cell.isCorrect ? "correct" : ""}`}>
+                    <button type="button" className="tree-analysis-merge-row" onClick={() => setTables((current) => current.map((item) => item.id === table.id ? { ...item, cells: item.cells.map((cell, index) => index === 0 ? { ...cell, columnSpan: table.columns } : index < table.columns ? { ...cell, columnSpan: 0 } : cell) } : item))}>Fusionner la 1re rangée</button>
+                    {table.cells.map((cell, cellIndex) => cell.columnSpan === 0 ? null : (
+                      <div key={cellIndex} className={`tree-analysis-table-cell ${cell.isCorrect ? "correct" : ""} ${cell.columnSpan && cell.columnSpan > 1 ? "merged" : ""}`} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined }}>
                         <textarea
                           value={cell.text}
                           aria-label={`Cellule ${cellIndex + 1}`}
@@ -1074,6 +1136,21 @@ export function TreeAnalysisEditor({
                   </aside>
                 </div>
               )}
+              {phraseModalOpen && (
+                <div className="tree-analysis-modal-backdrop" role="presentation" onMouseDown={(event) => {
+                  if (event.target === event.currentTarget) setPhraseModalOpen(false);
+                }}>
+                  <aside className="tree-analysis-inspector tree-analysis-modal" role="dialog" aria-modal="true" aria-label="Ajouter une phrase">
+                    <div className="tree-analysis-modal-heading">
+                      <div><span className="eyebrow">Phrase</span><h3>Ajouter une phrase à analyser</h3></div>
+                      <button type="button" onClick={() => setPhraseModalOpen(false)} aria-label="Fermer"><X size={18} /></button>
+                    </div>
+                    <label>Phrase<textarea rows={4} value={phraseDraft} onChange={(event) => setPhraseDraft(event.target.value.replace(/[\r\n]+/g, " "))} autoFocus /></label>
+                    <p>La police et les rectangles seront adaptés automatiquement au nombre de mots de cette phrase.</p>
+                    <Button type="button" disabled={!phraseDraft.trim()} onClick={addPhrase}>Ajouter la phrase</Button>
+                  </aside>
+                </div>
+              )}
             </div>
 
             {relations.length > 0 && (
@@ -1120,17 +1197,8 @@ export function TreeAnalysisEditor({
             </span>
             <Button
               type="button"
-              variant="secondary"
-              onClick={() => setStep(1)}
-            >
-              <ArrowLeft size={17} />
-              Retour à la phrase
-            </Button>
-
-            <Button
-              type="button"
               onClick={saveActivity}
-              disabled={!allNodesConfigured || !boxesFitOnOneRow}
+              disabled={!phrases.length || !title.trim() || !levelId || (nodes.length > 0 && !allNodesConfigured)}
             >
               <Save size={17} />
               Enregistrer l’activité
