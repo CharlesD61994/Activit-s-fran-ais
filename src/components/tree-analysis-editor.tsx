@@ -11,7 +11,10 @@ import {
   ArrowRight,
   Check,
   Eye,
+  Grid3X3,
   Link2,
+  Maximize2,
+  Minimize2,
   Plus,
   Printer,
   Save,
@@ -28,6 +31,8 @@ import type {
   TreeAnalysisNode,
   TreeAnalysisPageConfig,
   TreeAnalysisRelation,
+  TreeAnalysisScoreBox,
+  TreeAnalysisTable,
   WordClass,
   WordGroupType
 } from "@/types";
@@ -128,6 +133,14 @@ export function TreeAnalysisEditor({
   const [relations, setRelations] = useState<TreeAnalysisRelation[]>(
     initialSentence?.treeAnalysisRelations ?? []
   );
+  const [scoreBoxes, setScoreBoxes] = useState<TreeAnalysisScoreBox[]>(
+    initialSentence?.treeAnalysisScoreBoxes ?? []
+  );
+  const [tables, setTables] = useState<TreeAnalysisTable[]>(
+    initialSentence?.treeAnalysisTables ?? []
+  );
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const [wordCenters, setWordCenters] = useState<number[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
@@ -141,8 +154,10 @@ export function TreeAnalysisEditor({
   const measureRef = useRef<HTMLSpanElement>(null);
   const wordRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const builderRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
-    nodeId: string;
+    kind: "node" | "score" | "table";
+    itemId: string;
     offsetX: number;
     offsetY: number;
   } | null>(null);
@@ -293,7 +308,54 @@ export function TreeAnalysisEditor({
     setNodes((current) => [...current, node]);
     setSelectedNodeId(node.id);
     setLinkingParentId(null);
+    setAddMenuOpen(false);
   }
+
+  function addScoreBox() {
+    const rawTotal = window.prompt("Total de points", "1");
+    if (rawTotal === null) return;
+    const total = Math.max(1, Math.round(Number(rawTotal) || 1));
+    setScoreBoxes((current) => [...current, { id: crypto.randomUUID(), x: 24, y: 160, total }]);
+    setAddMenuOpen(false);
+  }
+
+  function addActivityTable() {
+    const rawRows = window.prompt("Nombre de rangées", "2");
+    if (rawRows === null) return;
+    const rawColumns = window.prompt("Nombre de colonnes", "3");
+    if (rawColumns === null) return;
+    const rows = clamp(Math.round(Number(rawRows) || 2), 1, 8);
+    const columns = clamp(Math.round(Number(rawColumns) || 3), 1, 8);
+    setTables((current) => [...current, {
+      id: crypto.randomUUID(), x: 80, y: 420, rows, columns,
+      cells: Array.from({ length: rows * columns }, () => ({ text: "", isCorrect: false }))
+    }]);
+    setAddMenuOpen(false);
+  }
+
+  function startItemDrag(event: React.PointerEvent<HTMLDivElement>, kind: "score" | "table", item: { id: string; x: number; y: number }) {
+    if ((event.target as HTMLElement).closest("input,textarea,button")) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    dragRef.current = {
+      kind, itemId: item.id,
+      offsetX: (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width) - item.x,
+      offsetY: (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height) - item.y
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  async function toggleFullscreen() {
+    if (!document.fullscreenElement) await builderRef.current?.requestFullscreen();
+    else await document.exitFullscreen();
+  }
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
 
   function updateNode(
     nodeId: string,
@@ -345,7 +407,8 @@ export function TreeAnalysisEditor({
     const scaleY = PAGE.logicalHeight / rect.height;
 
     dragRef.current = {
-      nodeId: node.id,
+      kind: "node",
+      itemId: node.id,
       offsetX:
         (event.clientX - rect.left) * scaleX - node.x,
       offsetY:
@@ -372,7 +435,7 @@ export function TreeAnalysisEditor({
     const logicalY =
       (event.clientY - rect.top) * scaleY - drag.offsetY;
 
-    const closestWordCenter = wordCenters.reduce<number | null>(
+    const closestWordCenter = drag.kind === "node" ? wordCenters.reduce<number | null>(
       (closest, center) => {
         const nodeCenter = logicalX + nodeWidth / 2;
         if (Math.abs(center - nodeCenter) > 18) return closest;
@@ -382,12 +445,30 @@ export function TreeAnalysisEditor({
           : closest;
       },
       null
-    );
+    ) : null;
     if (closestWordCenter !== null) {
       logicalX = closestWordCenter - nodeWidth / 2;
     }
 
-    updateNode(drag.nodeId, {
+    if (drag.kind === "score") {
+      setScoreBoxes((current) => current.map((box) =>
+        box.id === drag.itemId
+          ? { ...box, x: clamp(snap(logicalX), 0, PAGE.logicalWidth - 90), y: clamp(snap(logicalY), TREE_TOP, TREE_BOTTOM - 60) }
+          : box
+      ));
+      return;
+    }
+
+    if (drag.kind === "table") {
+      setTables((current) => current.map((table) =>
+        table.id === drag.itemId
+          ? { ...table, x: clamp(snap(logicalX), 0, PAGE.logicalWidth - 360), y: clamp(snap(logicalY), TREE_TOP, TREE_BOTTOM - table.rows * 50) }
+          : table
+      ));
+      return;
+    }
+
+    updateNode(drag.itemId, {
       x: clamp(
         closestWordCenter === null ? snap(logicalX) : logicalX,
         PAGE.marginX,
@@ -489,6 +570,8 @@ export function TreeAnalysisEditor({
       },
       treeAnalysisNodes: nodes,
       treeAnalysisRelations: relations,
+      treeAnalysisScoreBoxes: scoreBoxes,
+      treeAnalysisTables: tables,
       assignedGroupIds,
       competitionEnabled:
         initialSentence?.competitionEnabled ?? false,
@@ -655,6 +738,7 @@ export function TreeAnalysisEditor({
         </>
       ) : (
         <>
+          <div ref={builderRef} className={`tree-analysis-builder-host ${isFullscreen ? "fullscreen" : ""}`}>
           <Card className="tree-analysis-builder-card">
             <div className="tree-analysis-builder-heading">
               <div>
@@ -667,9 +751,13 @@ export function TreeAnalysisEditor({
                 </p>
               </div>
               <div className="tree-analysis-builder-tools">
-                <Button type="button" onClick={addNode}>
+                <Button type="button" onClick={() => setAddMenuOpen(true)}>
                   <Plus size={17} />
-                  Nouveau rectangle
+                  Ajouter un élément
+                </Button>
+                <Button type="button" variant="secondary" onClick={toggleFullscreen}>
+                  {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+                  {isFullscreen ? "Quitter le plein écran" : "Plein écran"}
                 </Button>
                 {linkingParentId && (
                   <Button
@@ -827,6 +915,48 @@ export function TreeAnalysisEditor({
                     </div>
                   );
                 })}
+                {scoreBoxes.map((box) => (
+                  <div
+                    key={box.id}
+                    className="tree-analysis-score-box"
+                    style={{ left: `${(box.x / PAGE.logicalWidth) * 100}%`, top: `${(box.y / PAGE.logicalHeight) * 100}%` }}
+                    onPointerDown={(event) => startItemDrag(event, "score", box)}
+                    onDoubleClick={() => {
+                      const value = window.prompt("Total de points", String(box.total));
+                      if (value !== null) setScoreBoxes((current) => current.map((item) => item.id === box.id ? { ...item, total: Math.max(1, Math.round(Number(value) || 1)) } : item));
+                    }}
+                  >
+                    /{box.total}
+                    <button type="button" onClick={() => setScoreBoxes((current) => current.filter((item) => item.id !== box.id))} aria-label="Supprimer la boîte"><X size={13} /></button>
+                  </div>
+                ))}
+                {tables.map((table) => (
+                  <div
+                    key={table.id}
+                    className="tree-analysis-activity-table"
+                    style={{ left: `${(table.x / PAGE.logicalWidth) * 100}%`, top: `${(table.y / PAGE.logicalHeight) * 100}%`, gridTemplateColumns: `repeat(${table.columns}, minmax(0, 1fr))` }}
+                    onPointerDown={(event) => startItemDrag(event, "table", table)}
+                  >
+                    {table.cells.map((cell, cellIndex) => (
+                      <div key={cellIndex} className={`tree-analysis-table-cell ${cell.isCorrect ? "correct" : ""}`}>
+                        <textarea
+                          value={cell.text}
+                          aria-label={`Cellule ${cellIndex + 1}`}
+                          onChange={(event) => setTables((current) => current.map((item) => item.id === table.id ? { ...item, cells: item.cells.map((itemCell, index) => index === cellIndex ? { ...itemCell, text: event.target.value } : itemCell) } : item))}
+                        />
+                        <button
+                          type="button"
+                          className="tree-analysis-correct-cell"
+                          onClick={() => setTables((current) => current.map((item) => item.id === table.id ? { ...item, cells: item.cells.map((itemCell, index) => index === cellIndex ? { ...itemCell, isCorrect: !itemCell.isCorrect } : itemCell) } : item))}
+                          title="Marquer comme bonne réponse"
+                        >
+                          {cell.isCorrect ? "✓" : "○"}
+                        </button>
+                      </div>
+                    ))}
+                    <button type="button" className="tree-analysis-delete-table" onClick={() => setTables((current) => current.filter((item) => item.id !== table.id))} aria-label="Supprimer le tableau"><X size={13} /></button>
+                  </div>
+                ))}
                 </div>
               </div>
 
@@ -924,6 +1054,26 @@ export function TreeAnalysisEditor({
                   </aside>
                 </div>
               )}
+              {addMenuOpen && (
+                <div className="tree-analysis-modal-backdrop" role="presentation" onMouseDown={(event) => {
+                  if (event.target === event.currentTarget) setAddMenuOpen(false);
+                }}>
+                  <aside className="tree-analysis-inspector tree-analysis-modal" role="dialog" aria-modal="true" aria-label="Ajouter un élément">
+                    <div className="tree-analysis-modal-heading">
+                      <div>
+                        <span className="eyebrow">Ajouter</span>
+                        <h3>Choisis un élément</h3>
+                      </div>
+                      <button type="button" onClick={() => setAddMenuOpen(false)} aria-label="Fermer"><X size={18} /></button>
+                    </div>
+                    <div className="tree-analysis-add-options">
+                      <button type="button" onClick={addNode}><span className="tree-analysis-add-icon">□</span><strong>Rectangle</strong><small>Groupe ou classe de mots</small></button>
+                      <button type="button" onClick={addScoreBox}><span className="tree-analysis-add-icon">/x</span><strong>Boîte de points</strong><small>Affiche un total comme /12</small></button>
+                      <button type="button" onClick={addActivityTable}><Grid3X3 size={25} /><strong>Tableau d’activité</strong><small>Rangées, colonnes et réponses</small></button>
+                    </div>
+                  </aside>
+                </div>
+              )}
             </div>
 
             {relations.length > 0 && (
@@ -956,6 +1106,7 @@ export function TreeAnalysisEditor({
               </div>
             )}
           </Card>
+          </div>
 
           <div className="tree-analysis-actions">
             <span>

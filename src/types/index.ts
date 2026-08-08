@@ -145,6 +145,27 @@ export type TreeAnalysisRelation = {
   childNodeId: string;
 };
 
+export type TreeAnalysisScoreBox = {
+  id: string;
+  x: number;
+  y: number;
+  total: number;
+};
+
+export type TreeAnalysisTableCell = {
+  text: string;
+  isCorrect: boolean;
+};
+
+export type TreeAnalysisTable = {
+  id: string;
+  x: number;
+  y: number;
+  rows: number;
+  columns: number;
+  cells: TreeAnalysisTableCell[];
+};
+
 export type AgreementRelation = {
   id: string;
   donorId: string;
@@ -180,6 +201,8 @@ export type Sentence = {
   treeAnalysisPage?: TreeAnalysisPageConfig;
   treeAnalysisNodes?: TreeAnalysisNode[];
   treeAnalysisRelations?: TreeAnalysisRelation[];
+  treeAnalysisScoreBoxes?: TreeAnalysisScoreBox[];
+  treeAnalysisTables?: TreeAnalysisTable[];
   assignedGroupIds: string[];
   competitionEnabled?: boolean;
   assignmentStatusByGroup?: Record<string, AssignmentStatus>;

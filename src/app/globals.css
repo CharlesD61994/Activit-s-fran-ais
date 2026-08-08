@@ -6836,6 +6836,16 @@ textarea {
 
 
 /* V93 — Analyse en arbre, étape 2 */
+.tree-analysis-builder-host:fullscreen {
+  overflow: auto;
+  padding: 18px;
+  background: var(--background);
+}
+
+.tree-analysis-builder-host:fullscreen .tree-analysis-builder-card {
+  min-height: calc(100vh - 36px);
+}
+
 .tree-analysis-builder-card {
   overflow: visible;
 }
@@ -6975,6 +6985,41 @@ textarea {
   gap: 8px;
 }
 
+.tree-analysis-add-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.tree-analysis-add-options > button {
+  display: grid;
+  min-height: 128px;
+  padding: 16px 10px;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.tree-analysis-add-options > button:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 7%, var(--surface));
+}
+
+.tree-analysis-add-options small {
+  color: var(--muted-foreground);
+  line-height: 1.3;
+}
+
+.tree-analysis-add-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
 .tree-analysis-node-kind {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -7058,6 +7103,94 @@ textarea {
 .tree-analysis-node strong {
   font-size: clamp(9px, 1.3vw, 15px);
   pointer-events: none;
+}
+
+.tree-analysis-score-box {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  width: 8.52cqw;
+  height: 5.68cqw;
+  place-items: center;
+  border: 2px solid #202020;
+  background: #fff;
+  color: #111;
+  font-size: 2.25cqw;
+  cursor: grab;
+}
+
+.tree-analysis-score-box > button,
+.tree-analysis-delete-table {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #a92525;
+  color: white;
+  cursor: pointer;
+}
+
+.tree-analysis-activity-table {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  width: 34.1cqw;
+  border-top: 2px solid #202020;
+  border-left: 2px solid #202020;
+  background: #fff;
+  color: #111;
+  cursor: grab;
+}
+
+.tree-analysis-table-cell {
+  position: relative;
+  min-height: 4.6cqw;
+  border-right: 2px solid #202020;
+  border-bottom: 2px solid #202020;
+  background: #fff;
+}
+
+.tree-analysis-table-cell.correct {
+  background: #111;
+}
+
+.tree-analysis-table-cell textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 4.5cqw;
+  padding: .6cqw;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.25cqw;
+  text-align: center;
+}
+
+.tree-analysis-table-cell.correct textarea {
+  color: white;
+}
+
+.tree-analysis-correct-cell {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  color: #111;
+  cursor: pointer;
 }
 
 .tree-print-student .tree-analysis-node strong {
@@ -7170,6 +7303,12 @@ textarea {
 
   .tree-analysis-print-safe-guide {
     display: none;
+  }
+
+  .tree-analysis-score-box > button,
+  .tree-analysis-delete-table,
+  .tree-analysis-correct-cell {
+    display: none !important;
   }
 
   .tree-analysis-page-shell.builder {
