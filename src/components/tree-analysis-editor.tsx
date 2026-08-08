@@ -58,8 +58,8 @@ const GRID = 8;
 const TREE_TOP = 100;
 const TREE_BOTTOM = PAGE.logicalHeight - PAGE.marginTop;
 const MIN_SENTENCE_FONT_SIZE = 18;
-const MAX_SENTENCE_FONT_SIZE = 64;
-const SENTENCE_WIDTH_FILL = 0.96;
+const MAX_SENTENCE_FONT_SIZE = 72;
+const SENTENCE_WIDTH_FILL = 0.99;
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
