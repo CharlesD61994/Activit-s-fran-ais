@@ -58,8 +58,8 @@ const GRID = 8;
 const TREE_TOP = 100;
 const TREE_BOTTOM = PAGE.logicalHeight - PAGE.marginTop;
 const MIN_SENTENCE_FONT_SIZE = 18;
-const MAX_SENTENCE_FONT_SIZE = 72;
-const SENTENCE_WIDTH_FILL = 0.99;
+const MAX_SENTENCE_FONT_SIZE = 96;
+const SENTENCE_RIGHT_MARGIN = 12;
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -165,7 +165,8 @@ export function TreeAnalysisEditor({
     () => (trimmed ? trimmed.split(/\s+/u) : []),
     [trimmed]
   );
-  const targetSentenceWidth = availableWidth * SENTENCE_WIDTH_FILL;
+  const targetSentenceWidth =
+    PAGE.logicalWidth - PAGE.marginX - SENTENCE_RIGHT_MARGIN;
   const idealSentenceFontSize = measuredWidth
     ? PAGE.sentenceFontSize * (targetSentenceWidth / measuredWidth)
     : PAGE.sentenceFontSize;
@@ -176,8 +177,8 @@ export function TreeAnalysisEditor({
   );
   const renderedSentenceWidth =
     measuredWidth * (effectiveSentenceFontSize / PAGE.sentenceFontSize);
-  const ratio = renderedSentenceWidth / availableWidth;
-  const fits = Boolean(trimmed) && renderedSentenceWidth <= availableWidth;
+  const ratio = renderedSentenceWidth / targetSentenceWidth;
+  const fits = Boolean(trimmed) && renderedSentenceWidth <= targetSentenceWidth;
   const nearLimit = fits && idealSentenceFontSize < MIN_SENTENCE_FONT_SIZE;
   const sentenceFontSizeCqw = `${(effectiveSentenceFontSize / PAGE.logicalWidth) * 100}cqw`;
   const wordCount = trimmed ? trimmed.split(/\s+/u).length : 1;
