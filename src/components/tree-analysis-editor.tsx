@@ -170,6 +170,7 @@ export function TreeAnalysisEditor({
   const [activePageId, setActivePageId] = useState(() => initialSentence?.treeAnalysisDocumentPages?.[0]?.id ?? "page-1");
   const [textBoxes, setTextBoxes] = useState<TreeAnalysisTextBox[]>(initialSentence?.treeAnalysisTextBoxes ?? []);
   const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(null);
+  const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
   const [textSelection, setTextSelection] = useState<{ start: number; end: number } | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -401,6 +402,7 @@ export function TreeAnalysisEditor({
     if (!selectedTextBoxId) return;
     setTextBoxes((current) => current.filter((box) => box.id !== selectedTextBoxId));
     setSelectedTextBoxId(null);
+    setEditingTextBoxId(null);
     setTextSelection(null);
   }
 
@@ -412,18 +414,6 @@ export function TreeAnalysisEditor({
     setRelations((current) => current.filter((relation) => !removedNodeIds.has(relation.parentNodeId) && !removedNodeIds.has(relation.childNodeId)));
     setSelectedNodeIds((current) => current.filter((id) => !removedNodeIds.has(id)));
     setActivePhraseId(null);
-  }
-
-  function captureTextSelection(box: TreeAnalysisTextBox, element: HTMLElement) {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
-    const range = selection.getRangeAt(0);
-    if (!element.contains(range.commonAncestorContainer)) return;
-    const prefix = range.cloneRange();
-    prefix.selectNodeContents(element);
-    prefix.setEnd(range.startContainer, range.startOffset);
-    setSelectedTextBoxId(box.id);
-    setTextSelection({ start: prefix.toString().length, end: prefix.toString().length + range.toString().length });
   }
 
   function addScoreBox() {
@@ -997,6 +987,7 @@ export function TreeAnalysisEditor({
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#2467d1" })}>Bleu</button>
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#22834b" })}>Vert</button>
                 <button type="button" onClick={() => applyTextAnnotation({ framed: true })}>Encadrer</button>
+                {editingTextBoxId === selectedTextBoxId && <button type="button" onClick={() => setEditingTextBoxId(null)}>Terminer l’édition</button>}
                 <button type="button" className="danger" onClick={deleteSelectedTextBox}><Trash2 size={15} /> Supprimer la boîte</button>
               </div>
             )}
@@ -1185,20 +1176,30 @@ export function TreeAnalysisEditor({
                     onClick={() => setSelectedTextBoxId(box.id)}
                   >
                     <div className="tree-analysis-text-drag" onPointerDown={(event) => startItemDrag(event, "textbox", box)}>Déplacer</div>
-                    <div
-                      className="tree-analysis-text-content"
-                      contentEditable
-                      suppressContentEditableWarning
-                      data-placeholder="Écris ton texte ici…"
-                      onFocus={() => setSelectedTextBoxId(box.id)}
-                      onMouseUp={(event) => captureTextSelection(box, event.currentTarget)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Backspace" && !(event.currentTarget.textContent ?? "")) event.preventDefault();
-                      }}
-                      onInput={(event) => setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: event.currentTarget.textContent ?? "", annotations: [] } : item))}
-                    >
-                      {renderTextBoxContent(box)}
-                    </div>
+                    {editingTextBoxId === box.id ? (
+                      <textarea
+                        className="tree-analysis-text-editor"
+                        value={box.text}
+                        placeholder="Écris ton texte ici…"
+                        autoFocus
+                        onChange={(event) => setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: event.target.value } : item))}
+                        onSelect={(event) => {
+                          setSelectedTextBoxId(box.id);
+                          setTextSelection({ start: event.currentTarget.selectionStart, end: event.currentTarget.selectionEnd });
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="tree-analysis-text-content"
+                        data-placeholder="Écris ton texte ici…"
+                        onDoubleClick={() => {
+                          setSelectedTextBoxId(box.id);
+                          setEditingTextBoxId(box.id);
+                        }}
+                      >
+                        {renderTextBoxContent(box)}
+                      </div>
+                    )}
                   </div>
                 ))}
                 </div>

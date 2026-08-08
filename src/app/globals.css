@@ -7262,6 +7262,21 @@ textarea {
   outline: 0;
 }
 
+.tree-analysis-text-editor {
+  width: 100%;
+  min-height: inherit;
+  padding: 0;
+  resize: both;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.25;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .tree-analysis-text-content:empty::before {
   content: attr(data-placeholder);
   color: rgba(0, 0, 0, .34);
