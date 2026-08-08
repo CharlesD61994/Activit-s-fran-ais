@@ -6729,14 +6729,14 @@ textarea {
   position: relative;
   container-type: inline-size;
   width: 100%;
-  aspect-ratio: 10.5 / 8;
+  aspect-ratio: 11 / 8.5;
   background: white;
   color: #111;
   box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
 }
 
 .tree-analysis-page.portrait {
-  aspect-ratio: 8 / 10.5;
+  aspect-ratio: 8.5 / 11;
 }
 
 .tree-analysis-page-controls,
@@ -7266,7 +7266,7 @@ textarea {
   width: 100%;
   min-height: inherit;
   padding: 0;
-  resize: both;
+  resize: none;
   border: 0;
   outline: 0;
   background: transparent;
@@ -7525,7 +7525,7 @@ textarea {
 
 @page {
   size: letter landscape;
-  margin: .25in;
+  margin: 0;
 }
 
 @media print {
@@ -7560,8 +7560,8 @@ textarea {
   .tree-analysis-page-shell.builder {
     position: fixed;
     inset: 0;
-    width: 10.5in;
-    height: 8in;
+    width: 11in;
+    height: 8.5in;
     padding: 0;
     overflow: hidden;
     background: white;
@@ -7569,8 +7569,8 @@ textarea {
   }
 
   .tree-analysis-page-shell.builder .tree-analysis-page {
-    width: 10.5in;
-    height: 8in;
+    width: 11in;
+    height: 8.5in;
     min-width: 0;
     box-shadow: none;
   }
