@@ -27,6 +27,7 @@ import type {
   TreeAnalysisNode,
   TreeAnalysisPageConfig,
   TreeAnalysisRelation,
+  WordClass,
   WordGroupType
 } from "@/types";
 
@@ -55,6 +56,7 @@ const NODE_HEIGHT = 56;
 const GRID = 8;
 const TREE_TOP = 150;
 const TREE_BOTTOM = PAGE.logicalHeight - 58;
+const MIN_SENTENCE_FONT_SIZE = 18;
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -69,6 +71,24 @@ const groupLabels: Record<WordGroupType, string> = {
   GAdv: "GAdv",
   GPrep: "GPrép"
 };
+
+const wordClassLabels: Record<WordClass, string> = {
+  noun: "N",
+  determiner: "Dét",
+  verb: "V",
+  preposition: "Prép",
+  adverb: "Adv",
+  adjective: "Adj",
+  pronoun: "Pron",
+  conjunction: "Conj",
+  interjection: "Interj"
+};
+
+function getNodeLabel(node: TreeAnalysisNode) {
+  if (node.wordClass) return wordClassLabels[node.wordClass];
+  if (node.groupType) return groupLabels[node.groupType];
+  return "Case…";
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -136,8 +156,13 @@ export function TreeAnalysisEditor({
 
   const trimmed = originalText.trim();
   const ratio = measuredWidth / availableWidth;
-  const fits = Boolean(trimmed) && measuredWidth <= availableWidth;
-  const nearLimit = fits && ratio >= 0.88;
+  const effectiveSentenceFontSize = Math.min(
+    PAGE.sentenceFontSize,
+    PAGE.sentenceFontSize / Math.max(ratio, 1)
+  );
+  const fits = Boolean(trimmed) && effectiveSentenceFontSize >= MIN_SENTENCE_FONT_SIZE;
+  const nearLimit = fits && effectiveSentenceFontSize < PAGE.sentenceFontSize;
+  const sentenceFontSizeCqw = `${(effectiveSentenceFontSize / PAGE.logicalWidth) * 100}cqw`;
 
   const status = useMemo(() => {
     if (!trimmed) {
@@ -155,14 +180,14 @@ export function TreeAnalysisEditor({
     if (nearLimit) {
       return {
         tone: "warning",
-        text: "La phrase approche de la largeur maximale."
+        text: `La phrase sera réduite automatiquement à ${effectiveSentenceFontSize.toFixed(1)} pt.`
       };
     }
     return {
       tone: "success",
       text: "La phrase tient sur une ligne."
     };
-  }, [fits, nearLimit, trimmed]);
+  }, [effectiveSentenceFontSize, fits, nearLimit, trimmed]);
 
   const compatibleGroups = groups.filter(
     (group) => group.levelId === levelId
@@ -170,7 +195,7 @@ export function TreeAnalysisEditor({
 
   const allNodesConfigured =
     nodes.length > 0 &&
-    nodes.every((node) => Boolean(node.groupType));
+    nodes.every((node) => Boolean(node.groupType || node.wordClass));
   const selectedNode = nodes.find((node) => node.id === selectedNodeId);
 
   function addNode() {
@@ -368,7 +393,10 @@ export function TreeAnalysisEditor({
       difficulty,
       tags: initialSentence?.tags ?? [],
       corrections: [],
-      treeAnalysisPage: PAGE,
+      treeAnalysisPage: {
+        ...PAGE,
+        sentenceFontSize: effectiveSentenceFontSize
+      },
       treeAnalysisNodes: nodes,
       treeAnalysisRelations: relations,
       assignedGroupIds,
@@ -507,6 +535,7 @@ export function TreeAnalysisEditor({
                     className={`tree-analysis-preview-sentence ${
                       trimmed && !fits ? "overflowing" : ""
                     }`}
+                    style={{ fontSize: sentenceFontSizeCqw }}
                   >
                     {trimmed || "Ta phrase apparaîtra ici."}
                   </div>
@@ -591,7 +620,9 @@ export function TreeAnalysisEditor({
                 <div className="tree-analysis-print-safe-guide" />
 
                 <div className="tree-analysis-builder-sentence">
+                  <span style={{ fontSize: sentenceFontSizeCqw }}>
                   {trimmed}
+                  </span>
                 </div>
 
                 <svg
@@ -647,7 +678,7 @@ export function TreeAnalysisEditor({
                       onKeyDown={(event) => handleNodeKeyDown(event, node)}
                       tabIndex={0}
                       role="button"
-                      aria-label={`${node.groupType ? groupLabels[node.groupType] : "Rectangle non configuré"}. Déplaçable.`}
+                      aria-label={`${node.groupType || node.wordClass ? getNodeLabel(node) : "Case non configurée"}. Déplaçable.`}
                       onClick={(event) => {
                         event.stopPropagation();
                         if (
@@ -660,7 +691,7 @@ export function TreeAnalysisEditor({
                         }
                       }}
                     >
-                      <strong>{node.groupType ? groupLabels[node.groupType] : "Groupe…"}</strong>
+                      <strong>{getNodeLabel(node)}</strong>
                     </div>
                   );
                 })}
@@ -672,20 +703,58 @@ export function TreeAnalysisEditor({
                 {selectedNode ? (
                   <>
                     <h3>Rectangle sélectionné</h3>
-                    <label>
-                      Type du groupe
-                      <select
-                        value={selectedNode.groupType ?? ""}
-                        onChange={(event) => updateNode(selectedNode.id, {
-                          groupType: (event.target.value || undefined) as WordGroupType | undefined
+                    <div className="tree-analysis-node-kind" role="group" aria-label="Type de case">
+                      <button
+                        type="button"
+                        className={!selectedNode.wordClass ? "active" : ""}
+                        onClick={() => updateNode(selectedNode.id, { wordClass: undefined })}
+                      >
+                        Groupe de mots
+                      </button>
+                      <button
+                        type="button"
+                        className={selectedNode.wordClass ? "active" : ""}
+                        onClick={() => updateNode(selectedNode.id, {
+                          groupType: undefined,
+                          wordClass: selectedNode.wordClass ?? "noun"
                         })}
                       >
-                        <option value="">Choisir…</option>
-                        {(Object.keys(groupLabels) as WordGroupType[]).map((groupType) => (
-                          <option key={groupType} value={groupType}>{groupLabels[groupType]}</option>
-                        ))}
-                      </select>
-                    </label>
+                        Classe de mots
+                      </button>
+                    </div>
+
+                    {selectedNode.wordClass ? (
+                      <label>
+                        Classe de mots
+                        <select
+                          value={selectedNode.wordClass}
+                          onChange={(event) => updateNode(selectedNode.id, {
+                            groupType: undefined,
+                            wordClass: event.target.value as WordClass
+                          })}
+                        >
+                          {(Object.keys(wordClassLabels) as WordClass[]).map((wordClass) => (
+                            <option key={wordClass} value={wordClass}>{wordClassLabels[wordClass]}</option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : (
+                      <label>
+                        Type du groupe
+                        <select
+                          value={selectedNode.groupType ?? ""}
+                          onChange={(event) => updateNode(selectedNode.id, {
+                            wordClass: undefined,
+                            groupType: (event.target.value || undefined) as WordGroupType | undefined
+                          })}
+                        >
+                          <option value="">Choisir…</option>
+                          {(Object.keys(groupLabels) as WordGroupType[]).map((groupType) => (
+                            <option key={groupType} value={groupType}>{groupLabels[groupType]}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <p>Glisse n’importe où sur le rectangle pour le déplacer. Utilise les flèches pour l’ajuster précisément.</p>
                     <Button type="button" onClick={() => startLink(selectedNode.id)}>
                       <Link2 size={17} />
@@ -724,13 +793,9 @@ export function TreeAnalysisEditor({
                         onClick={() => removeRelation(relation.id)}
                         title="Supprimer cette liaison"
                       >
-                        {(parent?.groupType &&
-                          groupLabels[parent.groupType]) ||
-                          "Rectangle"}{" "}
+                        {parent ? getNodeLabel(parent) : "Case"}{" "}
                         →{" "}
-                        {(child?.groupType &&
-                          groupLabels[child.groupType]) ||
-                          "Rectangle"}
+                        {child ? getNodeLabel(child) : "Case"}
                         <X size={13} />
                       </button>
                     );
@@ -745,7 +810,7 @@ export function TreeAnalysisEditor({
               {nodes.length === 0
                 ? "Ajoute au moins un rectangle."
                 : !allNodesConfigured
-                  ? "Choisis un groupe pour chaque rectangle."
+                  ? "Choisis un groupe ou une classe de mots pour chaque case."
                   : `${nodes.length} rectangle${nodes.length > 1 ? "s" : ""} prêt${nodes.length > 1 ? "s" : ""}.`}
             </span>
             <Button

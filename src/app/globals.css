@@ -6727,6 +6727,7 @@ textarea {
 
 .tree-analysis-page {
   position: relative;
+  container-type: inline-size;
   width: 100%;
   aspect-ratio: 11 / 8.5;
   background: white;
@@ -6750,7 +6751,7 @@ textarea {
   max-width: none;
   white-space: nowrap;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: clamp(10px, 2.35vw, 25px);
+  font-size: 2.367cqw;
   font-weight: 400;
   line-height: 1.15;
 }
@@ -6914,6 +6915,35 @@ textarea {
   font-weight: 750;
 }
 
+.tree-analysis-node-kind {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--secondary);
+}
+
+.tree-analysis-node-kind button {
+  min-height: 42px;
+  padding: 7px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tree-analysis-node-kind button.active {
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .09);
+}
+
 .tree-analysis-canvas {
   user-select: none;
   touch-action: none;
@@ -6934,7 +6964,7 @@ textarea {
   width: max-content;
   white-space: nowrap;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: clamp(10px, 2.35vw, 25px);
+  font-size: 2.367cqw;
   font-weight: 400;
   line-height: 1.15;
   pointer-events: none;

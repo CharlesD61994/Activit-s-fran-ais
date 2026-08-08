@@ -134,6 +134,7 @@ export type TreeAnalysisNode = {
   x: number;
   y: number;
   groupType?: WordGroupType;
+  wordClass?: WordClass;
 };
 
 export type TreeAnalysisRelation = {
