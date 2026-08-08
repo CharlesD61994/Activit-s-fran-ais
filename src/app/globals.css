@@ -6737,7 +6737,7 @@ textarea {
 
 .tree-analysis-safe-area {
   position: absolute;
-  inset: 5.88% 5.11%;
+  inset: 0;
   border: 1px dashed rgba(0, 0, 0, .18);
   overflow: hidden;
 }
@@ -6746,7 +6746,7 @@ textarea {
   position: absolute;
   left: 0;
   right: auto;
-  top: 4.4%;
+  top: 3.43%;
   width: max-content;
   max-width: none;
   white-space: nowrap;
@@ -6967,15 +6967,15 @@ textarea {
 
 .tree-analysis-print-safe-guide {
   position: absolute;
-  inset: 5.88% 5.11%;
+  inset: 0;
   border: 1px dashed rgba(0, 0, 0, .14);
   pointer-events: none;
 }
 
 .tree-analysis-builder-sentence {
   position: absolute;
-  left: 5.11%;
-  top: 9.56%;
+  left: 0;
+  top: 3.43%;
   width: max-content;
   white-space: nowrap;
   font-family: Arial, Helvetica, sans-serif;

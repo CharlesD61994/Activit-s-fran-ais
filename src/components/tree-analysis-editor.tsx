@@ -44,9 +44,9 @@ const PAGE: TreeAnalysisPageConfig = {
   orientation: "landscape",
   logicalWidth: 1056,
   logicalHeight: 816,
-  marginX: 54,
-  marginTop: 48,
-  sentenceTop: 78,
+  marginX: 0,
+  marginTop: 0,
+  sentenceTop: 28,
   sentenceFontSize: 25,
   sentenceFontFamily: "Arial, Helvetica, sans-serif",
   sentenceFontWeight: 400
@@ -55,8 +55,8 @@ const PAGE: TreeAnalysisPageConfig = {
 const MAX_NODE_WIDTH = 92;
 const MIN_NODE_WIDTH = 60;
 const GRID = 8;
-const TREE_TOP = 150;
-const TREE_BOTTOM = PAGE.logicalHeight - 58;
+const TREE_TOP = 100;
+const TREE_BOTTOM = PAGE.logicalHeight;
 const MIN_SENTENCE_FONT_SIZE = 18;
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
@@ -212,12 +212,12 @@ export function TreeAnalysisEditor({
     const index = nodes.length;
     const columns = Math.max(1, Math.floor(availableWidth / (nodeWidth + 24)));
     const x = clamp(
-      snap(90 + (index % columns) * (nodeWidth + 24)),
+      snap((index % columns) * (nodeWidth + 24)),
       PAGE.marginX,
       PAGE.logicalWidth - PAGE.marginX - nodeWidth
     );
     const y = clamp(
-      snap(190 + Math.floor(index / columns) * (nodeHeight + 36)),
+      snap(120 + Math.floor(index / columns) * (nodeHeight + 36)),
       TREE_TOP,
       TREE_BOTTOM - nodeHeight
     );
