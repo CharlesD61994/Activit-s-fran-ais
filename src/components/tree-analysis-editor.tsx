@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  Eye,
   Link2,
   Plus,
   Printer,
@@ -51,8 +52,8 @@ const PAGE: TreeAnalysisPageConfig = {
   sentenceFontWeight: 400
 };
 
-const NODE_WIDTH = 92;
-const NODE_HEIGHT = 56;
+const MAX_NODE_WIDTH = 92;
+const MIN_NODE_WIDTH = 60;
 const GRID = 8;
 const TREE_TOP = 150;
 const TREE_BOTTOM = PAGE.logicalHeight - 58;
@@ -132,6 +133,7 @@ export function TreeAnalysisEditor({
   const [linkingParentId, setLinkingParentId] = useState<string | null>(
     null
   );
+  const [printMode, setPrintMode] = useState<"student" | "answer">("answer");
   const measureRef = useRef<HTMLSpanElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -163,6 +165,14 @@ export function TreeAnalysisEditor({
   const fits = Boolean(trimmed) && effectiveSentenceFontSize >= MIN_SENTENCE_FONT_SIZE;
   const nearLimit = fits && effectiveSentenceFontSize < PAGE.sentenceFontSize;
   const sentenceFontSizeCqw = `${(effectiveSentenceFontSize / PAGE.logicalWidth) * 100}cqw`;
+  const wordCount = trimmed ? trimmed.split(/\s+/u).length : 1;
+  const nodeGap = 8;
+  const calculatedNodeWidth = Math.floor(
+    (availableWidth - nodeGap * Math.max(0, wordCount - 1)) / wordCount
+  );
+  const nodeWidth = clamp(calculatedNodeWidth, MIN_NODE_WIDTH, MAX_NODE_WIDTH);
+  const nodeHeight = Math.round(nodeWidth * 0.61);
+  const boxesFitOnOneRow = calculatedNodeWidth >= MIN_NODE_WIDTH;
 
   const status = useMemo(() => {
     if (!trimmed) {
@@ -200,15 +210,16 @@ export function TreeAnalysisEditor({
 
   function addNode() {
     const index = nodes.length;
+    const columns = Math.max(1, Math.floor(availableWidth / (nodeWidth + 24)));
     const x = clamp(
-      snap(90 + (index % 7) * 126),
+      snap(90 + (index % columns) * (nodeWidth + 24)),
       PAGE.marginX,
-      PAGE.logicalWidth - PAGE.marginX - NODE_WIDTH
+      PAGE.logicalWidth - PAGE.marginX - nodeWidth
     );
     const y = clamp(
-      snap(190 + Math.floor(index / 7) * 92),
+      snap(190 + Math.floor(index / columns) * (nodeHeight + 36)),
       TREE_TOP,
-      TREE_BOTTOM - NODE_HEIGHT
+      TREE_BOTTOM - nodeHeight
     );
 
     const node: TreeAnalysisNode = {
@@ -303,12 +314,12 @@ export function TreeAnalysisEditor({
       x: clamp(
         snap(logicalX),
         PAGE.marginX,
-        PAGE.logicalWidth - PAGE.marginX - NODE_WIDTH
+        PAGE.logicalWidth - PAGE.marginX - nodeWidth
       ),
       y: clamp(
         snap(logicalY),
         TREE_TOP,
-        TREE_BOTTOM - NODE_HEIGHT
+        TREE_BOTTOM - nodeHeight
       )
     });
   }
@@ -333,8 +344,8 @@ export function TreeAnalysisEditor({
     if (direction) {
       event.preventDefault();
       updateNode(node.id, {
-        x: clamp(node.x + direction.x, PAGE.marginX, PAGE.logicalWidth - PAGE.marginX - NODE_WIDTH),
-        y: clamp(node.y + direction.y, TREE_TOP, TREE_BOTTOM - NODE_HEIGHT)
+        x: clamp(node.x + direction.x, PAGE.marginX, PAGE.logicalWidth - PAGE.marginX - nodeWidth),
+        y: clamp(node.y + direction.y, TREE_TOP, TREE_BOTTOM - nodeHeight)
       });
       return;
     }
@@ -395,7 +406,9 @@ export function TreeAnalysisEditor({
       corrections: [],
       treeAnalysisPage: {
         ...PAGE,
-        sentenceFontSize: effectiveSentenceFontSize
+        sentenceFontSize: effectiveSentenceFontSize,
+        nodeWidth,
+        nodeHeight
       },
       treeAnalysisNodes: nodes,
       treeAnalysisRelations: relations,
@@ -591,6 +604,28 @@ export function TreeAnalysisEditor({
                     Annuler la liaison
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setPrintMode("student")}
+                  aria-pressed={printMode === "student"}
+                >
+                  <Eye size={17} />
+                  Aperçu élève
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setPrintMode("answer")}
+                  aria-pressed={printMode === "answer"}
+                >
+                  <Check size={17} />
+                  Corrigé
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => window.print()}>
+                  <Printer size={17} />
+                  Imprimer
+                </Button>
               </div>
             </div>
 
@@ -601,7 +636,11 @@ export function TreeAnalysisEditor({
               </div>
             )}
 
-            <div className="tree-analysis-workspace">
+            <div className={`tree-analysis-box-size ${boxesFitOnOneRow ? "success" : "warning"}`}>
+              Cases uniformes : {nodeWidth} × {nodeHeight} — calculées pour {wordCount} mot{wordCount > 1 ? "s" : ""}.
+            </div>
+
+            <div className={`tree-analysis-workspace tree-print-${printMode}`}>
               <div className="tree-analysis-page-shell builder">
                 <div
                 ref={canvasRef}
@@ -644,9 +683,9 @@ export function TreeAnalysisEditor({
                     return (
                       <line
                         key={relation.id}
-                        x1={parent.x + NODE_WIDTH / 2}
-                        y1={parent.y + NODE_HEIGHT}
-                        x2={child.x + NODE_WIDTH / 2}
+                        x1={parent.x + nodeWidth / 2}
+                        y1={parent.y + nodeHeight}
+                        x2={child.x + nodeWidth / 2}
                         y2={child.y}
                       />
                     );
@@ -669,8 +708,8 @@ export function TreeAnalysisEditor({
                       style={{
                         left: `${(node.x / PAGE.logicalWidth) * 100}%`,
                         top: `${(node.y / PAGE.logicalHeight) * 100}%`,
-                        width: `${(NODE_WIDTH / PAGE.logicalWidth) * 100}%`,
-                        height: `${(NODE_HEIGHT / PAGE.logicalHeight) * 100}%`
+                        width: `${(nodeWidth / PAGE.logicalWidth) * 100}%`,
+                        height: `${(nodeHeight / PAGE.logicalHeight) * 100}%`
                       }}
                       onPointerDown={(event) =>
                         handleNodePointerDown(event, node)
@@ -809,6 +848,8 @@ export function TreeAnalysisEditor({
             <span>
               {nodes.length === 0
                 ? "Ajoute au moins un rectangle."
+                : !boxesFitOnOneRow
+                  ? "La phrase contient trop de mots pour conserver des cases assez grandes sur une seule rangée."
                 : !allNodesConfigured
                   ? "Choisis un groupe ou une classe de mots pour chaque case."
                   : `${nodes.length} rectangle${nodes.length > 1 ? "s" : ""} prêt${nodes.length > 1 ? "s" : ""}.`}
@@ -825,7 +866,7 @@ export function TreeAnalysisEditor({
             <Button
               type="button"
               onClick={saveActivity}
-              disabled={!allNodesConfigured}
+              disabled={!allNodesConfigured || !boxesFitOnOneRow}
             >
               <Save size={17} />
               Enregistrer l’activité

@@ -6876,6 +6876,21 @@ textarea {
   font-weight: 750;
 }
 
+.tree-analysis-box-size {
+  margin: 10px 0 14px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted-foreground);
+  font-size: .84rem;
+  font-weight: 700;
+}
+
+.tree-analysis-box-size.warning {
+  border-color: #c28a27;
+  color: #8a5b0b;
+}
+
 .tree-analysis-page-shell.builder {
   overflow: auto;
 }
@@ -7003,6 +7018,15 @@ textarea {
   pointer-events: none;
 }
 
+.tree-print-student .tree-analysis-node strong {
+  visibility: hidden;
+}
+
+.tree-analysis-builder-tools button[aria-pressed="true"] {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
 .tree-analysis-node:active {
   cursor: grabbing;
 }
@@ -7080,5 +7104,48 @@ textarea {
   .tree-analysis-inspector {
     position: static;
     order: -1;
+  }
+}
+
+@page {
+  size: letter landscape;
+  margin: 0;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .tree-analysis-page-shell.builder,
+  .tree-analysis-page-shell.builder * {
+    visibility: visible !important;
+  }
+
+  .tree-print-student .tree-analysis-node strong {
+    visibility: hidden !important;
+  }
+
+  .tree-analysis-page-shell.builder {
+    position: fixed;
+    inset: 0;
+    width: 11in;
+    height: 8.5in;
+    padding: 0;
+    overflow: hidden;
+    background: white;
+    border-radius: 0;
+  }
+
+  .tree-analysis-page-shell.builder .tree-analysis-page {
+    width: 11in;
+    height: 8.5in;
+    min-width: 0;
+    box-shadow: none;
+  }
+
+  .tree-analysis-node.selected,
+  .tree-analysis-node.linking-parent {
+    outline: none;
   }
 }

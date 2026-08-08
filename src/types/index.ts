@@ -127,6 +127,8 @@ export type TreeAnalysisPageConfig = {
   sentenceFontSize: number;
   sentenceFontFamily: string;
   sentenceFontWeight: number;
+  nodeWidth?: number;
+  nodeHeight?: number;
 };
 
 export type TreeAnalysisNode = {
