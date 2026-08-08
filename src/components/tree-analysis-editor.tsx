@@ -59,7 +59,7 @@ const TREE_TOP = 100;
 const TREE_BOTTOM = PAGE.logicalHeight - PAGE.marginTop;
 const MIN_SENTENCE_FONT_SIZE = 18;
 const MAX_SENTENCE_FONT_SIZE = 96;
-const SENTENCE_RIGHT_MARGIN = 12;
+const SENTENCE_RIGHT_MARGIN = 20;
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -404,18 +404,6 @@ export function TreeAnalysisEditor({
     dragRef.current = null;
   }
 
-  function alignNodeUnderWord(nodeId: string, wordIndex: number) {
-    const center = wordCenters[wordIndex];
-    if (center === undefined) return;
-    updateNode(nodeId, {
-      x: clamp(
-        center - nodeWidth / 2,
-        PAGE.marginX,
-        PAGE.logicalWidth - PAGE.marginX - nodeWidth
-      )
-    });
-  }
-
   function handleNodeKeyDown(
     event: React.KeyboardEvent<HTMLDivElement>,
     node: TreeAnalysisNode
@@ -678,10 +666,6 @@ export function TreeAnalysisEditor({
                 </p>
               </div>
               <div className="tree-analysis-builder-tools">
-                <Button type="button" onClick={addNode}>
-                  <Plus size={17} />
-                  Rectangle
-                </Button>
                 {linkingParentId && (
                   <Button
                     type="button"
@@ -745,6 +729,18 @@ export function TreeAnalysisEditor({
                 }}
               >
                 <div className="tree-analysis-print-safe-guide" />
+                <Button
+                  type="button"
+                  className="tree-analysis-floating-add"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    addNode();
+                  }}
+                  onPointerDown={(event) => event.stopPropagation()}
+                >
+                  <Plus size={17} />
+                  Nouveau rectangle
+                </Button>
 
                 <div className="tree-analysis-builder-sentence">
                   <span style={{ fontSize: sentenceFontSizeCqw }}>
@@ -829,6 +825,35 @@ export function TreeAnalysisEditor({
                         }
                       }}
                     >
+                      {selected && (
+                        <div
+                          className="tree-node-actions"
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              startLink(node.id);
+                            }}
+                            title="Relier à un enfant"
+                            aria-label="Relier à un enfant"
+                          >
+                            <Link2 size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              deleteNode(node.id);
+                            }}
+                            title="Supprimer le rectangle"
+                            aria-label="Supprimer le rectangle"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      )}
                       <strong>{getNodeLabel(node)}</strong>
                     </div>
                   );
@@ -893,29 +918,7 @@ export function TreeAnalysisEditor({
                         </select>
                       </label>
                     )}
-                    <div className="tree-analysis-word-aligner">
-                      <span>Aligner sous un mot</span>
-                      <div>
-                        {sentenceWords.map((word, index) => (
-                          <button
-                            type="button"
-                            key={`${word}-${index}`}
-                            onClick={() => alignNodeUnderWord(selectedNode.id, index)}
-                          >
-                            {word}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                     <p>Glisse n’importe où sur le rectangle pour le déplacer. À proximité d’un mot, il s’aligne automatiquement sur son centre.</p>
-                    <Button type="button" onClick={() => startLink(selectedNode.id)}>
-                      <Link2 size={17} />
-                      Relier à un enfant
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={() => deleteNode(selectedNode.id)}>
-                      <Trash2 size={17} />
-                      Supprimer le rectangle
-                    </Button>
                   </>
                 ) : (
                   <>

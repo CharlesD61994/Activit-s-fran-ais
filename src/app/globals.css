@@ -6897,14 +6897,12 @@ textarea {
 
 .tree-analysis-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 250px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 16px;
 }
 
 .tree-analysis-inspector {
-  position: sticky;
-  top: 16px;
   display: grid;
   gap: 12px;
   padding: 16px;
@@ -6928,38 +6926,6 @@ textarea {
   display: grid;
   gap: 6px;
   font-weight: 750;
-}
-
-.tree-analysis-word-aligner {
-  display: grid;
-  gap: 7px;
-}
-
-.tree-analysis-word-aligner > span {
-  font-size: .82rem;
-  font-weight: 800;
-}
-
-.tree-analysis-word-aligner > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.tree-analysis-word-aligner button {
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--secondary);
-  color: var(--foreground);
-  font: inherit;
-  font-size: .78rem;
-  cursor: pointer;
-}
-
-.tree-analysis-word-aligner button:hover {
-  border-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
 }
 
 .tree-analysis-node-kind {
@@ -6995,6 +6961,14 @@ textarea {
   user-select: none;
   touch-action: none;
   overflow: hidden;
+}
+
+.tree-analysis-floating-add {
+  position: absolute;
+  z-index: 6;
+  right: 4.6%;
+  bottom: 3.8%;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
 }
 
 .tree-analysis-print-safe-guide {
@@ -7050,6 +7024,38 @@ textarea {
 .tree-analysis-node strong {
   font-size: clamp(9px, 1.3vw, 15px);
   pointer-events: none;
+}
+
+.tree-node-actions {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .16);
+  transform: translateX(-50%);
+}
+
+.tree-node-actions button {
+  display: grid;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: var(--secondary);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.tree-node-actions button:hover {
+  background: color-mix(in srgb, var(--primary) 14%, var(--secondary));
 }
 
 .tree-print-student .tree-analysis-node strong {
@@ -7162,6 +7168,11 @@ textarea {
 
   .tree-analysis-print-safe-guide {
     display: none;
+  }
+
+  .tree-analysis-floating-add,
+  .tree-node-actions {
+    display: none !important;
   }
 
   .tree-analysis-page-shell.builder {
