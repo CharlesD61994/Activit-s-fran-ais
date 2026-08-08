@@ -6737,7 +6737,7 @@ textarea {
 
 .tree-analysis-safe-area {
   position: absolute;
-  inset: 0;
+  inset: 2.94% 3.41%;
   border: 1px dashed rgba(0, 0, 0, .18);
   overflow: hidden;
 }
@@ -6746,7 +6746,7 @@ textarea {
   position: absolute;
   left: 0;
   right: auto;
-  top: 3.43%;
+  top: .5%;
   width: max-content;
   max-width: none;
   white-space: nowrap;
@@ -6999,14 +6999,16 @@ textarea {
 
 .tree-analysis-print-safe-guide {
   position: absolute;
-  inset: 0;
-  border: 1px dashed rgba(0, 0, 0, .14);
+  z-index: 4;
+  inset: 2.94% 3.41%;
+  border: 1px dashed rgba(0, 0, 0, .24);
+  box-shadow: 0 0 0 100vmax rgba(20, 24, 32, .08);
   pointer-events: none;
 }
 
 .tree-analysis-builder-sentence {
   position: absolute;
-  left: 0;
+  left: 3.41%;
   top: 3.43%;
   width: max-content;
   white-space: nowrap;
@@ -7156,6 +7158,10 @@ textarea {
 
   .tree-print-student .tree-analysis-node strong {
     visibility: hidden !important;
+  }
+
+  .tree-analysis-print-safe-guide {
+    display: none;
   }
 
   .tree-analysis-page-shell.builder {

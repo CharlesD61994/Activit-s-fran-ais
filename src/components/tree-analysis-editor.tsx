@@ -44,22 +44,22 @@ const PAGE: TreeAnalysisPageConfig = {
   orientation: "landscape",
   logicalWidth: 1056,
   logicalHeight: 816,
-  marginX: 0,
-  marginTop: 0,
+  marginX: 36,
+  marginTop: 24,
   sentenceTop: 28,
   sentenceFontSize: 25,
   sentenceFontFamily: "Arial, Helvetica, sans-serif",
   sentenceFontWeight: 400
 };
 
-const MAX_NODE_WIDTH = 92;
-const MIN_NODE_WIDTH = 60;
+const MAX_NODE_WIDTH = 72;
+const MIN_NODE_WIDTH = 48;
 const GRID = 8;
 const TREE_TOP = 100;
-const TREE_BOTTOM = PAGE.logicalHeight;
+const TREE_BOTTOM = PAGE.logicalHeight - PAGE.marginTop;
 const MIN_SENTENCE_FONT_SIZE = 18;
 const MAX_SENTENCE_FONT_SIZE = 64;
-const SENTENCE_WIDTH_FILL = 0.98;
+const SENTENCE_WIDTH_FILL = 0.96;
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -188,6 +188,24 @@ export function TreeAnalysisEditor({
   const nodeWidth = clamp(calculatedNodeWidth, MIN_NODE_WIDTH, MAX_NODE_WIDTH);
   const nodeHeight = Math.round(nodeWidth * 0.61);
   const boxesFitOnOneRow = calculatedNodeWidth >= MIN_NODE_WIDTH;
+
+  useEffect(() => {
+    setNodes((currentNodes) => {
+      let changed = false;
+      const printableNodes = currentNodes.map((node) => {
+        const x = clamp(
+          node.x,
+          PAGE.marginX,
+          PAGE.logicalWidth - PAGE.marginX - nodeWidth
+        );
+        const y = clamp(node.y, TREE_TOP, TREE_BOTTOM - nodeHeight);
+        if (x === node.x && y === node.y) return node;
+        changed = true;
+        return { ...node, x, y };
+      });
+      return changed ? printableNodes : currentNodes;
+    });
+  }, [nodeHeight, nodeWidth]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
