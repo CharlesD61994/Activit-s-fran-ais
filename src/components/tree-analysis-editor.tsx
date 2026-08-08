@@ -159,9 +159,7 @@ export function TreeAnalysisEditor({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const [wordCenters, setWordCenters] = useState<number[]>([]);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
-    null
-  );
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [linkingParentId, setLinkingParentId] = useState<string | null>(
     null
@@ -172,12 +170,13 @@ export function TreeAnalysisEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const builderRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
-    kind: "node" | "score" | "table";
+    kind: "node" | "score" | "table" | "phrase";
     itemId: string;
     width: number;
     height: number;
     offsetX: number;
     offsetY: number;
+    nodePositions?: Array<{ id: string; x: number; y: number }>;
   } | null>(null);
 
   const availableWidth =
@@ -333,7 +332,7 @@ export function TreeAnalysisEditor({
     };
 
     setNodes((current) => [...current, node]);
-    setSelectedNodeId(node.id);
+    setSelectedNodeIds([node.id]);
     setLinkingParentId(null);
     setAddMenuOpen(false);
   }
@@ -380,15 +379,15 @@ export function TreeAnalysisEditor({
     setAddMenuOpen(false);
   }
 
-  function startItemDrag(event: React.PointerEvent<HTMLDivElement>, kind: "score" | "table", item: { id: string; x: number; y: number }) {
-    if ((event.target as HTMLElement).closest("input,textarea,button")) return;
+  function startItemDrag(event: React.PointerEvent<HTMLElement>, kind: "score" | "table" | "phrase", item: { id: string; x: number; y: number }) {
+    if (kind !== "phrase" && (event.target as HTMLElement).closest("input,textarea,button")) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     dragRef.current = {
       kind, itemId: item.id,
-      width: kind === "score" ? 90 : 360,
-      height: kind === "score" ? 60 : 120,
+      width: kind === "score" ? 90 : kind === "table" ? 360 : 1000,
+      height: kind === "score" ? 60 : kind === "table" ? 120 : 60,
       offsetX: (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width) - item.x,
       offsetY: (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height) - item.y
     };
@@ -428,9 +427,7 @@ export function TreeAnalysisEditor({
           relation.childNodeId !== nodeId
       )
     );
-    setSelectedNodeId((current) =>
-      current === nodeId ? null : current
-    );
+    setSelectedNodeIds((current) => current.filter((id) => id !== nodeId));
     setLinkingParentId((current) =>
       current === nodeId ? null : current
     );
@@ -454,19 +451,33 @@ export function TreeAnalysisEditor({
     const rect = canvas.getBoundingClientRect();
     const scaleX = PAGE.logicalWidth / rect.width;
     const scaleY = PAGE.logicalHeight / rect.height;
+    let dragIds = selectedNodeIds.includes(node.id) ? selectedNodeIds : [node.id];
+
+    if (event.shiftKey) {
+      if (selectedNodeIds.includes(node.id)) {
+        setSelectedNodeIds((current) => current.filter((id) => id !== node.id));
+        return;
+      }
+      dragIds = [...selectedNodeIds, node.id];
+      setSelectedNodeIds(dragIds);
+    } else if (!selectedNodeIds.includes(node.id)) {
+      setSelectedNodeIds([node.id]);
+    }
 
     dragRef.current = {
       kind: "node",
       itemId: node.id,
       width: getNodeDimensions(node).width,
       height: getNodeDimensions(node).height,
+      nodePositions: nodes
+        .filter((item) => dragIds.includes(item.id))
+        .map((item) => ({ id: item.id, x: item.x, y: item.y })),
       offsetX:
         (event.clientX - rect.left) * scaleX - node.x,
       offsetY:
         (event.clientY - rect.top) * scaleY - node.y
     };
 
-    setSelectedNodeId(node.id);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
@@ -519,18 +530,32 @@ export function TreeAnalysisEditor({
       return;
     }
 
-    updateNode(drag.itemId, {
-      x: clamp(
-        closestWordCenter === null ? snap(logicalX) : logicalX,
-        PAGE.marginX,
-        PAGE.logicalWidth - PAGE.marginX - drag.width
-      ),
-      y: clamp(
-        snap(logicalY),
-        TREE_TOP,
-        TREE_BOTTOM - drag.height
-      )
-    });
+    if (drag.kind === "phrase") {
+      setPhrases((current) => current.map((phrase) =>
+        phrase.id === drag.itemId
+          ? { ...phrase, x: clamp(logicalX, 0, PAGE.logicalWidth - drag.width), y: clamp(logicalY, 52, PAGE.logicalHeight - drag.height) }
+          : phrase
+      ));
+      return;
+    }
+
+    const primaryStart = drag.nodePositions?.find((item) => item.id === drag.itemId);
+    if (!primaryStart) return;
+    const nextPrimaryX = closestWordCenter === null ? snap(logicalX) : logicalX;
+    const nextPrimaryY = snap(logicalY);
+    const deltaX = nextPrimaryX - primaryStart.x;
+    const deltaY = nextPrimaryY - primaryStart.y;
+    const positions = new Map(drag.nodePositions?.map((item) => [item.id, item]));
+    setNodes((current) => current.map((node) => {
+      const start = positions.get(node.id);
+      if (!start) return node;
+      const size = getNodeDimensions(node);
+      return {
+        ...node,
+        x: clamp(start.x + deltaX, PAGE.marginX, PAGE.logicalWidth - PAGE.marginX - size.width),
+        y: clamp(start.y + deltaY, TREE_TOP, TREE_BOTTOM - size.height)
+      };
+    }));
   }
 
   function stopDragging() {
@@ -566,7 +591,6 @@ export function TreeAnalysisEditor({
   }
 
   function startLink(nodeId: string) {
-    setSelectedNodeId(nodeId);
     setLinkingParentId(nodeId);
   }
 
@@ -591,7 +615,7 @@ export function TreeAnalysisEditor({
     }
 
     setLinkingParentId(null);
-    setSelectedNodeId(childId);
+    setSelectedNodeIds([childId]);
   }
 
   function removeRelation(relationId: string) {
@@ -799,7 +823,8 @@ export function TreeAnalysisEditor({
                 <p>
                   Ajoute des rectangles, place-les librement sur la
                   feuille, puis double-clique sur un rectangle pour choisir
-                  son type, le relier ou le supprimer.
+                  son type, le relier ou le supprimer. Utilise Maj + clic
+                  pour sélectionner plusieurs rectangles.
                 </p>
               </div>
               <div className="tree-analysis-builder-tools">
@@ -878,7 +903,7 @@ export function TreeAnalysisEditor({
                 onPointerCancel={stopDragging}
                 onClick={(event) => {
                   if (event.target === event.currentTarget) {
-                    setSelectedNodeId(null);
+                    setSelectedNodeIds([]);
                   }
                 }}
               >
@@ -892,6 +917,10 @@ export function TreeAnalysisEditor({
                     className={`tree-analysis-builder-sentence ${activePhraseId === phrase.id ? "active" : ""}`}
                     style={{ left: `${(phrase.x / PAGE.logicalWidth) * 100}%`, top: `${(phrase.y / PAGE.logicalHeight) * 100}%`, fontSize: `${(phrase.fontSize / PAGE.logicalWidth) * 100}cqw` }}
                     onClick={() => setActivePhraseId(phrase.id)}
+                    onPointerDown={(event) => {
+                      setActivePhraseId(phrase.id);
+                      startItemDrag(event, "phrase", phrase);
+                    }}
                   >
                     {phrase.text}
                   </button>
@@ -929,7 +958,7 @@ export function TreeAnalysisEditor({
                 </svg>
 
                 {nodes.map((node) => {
-                  const selected = selectedNodeId === node.id;
+                  const selected = selectedNodeIds.includes(node.id);
                   const linkingParent =
                     linkingParentId === node.id;
                   const currentNodeSize = getNodeDimensions(node);
@@ -962,13 +991,13 @@ export function TreeAnalysisEditor({
                           linkingParentId !== node.id
                         ) {
                           chooseLinkTarget(node.id);
-                        } else {
-                          setSelectedNodeId(node.id);
+                        } else if (!event.shiftKey) {
+                          setSelectedNodeIds([node.id]);
                         }
                       }}
                       onDoubleClick={(event) => {
                         event.stopPropagation();
-                        setSelectedNodeId(node.id);
+                        setSelectedNodeIds([node.id]);
                         setEditingNodeId(node.id);
                       }}
                     >

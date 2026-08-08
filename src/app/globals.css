@@ -7086,7 +7086,12 @@ textarea {
   border: 0;
   background: transparent;
   color: #111;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tree-analysis-builder-sentence:active {
+  cursor: grabbing;
 }
 
 .tree-analysis-builder-sentence.active {
