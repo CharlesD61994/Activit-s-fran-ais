@@ -171,6 +171,7 @@ export function TreeAnalysisEditor({
   const allNodesConfigured =
     nodes.length > 0 &&
     nodes.every((node) => Boolean(node.groupType));
+  const selectedNode = nodes.find((node) => node.id === selectedNodeId);
 
   function addNode() {
     const index = nodes.length;
@@ -289,6 +290,34 @@ export function TreeAnalysisEditor({
 
   function stopDragging() {
     dragRef.current = null;
+  }
+
+  function handleNodeKeyDown(
+    event: React.KeyboardEvent<HTMLDivElement>,
+    node: TreeAnalysisNode
+  ) {
+    const movement = event.shiftKey ? GRID * 4 : GRID;
+    const directions: Record<string, { x: number; y: number }> = {
+      ArrowLeft: { x: -movement, y: 0 },
+      ArrowRight: { x: movement, y: 0 },
+      ArrowUp: { x: 0, y: -movement },
+      ArrowDown: { x: 0, y: movement }
+    };
+    const direction = directions[event.key];
+
+    if (direction) {
+      event.preventDefault();
+      updateNode(node.id, {
+        x: clamp(node.x + direction.x, PAGE.marginX, PAGE.logicalWidth - PAGE.marginX - NODE_WIDTH),
+        y: clamp(node.y + direction.y, TREE_TOP, TREE_BOTTOM - NODE_HEIGHT)
+      });
+      return;
+    }
+
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      deleteNode(node.id);
+    }
   }
 
   function startLink(nodeId: string) {
@@ -543,8 +572,9 @@ export function TreeAnalysisEditor({
               </div>
             )}
 
-            <div className="tree-analysis-page-shell builder">
-              <div
+            <div className="tree-analysis-workspace">
+              <div className="tree-analysis-page-shell builder">
+                <div
                 ref={canvasRef}
                 className={`tree-analysis-page tree-analysis-canvas ${
                   linkingParentId ? "linking" : ""
@@ -552,6 +582,11 @@ export function TreeAnalysisEditor({
                 onPointerMove={handleCanvasPointerMove}
                 onPointerUp={stopDragging}
                 onPointerCancel={stopDragging}
+                onClick={(event) => {
+                  if (event.target === event.currentTarget) {
+                    setSelectedNodeId(null);
+                  }
+                }}
               >
                 <div className="tree-analysis-print-safe-guide" />
 
@@ -609,6 +644,10 @@ export function TreeAnalysisEditor({
                       onPointerDown={(event) =>
                         handleNodePointerDown(event, node)
                       }
+                      onKeyDown={(event) => handleNodeKeyDown(event, node)}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${node.groupType ? groupLabels[node.groupType] : "Rectangle non configuré"}. Déplaçable.`}
                       onClick={(event) => {
                         event.stopPropagation();
                         if (
@@ -621,62 +660,49 @@ export function TreeAnalysisEditor({
                         }
                       }}
                     >
-                      <select
-                        value={node.groupType ?? ""}
-                        onChange={(event) =>
-                          updateNode(node.id, {
-                            groupType:
-                              (event.target.value ||
-                                undefined) as
-                                | WordGroupType
-                                | undefined
-                          })
-                        }
-                        aria-label="Type du groupe"
-                      >
-                        <option value="">Groupe…</option>
-                        {(Object.keys(
-                          groupLabels
-                        ) as WordGroupType[]).map(
-                          (groupType) => (
-                            <option
-                              key={groupType}
-                              value={groupType}
-                            >
-                              {groupLabels[groupType]}
-                            </option>
-                          )
-                        )}
-                      </select>
-
-                      <div className="tree-node-actions">
-                        <button
-                          type="button"
-                          title="Relier à un enfant"
-                          aria-label="Relier à un enfant"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            startLink(node.id);
-                          }}
-                        >
-                          <Link2 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          title="Supprimer"
-                          aria-label="Supprimer le rectangle"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            deleteNode(node.id);
-                          }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
+                      <strong>{node.groupType ? groupLabels[node.groupType] : "Groupe…"}</strong>
                     </div>
                   );
                 })}
+                </div>
               </div>
+
+              <aside className="tree-analysis-inspector" aria-live="polite">
+                <span className="eyebrow">Propriétés</span>
+                {selectedNode ? (
+                  <>
+                    <h3>Rectangle sélectionné</h3>
+                    <label>
+                      Type du groupe
+                      <select
+                        value={selectedNode.groupType ?? ""}
+                        onChange={(event) => updateNode(selectedNode.id, {
+                          groupType: (event.target.value || undefined) as WordGroupType | undefined
+                        })}
+                      >
+                        <option value="">Choisir…</option>
+                        {(Object.keys(groupLabels) as WordGroupType[]).map((groupType) => (
+                          <option key={groupType} value={groupType}>{groupLabels[groupType]}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <p>Glisse n’importe où sur le rectangle pour le déplacer. Utilise les flèches pour l’ajuster précisément.</p>
+                    <Button type="button" onClick={() => startLink(selectedNode.id)}>
+                      <Link2 size={17} />
+                      Relier à un enfant
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => deleteNode(selectedNode.id)}>
+                      <Trash2 size={17} />
+                      Supprimer le rectangle
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <h3>Sélectionne un rectangle</h3>
+                    <p>Clique sur un rectangle pour modifier son type, créer une liaison ou le supprimer.</p>
+                  </>
+                )}
+              </aside>
             </div>
 
             {relations.length > 0 && (

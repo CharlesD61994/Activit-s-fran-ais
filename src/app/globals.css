@@ -6879,6 +6879,41 @@ textarea {
   overflow: auto;
 }
 
+.tree-analysis-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  align-items: start;
+  gap: 16px;
+}
+
+.tree-analysis-inspector {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.tree-analysis-inspector h3,
+.tree-analysis-inspector p {
+  margin: 0;
+}
+
+.tree-analysis-inspector p {
+  color: var(--muted-foreground);
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+.tree-analysis-inspector label {
+  display: grid;
+  gap: 6px;
+  font-weight: 750;
+}
+
 .tree-analysis-canvas {
   user-select: none;
   touch-action: none;
@@ -6933,6 +6968,11 @@ textarea {
   touch-action: none;
 }
 
+.tree-analysis-node strong {
+  font-size: clamp(9px, 1.3vw, 15px);
+  pointer-events: none;
+}
+
 .tree-analysis-node:active {
   cursor: grabbing;
 }
@@ -6947,50 +6987,21 @@ textarea {
   outline-offset: 3px;
 }
 
-.tree-analysis-node select {
-  width: calc(100% - 12px);
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: #111;
-  padding: 4px 2px;
-  text-align: center;
-  text-align-last: center;
-  font-size: clamp(8px, 1.25vw, 14px);
-  font-weight: 800;
-  cursor: pointer;
-  appearance: auto;
-}
-
-.tree-node-actions {
-  position: absolute;
-  top: -26px;
-  right: -2px;
-  display: none;
-  align-items: center;
-  gap: 4px;
-}
-
-.tree-analysis-node.selected .tree-node-actions,
-.tree-analysis-node.linking-parent .tree-node-actions {
-  display: flex;
-}
-
-.tree-node-actions button {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--foreground);
-  cursor: pointer;
-}
-
 .tree-analysis-canvas.linking .tree-analysis-node:not(.linking-parent) {
   cursor: crosshair;
+}
+
+.tree-analysis-canvas.linking .tree-analysis-node:not(.linking-parent)::before {
+  content: "Choisir comme enfant";
+  position: absolute;
+  inset: -5px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--primary);
+  background: color-mix(in srgb, white 88%, var(--primary));
+  color: #111;
+  font-size: clamp(6px, .75vw, 9px);
+  font-weight: 850;
 }
 
 .tree-analysis-relations-list {
@@ -7030,5 +7041,14 @@ textarea {
 
   .tree-analysis-page-shell.builder .tree-analysis-page {
     min-width: 760px;
+  }
+
+  .tree-analysis-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .tree-analysis-inspector {
+    position: static;
+    order: -1;
   }
 }
