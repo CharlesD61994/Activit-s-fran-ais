@@ -129,6 +129,7 @@ export function TreeAnalysisEditor({
     initialSentence?.treeAnalysisRelations ?? []
   );
   const [measuredWidth, setMeasuredWidth] = useState(0);
+  const [wordCenters, setWordCenters] = useState<number[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     null
   );
@@ -137,6 +138,7 @@ export function TreeAnalysisEditor({
   );
   const [printMode, setPrintMode] = useState<"student" | "answer">("answer");
   const measureRef = useRef<HTMLSpanElement>(null);
+  const wordRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     nodeId: string;
@@ -159,6 +161,10 @@ export function TreeAnalysisEditor({
   }, [originalText]);
 
   const trimmed = originalText.trim();
+  const sentenceWords = useMemo(
+    () => (trimmed ? trimmed.split(/\s+/u) : []),
+    [trimmed]
+  );
   const targetSentenceWidth = availableWidth * SENTENCE_WIDTH_FILL;
   const idealSentenceFontSize = measuredWidth
     ? PAGE.sentenceFontSize * (targetSentenceWidth / measuredWidth)
@@ -182,6 +188,33 @@ export function TreeAnalysisEditor({
   const nodeWidth = clamp(calculatedNodeWidth, MIN_NODE_WIDTH, MAX_NODE_WIDTH);
   const nodeHeight = Math.round(nodeWidth * 0.61);
   const boxesFitOnOneRow = calculatedNodeWidth >= MIN_NODE_WIDTH;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || step !== 2) {
+      setWordCenters([]);
+      return;
+    }
+
+    const measureWords = () => {
+      const canvasRect = canvas.getBoundingClientRect();
+      const scaleX = PAGE.logicalWidth / canvasRect.width;
+      setWordCenters(
+        sentenceWords.map((_, index) => {
+          const wordRect = wordRefs.current[index]?.getBoundingClientRect();
+          return wordRect
+            ? (wordRect.left - canvasRect.left + wordRect.width / 2) * scaleX
+            : 0;
+        })
+      );
+    };
+
+    measureWords();
+    document.fonts?.ready.then(measureWords).catch(() => undefined);
+    const observer = new ResizeObserver(measureWords);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [effectiveSentenceFontSize, sentenceWords, step]);
 
   const status = useMemo(() => {
     if (!trimmed) {
@@ -314,14 +347,29 @@ export function TreeAnalysisEditor({
     const scaleX = PAGE.logicalWidth / rect.width;
     const scaleY = PAGE.logicalHeight / rect.height;
 
-    const logicalX =
+    let logicalX =
       (event.clientX - rect.left) * scaleX - drag.offsetX;
     const logicalY =
       (event.clientY - rect.top) * scaleY - drag.offsetY;
 
+    const closestWordCenter = wordCenters.reduce<number | null>(
+      (closest, center) => {
+        const nodeCenter = logicalX + nodeWidth / 2;
+        if (Math.abs(center - nodeCenter) > 18) return closest;
+        if (closest === null) return center;
+        return Math.abs(center - nodeCenter) < Math.abs(closest - nodeCenter)
+          ? center
+          : closest;
+      },
+      null
+    );
+    if (closestWordCenter !== null) {
+      logicalX = closestWordCenter - nodeWidth / 2;
+    }
+
     updateNode(drag.nodeId, {
       x: clamp(
-        snap(logicalX),
+        closestWordCenter === null ? snap(logicalX) : logicalX,
         PAGE.marginX,
         PAGE.logicalWidth - PAGE.marginX - nodeWidth
       ),
@@ -335,6 +383,18 @@ export function TreeAnalysisEditor({
 
   function stopDragging() {
     dragRef.current = null;
+  }
+
+  function alignNodeUnderWord(nodeId: string, wordIndex: number) {
+    const center = wordCenters[wordIndex];
+    if (center === undefined) return;
+    updateNode(nodeId, {
+      x: clamp(
+        center - nodeWidth / 2,
+        PAGE.marginX,
+        PAGE.logicalWidth - PAGE.marginX - nodeWidth
+      )
+    });
   }
 
   function handleNodeKeyDown(
@@ -669,7 +729,18 @@ export function TreeAnalysisEditor({
 
                 <div className="tree-analysis-builder-sentence">
                   <span style={{ fontSize: sentenceFontSizeCqw }}>
-                  {trimmed}
+                    {sentenceWords.map((word, index) => (
+                      <span key={`${word}-${index}`}>
+                        {index > 0 ? " " : ""}
+                        <span
+                          ref={(element) => {
+                            wordRefs.current[index] = element;
+                          }}
+                        >
+                          {word}
+                        </span>
+                      </span>
+                    ))}
                   </span>
                 </div>
 
@@ -803,7 +874,21 @@ export function TreeAnalysisEditor({
                         </select>
                       </label>
                     )}
-                    <p>Glisse n’importe où sur le rectangle pour le déplacer. Utilise les flèches pour l’ajuster précisément.</p>
+                    <div className="tree-analysis-word-aligner">
+                      <span>Aligner sous un mot</span>
+                      <div>
+                        {sentenceWords.map((word, index) => (
+                          <button
+                            type="button"
+                            key={`${word}-${index}`}
+                            onClick={() => alignNodeUnderWord(selectedNode.id, index)}
+                          >
+                            {word}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <p>Glisse n’importe où sur le rectangle pour le déplacer. À proximité d’un mot, il s’aligne automatiquement sur son centre.</p>
                     <Button type="button" onClick={() => startLink(selectedNode.id)}>
                       <Link2 size={17} />
                       Relier à un enfant

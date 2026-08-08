@@ -6930,6 +6930,38 @@ textarea {
   font-weight: 750;
 }
 
+.tree-analysis-word-aligner {
+  display: grid;
+  gap: 7px;
+}
+
+.tree-analysis-word-aligner > span {
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.tree-analysis-word-aligner > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tree-analysis-word-aligner button {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--secondary);
+  color: var(--foreground);
+  font: inherit;
+  font-size: .78rem;
+  cursor: pointer;
+}
+
+.tree-analysis-word-aligner button:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+}
+
 .tree-analysis-node-kind {
   display: grid;
   grid-template-columns: 1fr 1fr;
