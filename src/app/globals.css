@@ -6808,6 +6808,26 @@ textarea {
   background: color-mix(in srgb, var(--primary) 12%, var(--surface));
 }
 
+.tree-analysis-text-toolbar button.danger {
+  margin-left: auto;
+  border-color: color-mix(in srgb, #b53b3b 55%, var(--border));
+  color: #9b2525;
+}
+
+.tree-analysis-legacy-phrase-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--secondary);
+  font-size: .82rem;
+  font-weight: 750;
+}
+
 .tree-analysis-page-controls input,
 .tree-analysis-text-toolbar input {
   width: 72px;
@@ -7240,6 +7260,12 @@ textarea {
   overflow-wrap: anywhere;
   line-height: 1.25;
   outline: 0;
+}
+
+.tree-analysis-text-content:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(0, 0, 0, .34);
+  pointer-events: none;
 }
 
 .tree-analysis-lines {

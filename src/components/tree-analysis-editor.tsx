@@ -397,6 +397,23 @@ export function TreeAnalysisEditor({
     setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, annotations: [...box.annotations, { id: crypto.randomUUID(), start: textSelection.start, end: textSelection.end, ...patch }] } : box));
   }
 
+  function deleteSelectedTextBox() {
+    if (!selectedTextBoxId) return;
+    setTextBoxes((current) => current.filter((box) => box.id !== selectedTextBoxId));
+    setSelectedTextBoxId(null);
+    setTextSelection(null);
+  }
+
+  function deleteActivePhrase() {
+    if (!activePhraseId) return;
+    const removedNodeIds = new Set(nodes.filter((node) => node.phraseId === activePhraseId).map((node) => node.id));
+    setPhrases((current) => current.filter((phrase) => phrase.id !== activePhraseId));
+    setNodes((current) => current.filter((node) => node.phraseId !== activePhraseId));
+    setRelations((current) => current.filter((relation) => !removedNodeIds.has(relation.parentNodeId) && !removedNodeIds.has(relation.childNodeId)));
+    setSelectedNodeIds((current) => current.filter((id) => !removedNodeIds.has(id)));
+    setActivePhraseId(null);
+  }
+
   function captureTextSelection(box: TreeAnalysisTextBox, element: HTMLElement) {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
@@ -980,6 +997,13 @@ export function TreeAnalysisEditor({
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#2467d1" })}>Bleu</button>
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#22834b" })}>Vert</button>
                 <button type="button" onClick={() => applyTextAnnotation({ framed: true })}>Encadrer</button>
+                <button type="button" className="danger" onClick={deleteSelectedTextBox}><Trash2 size={15} /> Supprimer la boîte</button>
+              </div>
+            )}
+            {activePhraseId && phrases.some((phrase) => phrase.id === activePhraseId) && (
+              <div className="tree-analysis-legacy-phrase-actions">
+                <span>Ancienne phrase sélectionnée</span>
+                <Button type="button" variant="secondary" onClick={deleteActivePhrase}><Trash2 size={15} /> Supprimer la phrase et ses rectangles</Button>
               </div>
             )}
 
@@ -1165,7 +1189,12 @@ export function TreeAnalysisEditor({
                       className="tree-analysis-text-content"
                       contentEditable
                       suppressContentEditableWarning
+                      data-placeholder="Écris ton texte ici…"
+                      onFocus={() => setSelectedTextBoxId(box.id)}
                       onMouseUp={(event) => captureTextSelection(box, event.currentTarget)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Backspace" && !(event.currentTarget.textContent ?? "")) event.preventDefault();
+                      }}
                       onInput={(event) => setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: event.currentTarget.textContent ?? "", annotations: [] } : item))}
                     >
                       {renderTextBoxContent(box)}
