@@ -44,8 +44,8 @@ const PAGE: TreeAnalysisPageConfig = {
   orientation: "landscape",
   logicalWidth: 1056,
   logicalHeight: 816,
-  marginX: 36,
-  marginTop: 24,
+  marginX: 0,
+  marginTop: 0,
   sentenceTop: 28,
   sentenceFontSize: 25,
   sentenceFontFamily: "Arial, Helvetica, sans-serif",
@@ -133,6 +133,7 @@ export function TreeAnalysisEditor({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     null
   );
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [linkingParentId, setLinkingParentId] = useState<string | null>(
     null
   );
@@ -267,7 +268,7 @@ export function TreeAnalysisEditor({
   const allNodesConfigured =
     nodes.length > 0 &&
     nodes.every((node) => Boolean(node.groupType || node.wordClass));
-  const selectedNode = nodes.find((node) => node.id === selectedNodeId);
+  const editingNode = nodes.find((node) => node.id === editingNodeId);
 
   function addNode() {
     const index = nodes.length;
@@ -661,11 +662,15 @@ export function TreeAnalysisEditor({
                 <h2>Construction de l’arbre</h2>
                 <p>
                   Ajoute des rectangles, place-les librement sur la
-                  feuille, choisis leur groupe et relie les parents aux
-                  enfants.
+                  feuille, puis double-clique sur un rectangle pour choisir
+                  son type, le relier ou le supprimer.
                 </p>
               </div>
               <div className="tree-analysis-builder-tools">
+                <Button type="button" onClick={addNode}>
+                  <Plus size={17} />
+                  Nouveau rectangle
+                </Button>
                 {linkingParentId && (
                   <Button
                     type="button"
@@ -729,18 +734,6 @@ export function TreeAnalysisEditor({
                 }}
               >
                 <div className="tree-analysis-print-safe-guide" />
-                <Button
-                  type="button"
-                  className="tree-analysis-floating-add"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    addNode();
-                  }}
-                  onPointerDown={(event) => event.stopPropagation()}
-                >
-                  <Plus size={17} />
-                  Nouveau rectangle
-                </Button>
 
                 <div className="tree-analysis-builder-sentence">
                   <span style={{ fontSize: sentenceFontSizeCqw }}>
@@ -824,36 +817,12 @@ export function TreeAnalysisEditor({
                           setSelectedNodeId(node.id);
                         }
                       }}
+                      onDoubleClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedNodeId(node.id);
+                        setEditingNodeId(node.id);
+                      }}
                     >
-                      {selected && (
-                        <div
-                          className="tree-node-actions"
-                          onPointerDown={(event) => event.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              startLink(node.id);
-                            }}
-                            title="Relier à un enfant"
-                            aria-label="Relier à un enfant"
-                          >
-                            <Link2 size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              deleteNode(node.id);
-                            }}
-                            title="Supprimer le rectangle"
-                            aria-label="Supprimer le rectangle"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      )}
                       <strong>{getNodeLabel(node)}</strong>
                     </div>
                   );
@@ -861,37 +830,55 @@ export function TreeAnalysisEditor({
                 </div>
               </div>
 
-              <aside className="tree-analysis-inspector" aria-live="polite">
-                <span className="eyebrow">Propriétés</span>
-                {selectedNode ? (
-                  <>
-                    <h3>Rectangle sélectionné</h3>
+              {editingNode && (
+                <div
+                  className="tree-analysis-modal-backdrop"
+                  role="presentation"
+                  onMouseDown={(event) => {
+                    if (event.target === event.currentTarget) setEditingNodeId(null);
+                  }}
+                >
+                  <aside
+                    className="tree-analysis-inspector tree-analysis-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Modifier le rectangle"
+                  >
+                    <div className="tree-analysis-modal-heading">
+                      <div>
+                        <span className="eyebrow">Rectangle</span>
+                        <h3>Que veux-tu faire?</h3>
+                      </div>
+                      <button type="button" onClick={() => setEditingNodeId(null)} aria-label="Fermer">
+                        <X size={18} />
+                      </button>
+                    </div>
                     <div className="tree-analysis-node-kind" role="group" aria-label="Type de case">
                       <button
                         type="button"
-                        className={!selectedNode.wordClass ? "active" : ""}
-                        onClick={() => updateNode(selectedNode.id, { wordClass: undefined })}
+                        className={!editingNode.wordClass ? "active" : ""}
+                        onClick={() => updateNode(editingNode.id, { wordClass: undefined })}
                       >
                         Groupe de mots
                       </button>
                       <button
                         type="button"
-                        className={selectedNode.wordClass ? "active" : ""}
-                        onClick={() => updateNode(selectedNode.id, {
+                        className={editingNode.wordClass ? "active" : ""}
+                        onClick={() => updateNode(editingNode.id, {
                           groupType: undefined,
-                          wordClass: selectedNode.wordClass ?? "noun"
+                          wordClass: editingNode.wordClass ?? "noun"
                         })}
                       >
                         Classe de mots
                       </button>
                     </div>
 
-                    {selectedNode.wordClass ? (
+                    {editingNode.wordClass ? (
                       <label>
                         Classe de mots
                         <select
-                          value={selectedNode.wordClass}
-                          onChange={(event) => updateNode(selectedNode.id, {
+                          value={editingNode.wordClass}
+                          onChange={(event) => updateNode(editingNode.id, {
                             groupType: undefined,
                             wordClass: event.target.value as WordClass
                           })}
@@ -905,8 +892,8 @@ export function TreeAnalysisEditor({
                       <label>
                         Type du groupe
                         <select
-                          value={selectedNode.groupType ?? ""}
-                          onChange={(event) => updateNode(selectedNode.id, {
+                          value={editingNode.groupType ?? ""}
+                          onChange={(event) => updateNode(editingNode.id, {
                             wordClass: undefined,
                             groupType: (event.target.value || undefined) as WordGroupType | undefined
                           })}
@@ -918,15 +905,25 @@ export function TreeAnalysisEditor({
                         </select>
                       </label>
                     )}
-                    <p>Glisse n’importe où sur le rectangle pour le déplacer. À proximité d’un mot, il s’aligne automatiquement sur son centre.</p>
-                  </>
-                ) : (
-                  <>
-                    <h3>Sélectionne un rectangle</h3>
-                    <p>Clique sur un rectangle pour modifier son type, créer une liaison ou le supprimer.</p>
-                  </>
-                )}
-              </aside>
+                    <div className="tree-analysis-modal-actions">
+                      <Button type="button" onClick={() => {
+                        startLink(editingNode.id);
+                        setEditingNodeId(null);
+                      }}>
+                        <Link2 size={17} />
+                        Relier à un enfant
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => {
+                        deleteNode(editingNode.id);
+                        setEditingNodeId(null);
+                      }}>
+                        <Trash2 size={17} />
+                        Supprimer
+                      </Button>
+                    </div>
+                  </aside>
+                </div>
+              )}
             </div>
 
             {relations.length > 0 && (

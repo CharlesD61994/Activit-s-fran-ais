@@ -6729,7 +6729,7 @@ textarea {
   position: relative;
   container-type: inline-size;
   width: 100%;
-  aspect-ratio: 11 / 8.5;
+  aspect-ratio: 10.5 / 8;
   background: white;
   color: #111;
   box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
@@ -6737,7 +6737,7 @@ textarea {
 
 .tree-analysis-safe-area {
   position: absolute;
-  inset: 2.94% 1.14% 2.94% 3.03%;
+  inset: 0;
   border: 1px dashed rgba(0, 0, 0, .18);
   overflow: hidden;
 }
@@ -6928,6 +6928,53 @@ textarea {
   font-weight: 750;
 }
 
+.tree-analysis-modal-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: rgba(15, 18, 25, .48);
+}
+
+.tree-analysis-modal {
+  width: min(460px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .28);
+}
+
+.tree-analysis-modal-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tree-analysis-modal-heading h3 {
+  margin-top: 4px;
+}
+
+.tree-analysis-modal-heading > button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--secondary);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.tree-analysis-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .tree-analysis-node-kind {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -6963,26 +7010,13 @@ textarea {
   overflow: hidden;
 }
 
-.tree-analysis-floating-add {
-  position: absolute;
-  z-index: 6;
-  right: 4.6%;
-  bottom: 3.8%;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
-}
-
 .tree-analysis-print-safe-guide {
-  position: absolute;
-  z-index: 4;
-  inset: 2.94% 3.41%;
-  border: 1px dashed rgba(0, 0, 0, .24);
-  box-shadow: 0 0 0 100vmax rgba(20, 24, 32, .08);
-  pointer-events: none;
+  display: none;
 }
 
 .tree-analysis-builder-sentence {
   position: absolute;
-  left: 3.03%;
+  left: .4%;
   top: 3.43%;
   width: max-content;
   white-space: nowrap;
@@ -7024,38 +7058,6 @@ textarea {
 .tree-analysis-node strong {
   font-size: clamp(9px, 1.3vw, 15px);
   pointer-events: none;
-}
-
-.tree-node-actions {
-  position: absolute;
-  z-index: 7;
-  left: 50%;
-  bottom: calc(100% + 6px);
-  display: flex;
-  gap: 5px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, .16);
-  transform: translateX(-50%);
-}
-
-.tree-node-actions button {
-  display: grid;
-  width: 30px;
-  height: 28px;
-  padding: 0;
-  place-items: center;
-  border: 0;
-  border-radius: 5px;
-  background: var(--secondary);
-  color: var(--foreground);
-  cursor: pointer;
-}
-
-.tree-node-actions button:hover {
-  background: color-mix(in srgb, var(--primary) 14%, var(--secondary));
 }
 
 .tree-print-student .tree-analysis-node strong {
@@ -7149,7 +7151,7 @@ textarea {
 
 @page {
   size: letter landscape;
-  margin: 0;
+  margin: .25in;
 }
 
 @media print {
@@ -7170,16 +7172,11 @@ textarea {
     display: none;
   }
 
-  .tree-analysis-floating-add,
-  .tree-node-actions {
-    display: none !important;
-  }
-
   .tree-analysis-page-shell.builder {
     position: fixed;
     inset: 0;
-    width: 11in;
-    height: 8.5in;
+    width: 10.5in;
+    height: 8in;
     padding: 0;
     overflow: hidden;
     background: white;
@@ -7187,8 +7184,8 @@ textarea {
   }
 
   .tree-analysis-page-shell.builder .tree-analysis-page {
-    width: 11in;
-    height: 8.5in;
+    width: 10.5in;
+    height: 8in;
     min-width: 0;
     box-shadow: none;
   }
