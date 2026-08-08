@@ -136,6 +136,7 @@ export type TreeAnalysisNode = {
   x: number;
   y: number;
   phraseId?: string;
+  pageId?: string;
   groupType?: WordGroupType;
   wordClass?: WordClass;
 };
@@ -151,6 +152,7 @@ export type TreeAnalysisScoreBox = {
   x: number;
   y: number;
   total: number;
+  pageId?: string;
 };
 
 export type TreeAnalysisTableCell = {
@@ -161,12 +163,46 @@ export type TreeAnalysisTableCell = {
 
 export type TreeAnalysisPhrase = {
   id: string;
+  pageId?: string;
   text: string;
   x: number;
   y: number;
   fontSize: number;
   nodeWidth: number;
   nodeHeight: number;
+};
+
+export type TreeAnalysisPageMargins = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+
+export type TreeAnalysisDocumentPage = {
+  id: string;
+  orientation: "portrait" | "landscape";
+  margins: TreeAnalysisPageMargins;
+};
+
+export type TreeAnalysisTextAnnotation = {
+  id: string;
+  start: number;
+  end: number;
+  color?: string;
+  framed?: boolean;
+};
+
+export type TreeAnalysisTextBox = {
+  id: string;
+  pageId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  fontSize: number;
+  annotations: TreeAnalysisTextAnnotation[];
 };
 
 export type TreeAnalysisTable = {
@@ -176,6 +212,7 @@ export type TreeAnalysisTable = {
   rows: number;
   columns: number;
   cells: TreeAnalysisTableCell[];
+  pageId?: string;
 };
 
 export type AgreementRelation = {
@@ -216,6 +253,8 @@ export type Sentence = {
   treeAnalysisScoreBoxes?: TreeAnalysisScoreBox[];
   treeAnalysisTables?: TreeAnalysisTable[];
   treeAnalysisPhrases?: TreeAnalysisPhrase[];
+  treeAnalysisDocumentPages?: TreeAnalysisDocumentPage[];
+  treeAnalysisTextBoxes?: TreeAnalysisTextBox[];
   assignedGroupIds: string[];
   competitionEnabled?: boolean;
   assignmentStatusByGroup?: Record<string, AssignmentStatus>;

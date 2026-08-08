@@ -6735,6 +6735,61 @@ textarea {
   box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
 }
 
+.tree-analysis-page.portrait {
+  aspect-ratio: 8 / 10.5;
+}
+
+.tree-analysis-page-controls,
+.tree-analysis-text-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--secondary);
+}
+
+.tree-analysis-page-controls > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tree-analysis-page-controls label,
+.tree-analysis-text-toolbar label {
+  display: grid;
+  gap: 4px;
+  font-size: .76rem;
+  font-weight: 800;
+}
+
+.tree-analysis-page-controls button,
+.tree-analysis-text-toolbar button {
+  display: inline-flex;
+  min-height: 35px;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.tree-analysis-page-controls button.active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+}
+
+.tree-analysis-page-controls input,
+.tree-analysis-text-toolbar input {
+  width: 72px;
+}
+
 .tree-analysis-safe-area {
   position: absolute;
   inset: 0;
@@ -7068,6 +7123,15 @@ textarea {
   overflow: hidden;
 }
 
+.tree-analysis-canvas::after {
+  content: "";
+  position: absolute;
+  z-index: 20;
+  inset: var(--page-margin-top) var(--page-margin-right) var(--page-margin-bottom) var(--page-margin-left);
+  border: 1px dashed rgba(0, 0, 0, .16);
+  pointer-events: none;
+}
+
 .tree-analysis-print-safe-guide {
   display: none;
 }
@@ -7113,6 +7177,46 @@ textarea {
 .tree-analysis-name-line span {
   flex: 1;
   border-bottom: 1.5px solid #111;
+}
+
+.tree-analysis-text-box {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  border: 1px dashed transparent;
+  background: transparent;
+  color: #111;
+}
+
+.tree-analysis-text-box.selected {
+  border-color: #3976bf;
+}
+
+.tree-analysis-text-drag {
+  display: none;
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  padding: 3px 7px;
+  border-radius: 5px 5px 0 0;
+  background: #3976bf;
+  color: white;
+  font-size: 11px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tree-analysis-text-box.selected .tree-analysis-text-drag {
+  display: block;
+}
+
+.tree-analysis-text-content {
+  width: 100%;
+  min-height: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  outline: 0;
 }
 
 .tree-analysis-lines {
