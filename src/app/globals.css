@@ -6737,7 +6737,7 @@ textarea {
 
 .tree-analysis-safe-area {
   position: absolute;
-  inset: 2.94% 3.41%;
+  inset: 2.94% 1.14% 2.94% 3.03%;
   border: 1px dashed rgba(0, 0, 0, .18);
   overflow: hidden;
 }
@@ -7008,7 +7008,7 @@ textarea {
 
 .tree-analysis-builder-sentence {
   position: absolute;
-  left: 3.41%;
+  left: 3.03%;
   top: 3.43%;
   width: max-content;
   white-space: nowrap;
