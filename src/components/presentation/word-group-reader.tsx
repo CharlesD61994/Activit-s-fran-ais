@@ -1,0 +1,1492 @@
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
+import { CheckCircle2, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
+
+type Boundary = "left_bracket" | "right_bracket";
+type WordGroupStage = Boundary | "group_type" | "nucleus" | "contracted_answer" | "gprep_nucleus" | "nested_presence" | "nested_type";
+
+const groupLabels: Record<WordGroupType, string> = {
+  GN: "Groupe nominal (GN)",
+  GV: "Groupe verbal (GV)",
+  GAdj: "Groupe adjectival (GAdj)",
+  GAdv: "Groupe adverbial (GAdv)",
+  GPrep: "Groupe prépositionnel (GPrép)"
+};
+
+function isContractedNested(target?: WordGroupTarget | null) {
+  return Boolean(
+    target &&
+      (target.mode === "contracted_nested" ||
+        target.contractedGnText?.trim())
+  );
+}
+
+type RestoredPoint = {
+  target: WordGroupTarget;
+  stage: WordGroupStage;
+  points: number;
+  pointId: string;
+};
+
+type Props = {
+  sentence: Sentence;
+  persistenceKey?: string;
+  onPoint: (
+    target: WordGroupTarget,
+    stage: WordGroupStage,
+    points: number,
+    pointId: string
+  ) => void;
+  onRestorePoints?: (points: RestoredPoint[]) => void;
+  onCompleteChange?: (complete: boolean) => void;
+  finishControl?: React.ReactNode;
+};
+
+type Token = {
+  id: string;
+  text: string;
+  start: number;
+  end: number;
+  isWord: boolean;
+};
+
+type StrokePoint = {
+  x: number;
+  y: number;
+};
+
+function tokenize(text: string): Token[] {
+  return Array.from(
+    text.matchAll(/[\p{L}\p{M}]+|[^\p{L}\p{M}]+/gu)
+  ).map((match, index) => {
+    const value = match[0];
+    const start = match.index ?? 0;
+
+    return {
+      id: `group-token-${index}-${start}`,
+      text: value,
+      start,
+      end: start + value.length,
+      isWord: /[\p{L}\p{M}]/u.test(value)
+    };
+  });
+}
+
+function recognizeBracket(
+  points: StrokePoint[]
+): "[" | "]" | null {
+  if (points.length < 3) return null;
+
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  if (height < 15 || width < 2 || height < width * 0.65) {
+    return null;
+  }
+
+  const sideBand = Math.max(5, width * 0.44);
+  const leftStem = points.filter(
+    (point) => point.x <= minX + sideBand
+  ).length;
+  const rightStem = points.filter(
+    (point) => point.x >= maxX - sideBand
+  ).length;
+
+  if (Math.abs(leftStem - rightStem) < points.length * 0.08) {
+    const top = points.filter(
+      (point) => point.y <= minY + height * 0.25
+    );
+    const bottom = points.filter(
+      (point) => point.y >= maxY - height * 0.25
+    );
+
+    const topAverage =
+      top.reduce((sum, point) => sum + point.x, 0) /
+      Math.max(1, top.length);
+    const bottomAverage =
+      bottom.reduce((sum, point) => sum + point.x, 0) /
+      Math.max(1, bottom.length);
+    const middleX = (minX + maxX) / 2;
+
+    return (topAverage + bottomAverage) / 2 >= middleX
+      ? "["
+      : "]";
+  }
+
+  return leftStem > rightStem ? "[" : "]";
+}
+
+export function WordGroupReader({
+  sentence,
+  persistenceKey,
+  onPoint,
+  onRestorePoints,
+  onCompleteChange,
+  finishControl
+}: Props) {
+  const targets = useMemo(
+    () =>
+      [...(sentence.wordGroupTargets ?? [])].sort(
+        (a, b) => a.start - b.start || b.end - a.end
+      ),
+    [sentence.wordGroupTargets]
+  );
+  const tokens = useMemo(
+    () => tokenize(sentence.originalText),
+    [sentence.originalText]
+  );
+
+  const [leftFoundIds, setLeftFoundIds] = useState<string[]>([]);
+  const [rightFoundIds, setRightFoundIds] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [classifiedIds, setClassifiedIds] = useState<string[]>([]);
+  const [nucleusFoundIds, setNucleusFoundIds] = useState<string[]>([]);
+  const [contractedAnsweredIds, setContractedAnsweredIds] = useState<string[]>([]);
+  const [gprepNucleusFoundIds, setGprepNucleusFoundIds] = useState<string[]>([]);
+  const [nestedPresenceFoundIds, setNestedPresenceFoundIds] = useState<string[]>([]);
+  const [nestedTypeFoundIds, setNestedTypeFoundIds] = useState<string[]>([]);
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const [contractedAnswer, setContractedAnswer] = useState("");
+  const [stroke, setStroke] = useState<StrokePoint[]>([]);
+  const [drawing, setDrawing] = useState(false);
+  const [message, setMessage] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const [labelPositions, setLabelPositions] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
+  const [labelOffsets, setLabelOffsets] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
+
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const restoreRef = useRef(onRestorePoints);
+  const completeRef = useRef(onCompleteChange);
+
+  useEffect(() => {
+    restoreRef.current = onRestorePoints;
+  }, [onRestorePoints]);
+
+  useEffect(() => {
+    completeRef.current = onCompleteChange;
+  }, [onCompleteChange]);
+
+  const currentTarget = targets[currentIndex];
+  const currentIsContracted =
+    isContractedNested(currentTarget);
+  const complete =
+    targets.length > 0 &&
+    targets.every(
+      (target) =>
+        nucleusFoundIds.includes(target.id) &&
+        (!isContractedNested(target) ||
+          gprepNucleusFoundIds.includes(target.id))
+    );
+
+  const currentLeftFound = currentTarget
+    ? leftFoundIds.includes(currentTarget.id)
+    : false;
+  const currentRightFound = currentTarget
+    ? rightFoundIds.includes(currentTarget.id)
+    : false;
+  const currentBracketsFound = currentLeftFound && currentRightFound;
+  const currentClassified = currentTarget
+    ? classifiedIds.includes(currentTarget.id)
+    : false;
+  const currentNucleusFound = currentTarget
+    ? nucleusFoundIds.includes(currentTarget.id)
+    : false;
+  const currentContractedAnswered = currentTarget
+    ? contractedAnsweredIds.includes(currentTarget.id)
+    : false;
+  const currentGprepNucleusFound = currentTarget
+    ? gprepNucleusFoundIds.includes(currentTarget.id)
+    : false;
+  const currentNestedPresenceFound = currentTarget
+    ? nestedPresenceFoundIds.includes(currentTarget.id)
+    : false;
+  const currentNestedTypeFound = currentTarget
+    ? nestedTypeFoundIds.includes(currentTarget.id)
+    : false;
+  const phase:
+    | "brackets"
+    | "type"
+    | "nucleus"
+    | "contracted_answer"
+    | "gprep_nucleus"
+    | "nested_presence"
+    | "nested_type"
+    | "complete" = complete
+    ? "complete"
+    : currentIsContracted
+      ? currentBracketsFound && !currentClassified
+        ? "type"
+        : currentClassified && !currentGprepNucleusFound
+          ? "gprep_nucleus"
+          : currentGprepNucleusFound && !currentNestedPresenceFound
+            ? "nested_presence"
+            : currentNestedPresenceFound && !currentNestedTypeFound
+              ? "nested_type"
+              : currentNestedTypeFound && !currentContractedAnswered
+                ? "contracted_answer"
+                : currentContractedAnswered && !currentNucleusFound
+                  ? "nucleus"
+                  : "brackets"
+      : currentBracketsFound && !currentClassified
+        ? "type"
+        : currentClassified && !currentNucleusFound
+          ? "nucleus"
+          : "brackets";
+
+  useEffect(() => {
+    completeRef.current?.(complete);
+  }, [complete]);
+
+  useEffect(() => {
+    if (!persistenceKey || typeof window === "undefined") {
+      setHydrated(true);
+      return;
+    }
+
+    try {
+      const raw = window.sessionStorage.getItem(persistenceKey);
+
+      if (raw) {
+        const saved = JSON.parse(raw) as {
+          leftFoundIds?: string[];
+          rightFoundIds?: string[];
+          classifiedIds?: string[];
+          nucleusFoundIds?: string[];
+          contractedAnsweredIds?: string[];
+          gprepNucleusFoundIds?: string[];
+          nestedPresenceFoundIds?: string[];
+          nestedTypeFoundIds?: string[];
+          currentIndex?: number;
+        };
+        const left = saved.leftFoundIds ?? [];
+        const right = saved.rightFoundIds ?? [];
+        const classified = saved.classifiedIds ?? [];
+        const nuclei = saved.nucleusFoundIds ?? [];
+        const contractedAnswers = saved.contractedAnsweredIds ?? [];
+        const gprepNuclei = saved.gprepNucleusFoundIds ?? [];
+        const nestedPresence = saved.nestedPresenceFoundIds ?? [];
+        const nestedTypes = saved.nestedTypeFoundIds ?? [];
+        setLeftFoundIds(left);
+        setRightFoundIds(right);
+        setClassifiedIds(classified);
+        setNucleusFoundIds(nuclei);
+        setContractedAnsweredIds(contractedAnswers);
+        setGprepNucleusFoundIds(gprepNuclei);
+        setNestedPresenceFoundIds(nestedPresence);
+        setNestedTypeFoundIds(nestedTypes);
+        setCurrentIndex(
+          Math.min(
+            saved.currentIndex ?? 0,
+            Math.max(0, targets.length - 1)
+          )
+        );
+
+        const points: RestoredPoint[] = [];
+        targets.forEach((target) => {
+          if (left.includes(target.id)) {
+            points.push({
+              target,
+              stage: "left_bracket",
+              points: 1,
+              pointId: `group-left-${target.id}`
+            });
+          }
+          if (right.includes(target.id)) {
+            points.push({
+              target,
+              stage: "right_bracket",
+              points: 1,
+              pointId: `group-right-${target.id}`
+            });
+          }
+          if (classified.includes(target.id)) {
+            points.push({
+              target,
+              stage: "group_type",
+              points: 1,
+              pointId: `group-type-${target.id}`
+            });
+          }
+          if (
+            isContractedNested(target) &&
+            contractedAnswers.includes(target.id)
+          ) {
+            points.push({
+              target,
+              stage: "contracted_answer",
+              points: 1,
+              pointId: `group-contracted-${target.id}`
+            });
+          }
+          if (nuclei.includes(target.id)) {
+            points.push({
+              target,
+              stage: "nucleus",
+              points: 1,
+              pointId: `group-nucleus-${target.id}`
+            });
+          }
+          if (
+            isContractedNested(target) &&
+            gprepNuclei.includes(target.id)
+          ) {
+            points.push({
+              target,
+              stage: "gprep_nucleus",
+              points: 1,
+              pointId: `group-gprep-nucleus-${target.id}`
+            });
+          }
+          if (
+            isContractedNested(target) &&
+            nestedPresence.includes(target.id)
+          ) {
+            points.push({
+              target,
+              stage: "nested_presence",
+              points: 1,
+              pointId: `group-nested-presence-${target.id}`
+            });
+          }
+          if (
+            isContractedNested(target) &&
+            nestedTypes.includes(target.id)
+          ) {
+            points.push({
+              target,
+              stage: "nested_type",
+              points: 1,
+              pointId: `group-nested-type-${target.id}`
+            });
+          }
+        });
+        restoreRef.current?.(points);
+      }
+    } catch {
+      window.sessionStorage.removeItem(persistenceKey);
+    } finally {
+      setHydrated(true);
+    }
+  }, [persistenceKey, sentence.id, targets]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      !persistenceKey ||
+      typeof window === "undefined"
+    ) {
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      persistenceKey,
+      JSON.stringify({
+        leftFoundIds,
+        rightFoundIds,
+        classifiedIds,
+        nucleusFoundIds,
+        contractedAnsweredIds,
+        gprepNucleusFoundIds,
+        nestedPresenceFoundIds,
+        nestedTypeFoundIds,
+        currentIndex
+      })
+    );
+  }, [
+    classifiedIds,
+    contractedAnsweredIds,
+    gprepNucleusFoundIds,
+    nestedPresenceFoundIds,
+    nestedTypeFoundIds,
+    currentIndex,
+    hydrated,
+    leftFoundIds,
+    nucleusFoundIds,
+    persistenceKey,
+    rightFoundIds
+  ]);
+
+
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const anchors = Array.from(
+        surface.querySelectorAll<HTMLElement>(
+          "[data-word-group-label-id]"
+        )
+      );
+
+      const items = anchors.map((element) => {
+        const id = element.dataset.wordGroupLabelId ?? "";
+        const target = targets.find((item) => item.id === id);
+
+        return {
+          id,
+          target,
+          contracted:
+            element.classList.contains("contracted-result"),
+          rect: element.getBoundingClientRect()
+        };
+      });
+
+      const next: Record<string, { x: number; y: number }> = {};
+
+      items.forEach((item) => {
+        next[item.id] = { x: 0, y: 0 };
+      });
+
+      const margin = 10;
+
+      for (let i = 0; i < items.length; i += 1) {
+        for (let j = i + 1; j < items.length; j += 1) {
+          const a = items[i];
+          const b = items[j];
+
+          const overlapX =
+            Math.min(a.rect.right, b.rect.right) -
+            Math.max(a.rect.left, b.rect.left);
+          const overlapY =
+            Math.min(a.rect.bottom, b.rect.bottom) -
+            Math.max(a.rect.top, b.rect.top);
+
+          if (overlapX <= -margin || overlapY <= -margin) {
+            continue;
+          }
+
+          // Priorité au bloc contracté à deux lignes : on le garde
+          // près de son groupe et on décale plutôt le code voisin.
+          let movable = b;
+          let fixed = a;
+
+          if (a.contracted && !b.contracted) {
+            movable = b;
+            fixed = a;
+          } else if (b.contracted && !a.contracted) {
+            movable = a;
+            fixed = b;
+          } else if (
+            (a.target?.start ?? 0) > (b.target?.start ?? 0)
+          ) {
+            movable = a;
+            fixed = b;
+          }
+
+          const movableCenter =
+            (movable.rect.left + movable.rect.right) / 2;
+          const fixedCenter =
+            (fixed.rect.left + fixed.rect.right) / 2;
+
+          let direction =
+            movableCenter >= fixedCenter ? 1 : -1;
+
+          if (Math.abs(movableCenter - fixedCenter) < 2) {
+            direction =
+              (movable.target?.start ?? 0) >=
+              (fixed.target?.start ?? 0)
+                ? 1
+                : -1;
+          }
+
+          const shift = Math.min(
+            90,
+            Math.max(16, overlapX + margin)
+          );
+
+          next[movable.id].x += direction * shift;
+        }
+      }
+
+      setLabelOffsets(next);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    classifiedIds,
+    contractedAnsweredIds,
+    gprepNucleusFoundIds,
+    labelPositions,
+    nucleusFoundIds,
+    targets
+  ]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const surface = surfaceRef.current;
+    if (!canvas || !surface) return;
+
+    const resize = () => {
+      const rect = surface.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, rect.width * ratio);
+      canvas.height = Math.max(1, rect.height * ratio);
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      const context = canvas.getContext("2d");
+      context?.setTransform(ratio, 0, 0, ratio, 0, 0);
+    };
+
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(surface);
+    window.addEventListener("resize", resize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+
+    const updateLabelPositions = () => {
+      const surfaceRect = surface.getBoundingClientRect();
+      const next: Record<string, { x: number; y: number }> = {};
+
+      targets.forEach((target) => {
+        const elements = tokens
+          .filter(
+            (token) =>
+              token.isWord &&
+              token.start < target.end &&
+              token.end > target.start
+          )
+          .map((token) =>
+            surface.querySelector<HTMLElement>(
+              `[data-group-token-id="${token.id}"]`
+            )
+          )
+          .filter((element): element is HTMLElement => Boolean(element));
+
+        if (elements.length === 0) return;
+
+        const rects = elements.map((element) => element.getBoundingClientRect());
+        const minLeft = Math.min(...rects.map((rect) => rect.left));
+        const maxRight = Math.max(...rects.map((rect) => rect.right));
+        const minTop = Math.min(...rects.map((rect) => rect.top));
+
+        next[target.id] = {
+          x: (minLeft + maxRight) / 2 - surfaceRect.left,
+          y: minTop - surfaceRect.top
+        };
+      });
+
+      setLabelPositions(next);
+    };
+
+    const frame = window.requestAnimationFrame(updateLabelPositions);
+    const observer = new ResizeObserver(updateLabelPositions);
+    observer.observe(surface);
+    window.addEventListener("resize", updateLabelPositions);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", updateLabelPositions);
+    };
+  }, [
+    classifiedIds,
+    currentIndex,
+    leftFoundIds,
+    nucleusFoundIds,
+    rightFoundIds,
+    targets,
+    tokens
+  ]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    const ratio = window.devicePixelRatio || 1;
+    context.clearRect(
+      0,
+      0,
+      canvas.width / ratio,
+      canvas.height / ratio
+    );
+
+    if (stroke.length < 2) return;
+
+    context.beginPath();
+    context.lineWidth = 3;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = "currentColor";
+    context.moveTo(stroke[0].x, stroke[0].y);
+
+    stroke.slice(1).forEach((point) => {
+      context.lineTo(point.x, point.y);
+    });
+
+    context.stroke();
+  }, [stroke]);
+
+  function findTokenElement(
+    position: number,
+    side: "start" | "end"
+  ) {
+    const surface = surfaceRef.current;
+    if (!surface) return null;
+
+    const matching = tokens.find((token) =>
+      side === "start"
+        ? token.isWord &&
+          token.start <= position &&
+          token.end > position
+        : token.isWord &&
+          token.start < position &&
+          token.end >= position
+    );
+
+    if (!matching) {
+      const fallback =
+        side === "start"
+          ? tokens.find(
+              (token) =>
+                token.isWord && token.start >= position
+            )
+          : [...tokens]
+              .reverse()
+              .find(
+                (token) =>
+                  token.isWord && token.end <= position
+              );
+
+      if (!fallback) return null;
+
+      return surface.querySelector<HTMLElement>(
+        `[data-group-token-id="${fallback.id}"]`
+      );
+    }
+
+    return surface.querySelector<HTMLElement>(
+      `[data-group-token-id="${matching.id}"]`
+    );
+  }
+
+  function expectedAnchor(
+    target: WordGroupTarget,
+    boundary: Boundary
+  ) {
+    const surface = surfaceRef.current;
+    if (!surface) return null;
+
+    const surfaceRect = surface.getBoundingClientRect();
+    const element =
+      boundary === "left_bracket"
+        ? findTokenElement(target.start, "start")
+        : findTokenElement(target.end, "end");
+
+    if (!element) return null;
+
+    const rect = element.getBoundingClientRect();
+
+    return {
+      x:
+        boundary === "left_bracket"
+          ? rect.left - surfaceRect.left - 7
+          : rect.right - surfaceRect.left + 7,
+      y: rect.top - surfaceRect.top + rect.height / 2,
+      height: Math.max(34, rect.height * 1.35)
+    };
+  }
+
+  function strokeCenter(points: StrokePoint[]) {
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+
+    return {
+      x: (Math.min(...xs) + Math.max(...xs)) / 2,
+      y: (Math.min(...ys) + Math.max(...ys)) / 2
+    };
+  }
+
+  function validateStroke(points: StrokePoint[]) {
+    const recognized = recognizeBracket(points);
+    if (!recognized) {
+      setMessage("Trace un crochet plus clairement.");
+      return;
+    }
+
+    const boundary: Boundary =
+      recognized === "[" ? "left_bracket" : "right_bracket";
+    const center = strokeCenter(points);
+    const horizontalTolerance = 52;
+
+    const candidates = targets
+      .filter((target) => !nucleusFoundIds.includes(target.id))
+      .filter((target) =>
+        boundary === "left_bracket"
+          ? !leftFoundIds.includes(target.id)
+          : !rightFoundIds.includes(target.id)
+      )
+      .map((target) => {
+        const index = targets.findIndex(
+          (candidateTarget) => candidateTarget.id === target.id
+        );
+        const anchor = expectedAnchor(target, boundary);
+        if (!anchor) return null;
+
+        const verticalTolerance = Math.max(
+          58,
+          anchor.height * 1.12
+        );
+        const dx = Math.abs(center.x - anchor.x);
+        const dy = Math.abs(center.y - anchor.y);
+
+        if (
+          dx > horizontalTolerance ||
+          dy > verticalTolerance
+        ) {
+          return null;
+        }
+
+        const otherFound =
+          boundary === "left_bracket"
+            ? rightFoundIds.includes(target.id)
+            : leftFoundIds.includes(target.id);
+
+        return {
+          target,
+          index,
+          anchor,
+          otherFound,
+          score:
+            dx / horizontalTolerance +
+            dy / verticalTolerance -
+            (otherFound ? 0.45 : 0)
+        };
+      })
+      .filter(
+        (
+          candidate
+        ): candidate is NonNullable<typeof candidate> =>
+          Boolean(candidate)
+      )
+      .sort((a, b) => a.score - b.score);
+
+    if (!candidates.length) {
+      setMessage(
+        recognized === "["
+          ? "Le crochet gauche n’est pas au bon endroit."
+          : "Le crochet droit n’est pas au bon endroit."
+      );
+      return;
+    }
+
+    const best = candidates[0];
+
+    // Un tracé valide une seule cible, même lorsque deux groupes
+    // enchâssés partagent exactement la même limite.
+    const matched = best;
+
+    if (boundary === "left_bracket") {
+      setLeftFoundIds((current) =>
+        current.includes(matched.target.id)
+          ? current
+          : [...current, matched.target.id]
+      );
+    } else {
+      setRightFoundIds((current) =>
+        current.includes(matched.target.id)
+          ? current
+          : [...current, matched.target.id]
+      );
+    }
+
+    onPoint(
+      matched.target,
+      boundary,
+      1,
+      boundary === "left_bracket"
+        ? `group-left-${matched.target.id}`
+        : `group-right-${matched.target.id}`
+    );
+
+    const newlyCompleted =
+      boundary === "left_bracket"
+        ? rightFoundIds.includes(matched.target.id)
+        : leftFoundIds.includes(matched.target.id);
+
+    setCurrentIndex(matched.index);
+    if (newlyCompleted) {
+      setTypeMenuOpen(true);
+    }
+
+    setMessage("");
+  }
+
+  function pointerPosition(clientX: number, clientY: number) {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  }
+
+  function beginDrawing(
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) {
+    if (phase !== "brackets") return;
+
+    const position = pointerPosition(event.clientX, event.clientY);
+    if (!position) return;
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDrawing(true);
+    setStroke([position]);
+    setMessage("");
+  }
+
+  function continueDrawing(
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) {
+    if (!drawing) return;
+
+    // Read the pointer coordinates synchronously while the React event
+    // still has a valid target. State updater callbacks may run later.
+    const position = pointerPosition(event.clientX, event.clientY);
+    if (!position) return;
+
+    setStroke((current) => [...current, position]);
+  }
+
+  function endDrawing(
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) {
+    if (!drawing) return;
+
+    const position = pointerPosition(event.clientX, event.clientY);
+    if (!position) {
+      setDrawing(false);
+      setStroke([]);
+      return;
+    }
+
+    const finalStroke = [...stroke, position];
+    setDrawing(false);
+    validateStroke(finalStroke);
+
+    window.setTimeout(() => {
+      setStroke([]);
+    }, 180);
+  }
+
+  function restart() {
+    setLeftFoundIds([]);
+    setRightFoundIds([]);
+    setCurrentIndex(0);
+    setClassifiedIds([]);
+    setNucleusFoundIds([]);
+    setContractedAnsweredIds([]);
+    setGprepNucleusFoundIds([]);
+    setNestedPresenceFoundIds([]);
+    setNestedTypeFoundIds([]);
+    setTypeMenuOpen(false);
+    setContractedAnswer("");
+    setStroke([]);
+    setMessage("");
+    restoreRef.current?.([]);
+
+    if (persistenceKey && typeof window !== "undefined") {
+      window.sessionStorage.removeItem(persistenceKey);
+    }
+  }
+
+  function returnToFreeSearch(completedTargetId: string) {
+    const nextIndex = targets.findIndex(
+      (target) =>
+        target.id !== completedTargetId &&
+        !nucleusFoundIds.includes(target.id)
+    );
+
+    if (nextIndex >= 0) {
+      setCurrentIndex(nextIndex);
+    }
+    setTypeMenuOpen(false);
+  }
+
+  function normalizeContractedAnswer(value: string) {
+    return value
+      .trim()
+      .toLocaleLowerCase("fr")
+      .replace(/[’']/g, "'")
+      .replace(/\s+/g, " ");
+  }
+
+  function submitContractedAnswer() {
+    if (
+      !currentTarget ||
+      !isContractedNested(currentTarget) ||
+      phase !== "contracted_answer"
+    ) {
+      return;
+    }
+
+    const expected = currentTarget.contractedGnText ?? "";
+    if (
+      normalizeContractedAnswer(contractedAnswer) !==
+      normalizeContractedAnswer(expected)
+    ) {
+      setMessage("Ce n’est pas le GN attendu. Essaie encore.");
+      return;
+    }
+
+    setContractedAnsweredIds((current) =>
+      current.includes(currentTarget.id)
+        ? current
+        : [...current, currentTarget.id]
+    );
+    setMessage("");
+    onPoint(
+      currentTarget,
+      "contracted_answer",
+      1,
+      `group-contracted-${currentTarget.id}`
+    );
+    setContractedAnswer("");
+  }
+
+  function chooseGroupType(groupType: WordGroupType) {
+    if (!currentTarget || phase !== "type") return;
+
+    if (groupType !== currentTarget.groupType) {
+      setMessage("Ce n’est pas le bon type de groupe. Essaie encore.");
+      return;
+    }
+
+    setClassifiedIds((current) =>
+      current.includes(currentTarget.id)
+        ? current
+        : [...current, currentTarget.id]
+    );
+    setTypeMenuOpen(false);
+    setMessage("");
+    onPoint(
+      currentTarget,
+      "group_type",
+      1,
+      `group-type-${currentTarget.id}`
+    );
+  }
+
+  function selectNucleus(token: Token) {
+    if (
+      !currentTarget ||
+      phase !== "nucleus" ||
+      !token.isWord
+    ) {
+      return;
+    }
+
+    const isNucleus =
+      token.start >= currentTarget.nucleusStart &&
+      token.end <= currentTarget.nucleusEnd;
+
+    if (!isNucleus) {
+      setMessage("Ce mot n’est pas le noyau de ce groupe.");
+      return;
+    }
+
+    setNucleusFoundIds((current) =>
+      current.includes(currentTarget.id)
+        ? current
+        : [...current, currentTarget.id]
+    );
+    setMessage("");
+    onPoint(
+      currentTarget,
+      "nucleus",
+      1,
+      `group-nucleus-${currentTarget.id}`
+    );
+
+    if (!isContractedNested(currentTarget)) {
+      window.setTimeout(() => {
+        returnToFreeSearch(currentTarget.id);
+      }, 450);
+    }
+  }
+
+  function chooseGprepNucleus(value: "de" | "à" | "le" | "les") {
+    if (
+      !currentTarget ||
+      !isContractedNested(currentTarget) ||
+      phase !== "gprep_nucleus"
+    ) {
+      return;
+    }
+
+    const expected =
+      currentTarget.contractedPrepNucleus ??
+      (currentTarget.text.trim().toLowerCase().startsWith("au") ||
+      currentTarget.text.trim().toLowerCase().startsWith("aux")
+        ? "à"
+        : "de");
+
+    if (value !== expected) {
+      setMessage("Ce n’est pas le noyau du GPrép. Essaie encore.");
+      return;
+    }
+
+    setGprepNucleusFoundIds((current) =>
+      current.includes(currentTarget.id)
+        ? current
+        : [...current, currentTarget.id]
+    );
+    setMessage("");
+    onPoint(
+      currentTarget,
+      "gprep_nucleus",
+      1,
+      `group-gprep-nucleus-${currentTarget.id}`
+    );
+
+  }
+
+  function chooseNestedPresence(hasNestedGroup: boolean) {
+    if (
+      !currentTarget ||
+      !isContractedNested(currentTarget) ||
+      phase !== "nested_presence"
+    ) {
+      return;
+    }
+
+    if (!hasNestedGroup) {
+      setMessage("Ce GPrép contient bien un autre groupe. Essaie encore.");
+      return;
+    }
+
+    setNestedPresenceFoundIds((current) =>
+      current.includes(currentTarget.id)
+        ? current
+        : [...current, currentTarget.id]
+    );
+    setMessage("");
+    onPoint(
+      currentTarget,
+      "nested_presence",
+      1,
+      `group-nested-presence-${currentTarget.id}`
+    );
+  }
+
+  function chooseNestedType(groupType: WordGroupType) {
+    if (
+      !currentTarget ||
+      !isContractedNested(currentTarget) ||
+      phase !== "nested_type"
+    ) {
+      return;
+    }
+
+    if (groupType !== "GN") {
+      setMessage("Ce n’est pas le bon type de groupe enchâssé.");
+      return;
+    }
+
+    setNestedTypeFoundIds((current) =>
+      current.includes(currentTarget.id)
+        ? current
+        : [...current, currentTarget.id]
+    );
+    setMessage("");
+    onPoint(
+      currentTarget,
+      "nested_type",
+      1,
+      `group-nested-type-${currentTarget.id}`
+    );
+  }
+
+  function instructionText() {
+    if (complete) return "Tous les groupes ont été identifiés.";
+    if (phase === "contracted_answer") {
+      return "Écris le groupe enchâssé avec le déterminant décortiqué.";
+    }
+    if (phase === "type") return "Quel est le type de ce groupe?";
+    if (phase === "nucleus") {
+      return currentIsContracted
+        ? "Clique sur le noyau du GN enchâssé."
+        : "Clique sur le noyau du groupe.";
+    }
+    if (phase === "gprep_nucleus") {
+      return "Identifie le noyau du GPrép.";
+    }
+    if (phase === "nested_presence") {
+      return "Le GPrép contient-il un autre groupe?";
+    }
+    if (phase === "nested_type") {
+      return "Quel est le groupe enchâssé?";
+    }
+    return "Trace les crochets [ ] pour délimiter le groupe.";
+  }
+
+  return (
+    <div className="word-group-reader">
+      <div className="word-group-reader-toolbar">
+        <div className="word-group-reader-instruction">
+          <strong>
+            {instructionText()}
+          </strong>
+          {!complete && (
+            <span className="word-group-reader-counter">
+              {nucleusFoundIds.length}/{targets.length} groupes complétés
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div
+        className={`word-group-drawing-surface phase-${phase}`}
+        ref={surfaceRef}
+      >
+        {targets.map((target) => {
+          const position = labelPositions[target.id];
+          const classified = classifiedIds.includes(target.id);
+          const selecting =
+            phase === "type" && currentTarget?.id === target.id;
+
+          if (!position || (!classified && !selecting)) return null;
+
+          return (
+            <div
+              className={`word-group-label-anchor${
+                isContractedNested(target) &&
+                contractedAnsweredIds.includes(target.id)
+                  ? " contracted-result"
+                  : ""
+              }`}
+              key={`label-${target.id}`}
+              data-word-group-label-id={target.id}
+              style={{
+                left:
+                  position.x + (labelOffsets[target.id]?.x ?? 0),
+                top:
+                  position.y + (labelOffsets[target.id]?.y ?? 0)
+              }}
+            >
+              {selecting ? (
+                <div className="word-group-type-picker">
+                  <button
+                    type="button"
+                    className="word-group-code-box"
+                    onClick={() => setTypeMenuOpen((open) => !open)}
+                    aria-expanded={typeMenuOpen}
+                    aria-label="Choisir le type de groupe"
+                  >
+                    <span aria-hidden="true">&nbsp;</span>
+                  </button>
+                  {typeMenuOpen && (
+                    <div className="word-group-type-menu">
+                      {(Object.keys(groupLabels) as WordGroupType[]).map(
+                        (groupType) => (
+                          <button
+                            type="button"
+                            key={groupType}
+                            onClick={() => chooseGroupType(groupType)}
+                          >
+                            <strong>{groupType}</strong>
+                            <span>{groupLabels[groupType]}</span>
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="word-group-completed-label">
+                  <span
+                    className="word-group-code-box filled"
+                    aria-label={groupLabels[target.groupType]}
+                  >
+                    {target.groupType}
+                    {isContractedNested(target) &&
+                      gprepNucleusFoundIds.includes(target.id) &&
+                      target.contractedPrepNucleus && (
+                        <span className="word-group-inline-nucleus">
+                          {" "}— Noyau : {target.contractedPrepNucleus}
+                        </span>
+                      )}
+                  </span>
+                  {isContractedNested(target) &&
+                    contractedAnsweredIds.includes(target.id) &&
+                    target.contractedGnText && (
+                      <span className="word-group-contracted-gn">
+                        (GN : {target.contractedGnText}
+                        {nucleusFoundIds.includes(target.id) &&
+                          target.nucleusText &&
+                          ` — Noyau : ${target.nucleusText}`})
+                      </span>
+                    )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="word-group-reader-text">
+          {tokens.map((token) => {
+            const leftSymbols = targets.filter(
+              (target) =>
+                leftFoundIds.includes(target.id) &&
+                target.start >= token.start &&
+                target.start < token.end
+            );
+            const rightSymbols = targets.filter(
+              (target) =>
+                rightFoundIds.includes(target.id) &&
+                target.end > token.start &&
+                target.end <= token.end
+            );
+
+            return (
+              <span
+                key={token.id}
+                className={
+                  token.isWord
+                    ? `word-group-reader-token${
+                        phase === "nucleus"
+                          ? " nucleus-selectable"
+                          : ""
+                      }${
+                        targets.some(
+                          (target) =>
+                            nucleusFoundIds.includes(target.id) &&
+                            token.start >= target.nucleusStart &&
+                            token.end <= target.nucleusEnd
+                        )
+                          ? " nucleus-confirmed"
+                          : ""
+                      }`
+                    : undefined
+                }
+                data-group-token-id={
+                  token.isWord ? token.id : undefined
+                }
+                onClick={
+                  token.isWord && phase === "nucleus"
+                    ? () => selectNucleus(token)
+                    : undefined
+                }
+              >
+                {leftSymbols.map((target) => (
+                  <span
+                    className="word-group-bracket confirmed left"
+                    key={`left-${target.id}`}
+                  >
+                    [
+                  </span>
+                ))}
+                {token.text}
+                {rightSymbols.map((target) => (
+                  <span
+                    className="word-group-bracket confirmed right"
+                    key={`right-${target.id}`}
+                  >
+                    ]
+                  </span>
+                ))}
+              </span>
+            );
+          })}
+        </div>
+
+        <canvas
+          ref={canvasRef}
+          className={`word-group-drawing-canvas${
+            phase === "brackets" ? "" : " inactive"
+          }`}
+          onPointerDown={beginDrawing}
+          onPointerMove={continueDrawing}
+          onPointerUp={endDrawing}
+          onPointerCancel={() => {
+            setDrawing(false);
+            setStroke([]);
+          }}
+          aria-label="Dessine les crochets directement sur la phrase"
+        />
+
+        {phase === "nested_presence" && currentTarget && (
+          <div className="word-group-contracted-popover">
+            <strong>
+              Le GPrép « {currentTarget.text} » contient-il un autre
+              groupe?
+            </strong>
+            <div className="word-group-contraction-choices">
+              <button
+                type="button"
+                onClick={() => chooseNestedPresence(true)}
+              >
+                Oui
+              </button>
+              <button
+                type="button"
+                onClick={() => chooseNestedPresence(false)}
+              >
+                Non
+              </button>
+            </div>
+          </div>
+        )}
+        {phase === "nested_type" && currentTarget && (
+          <div className="word-group-contracted-popover">
+            <strong>Quel est le groupe enchâssé?</strong>
+            <div className="word-group-nested-type-grid">
+              {(Object.keys(groupLabels) as WordGroupType[]).map(
+                (groupType) => (
+                  <button
+                    type="button"
+                    key={groupType}
+                    onClick={() => chooseNestedType(groupType)}
+                  >
+                    <strong>{groupType}</strong>
+                    <span>{groupLabels[groupType]}</span>
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        )}
+        {phase === "contracted_answer" && currentTarget && (
+          <div className="word-group-contracted-popover">
+            <strong>
+              Il s’agit bien d’un groupe enchâssé avec déterminant
+              contracté.
+            </strong>
+            <label>
+              Écris le GN :
+              <input
+                autoFocus
+                value={contractedAnswer}
+                onChange={(event) =>
+                  setContractedAnswer(event.target.value)
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    submitContractedAnswer();
+                  }
+                }}
+                placeholder="Ex. le quartier"
+              />
+            </label>
+            <Button
+              type="button"
+              onClick={submitContractedAnswer}
+            >
+              Valider
+            </Button>
+          </div>
+        )}
+        {phase === "gprep_nucleus" && currentTarget && (
+          <div className="word-group-contracted-popover">
+            <strong>
+              Quel est le noyau du GPrép « {currentTarget.text} » ?
+            </strong>
+            <div className="word-group-contraction-equation">
+              {currentTarget.text.trim().split(/\s+/)[0]} ={" "}
+              {currentTarget.contractedPrepNucleus ??
+                (currentTarget.text.trim().toLowerCase().startsWith("au") ||
+                currentTarget.text.trim().toLowerCase().startsWith("aux")
+                  ? "à"
+                  : "de")}{" "}
+              +{" "}
+              {currentTarget.contractedGnText?.trim().split(/\s+/)[0]}
+            </div>
+            <div
+              className="word-group-contraction-choices"
+              role="group"
+              aria-label="Choisir le noyau du GPrép"
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  chooseGprepNucleus(
+                    currentTarget.contractedPrepNucleus ??
+                      (currentTarget.text.trim().toLowerCase().startsWith("au") ||
+                      currentTarget.text.trim().toLowerCase().startsWith("aux")
+                        ? "à"
+                        : "de")
+                  )
+                }
+              >
+                {currentTarget.contractedPrepNucleus ??
+                  (currentTarget.text.trim().toLowerCase().startsWith("au") ||
+                  currentTarget.text.trim().toLowerCase().startsWith("aux")
+                    ? "à"
+                    : "de")}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  chooseGprepNucleus(
+                    (currentTarget.contractedGnText?.trim().split(/\s+/)[0] ??
+                      "le") as "le" | "les"
+                  )
+                }
+              >
+                {currentTarget.contractedGnText?.trim().split(/\s+/)[0] ??
+                  "le"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {message && (
+        <p className="word-group-reader-message">{message}</p>
+      )}
+
+      {complete && (
+        <div className="word-group-reader-complete">
+          <CheckCircle2 size={20} />
+          <span>
+            Tous les groupes ont été correctement identifiés.
+          </span>
+        </div>
+      )}
+
+      <div className="interactive-reader-actions">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={restart}
+        >
+          <RotateCcw size={18} />
+          Recommencer
+        </Button>
+        {finishControl}
+      </div>
+    </div>
+  );
+}
