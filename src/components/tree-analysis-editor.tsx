@@ -966,6 +966,13 @@ export function TreeAnalysisEditor({
               <label>Orientation<select value={documentPages.find((page) => page.id === activePageId)?.orientation ?? "landscape"} onChange={(event) => updateActivePage({ orientation: event.target.value as "portrait" | "landscape" })}><option value="landscape">Paysage</option><option value="portrait">Portrait</option></select></label>
               {(["top", "right", "bottom", "left"] as const).map((side) => <label key={side}>Marge {side}<input type="number" min="0" max="120" value={documentPages.find((page) => page.id === activePageId)?.margins[side] ?? 24} onChange={(event) => { const page = documentPages.find((item) => item.id === activePageId); if (page) updateActivePage({ margins: { ...page.margins, [side]: Number(event.target.value) } }); }} /></label>)}
             </div>
+            <div className="tree-analysis-quick-add" aria-label="Ajouter à la page">
+              <span>Ajouter à la page</span>
+              <Button type="button" onClick={addTextBox}><span className="tree-analysis-add-icon">T</span> Texte</Button>
+              <Button type="button" variant="secondary" onClick={addNode}><span className="tree-analysis-add-icon">□</span> Rectangle</Button>
+              <Button type="button" variant="secondary" onClick={addScoreBox}><span className="tree-analysis-add-icon">/x</span> Points</Button>
+              <Button type="button" variant="secondary" onClick={addActivityTable}><Grid3X3 size={17} /> Tableau</Button>
+            </div>
             {selectedTextBoxId && (
               <div className="tree-analysis-text-toolbar">
                 <label>Police <input type="number" min="12" max="96" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.fontSize ?? 32} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, fontSize: Number(event.target.value) } : box))} /></label>

@@ -6752,6 +6752,29 @@ textarea {
   background: var(--secondary);
 }
 
+.tree-analysis-quick-add {
+  position: sticky;
+  z-index: 30;
+  top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
+  backdrop-filter: blur(8px);
+}
+
+.tree-analysis-quick-add > span {
+  margin-right: 3px;
+  font-size: .82rem;
+  font-weight: 850;
+}
+
 .tree-analysis-page-controls > div {
   display: flex;
   flex-wrap: wrap;
