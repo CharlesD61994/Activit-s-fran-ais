@@ -479,8 +479,19 @@ export function TreeAnalysisEditor({
   }
 
   function printDocument() {
-    const popup = window.open("", "_blank");
-    if (!popup) return;
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.position = "fixed";
+    frame.style.left = "-10000px";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    document.body.appendChild(frame);
+    const printWindow = frame.contentWindow;
+    if (!printWindow) {
+      frame.remove();
+      return;
+    }
     const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
     const annotated = (box: TreeAnalysisTextBox) => {
       const boundaries = Array.from(new Set([0, box.text.length, ...box.annotations.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
@@ -492,19 +503,28 @@ export function TreeAnalysisEditor({
     };
     const htmlPages = documentPages.map((page) => {
       const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
+      const outputWidth = page.orientation === "landscape" ? 1056 : 816;
+      const outputHeight = page.orientation === "landscape" ? 816 : 1056;
+      const scalePrintX = outputWidth / PAGE.logicalWidth;
+      const scalePrintY = outputHeight / PAGE.logicalHeight;
       const pageNodes = nodes.filter((node) => owns(node.pageId));
       const nodeHtml = pageNodes.map((node) => { const size = getNodeDimensions(node); return `<div class="node" style="left:${node.x / PAGE.logicalWidth * 100}%;top:${node.y / PAGE.logicalHeight * 100}%;width:${size.width / PAGE.logicalWidth * 100}%;height:${size.height / PAGE.logicalHeight * 100}%">${printMode === "answer" ? escape(getNodeLabel(node)) : ""}</div>`; }).join("");
       const lineHtml = relations.map((relation) => { const parent = pageNodes.find((node) => node.id === relation.parentNodeId); const child = pageNodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return ""; const ps = getNodeDimensions(parent); const cs = getNodeDimensions(child); return `<line x1="${parent.x + ps.width / 2}" y1="${parent.y + ps.height}" x2="${child.x + cs.width / 2}" y2="${child.y}"/>`; }).join("");
       const phraseHtml = "";
       const scoreHtml = scoreBoxes.filter((item) => owns(item.pageId)).map((item) => `<div class="score" style="left:${item.x / PAGE.logicalWidth * 100}%;top:${item.y / PAGE.logicalHeight * 100}%">/${item.total}</div>`).join("");
       const tableHtml = tables.filter((item) => owns(item.pageId)).map((table) => `<div class="table" style="left:${table.x / PAGE.logicalWidth * 100}%;top:${table.y / PAGE.logicalHeight * 100}%;grid-template-columns:repeat(${table.columns},1fr)">${table.cells.map((cell) => cell.columnSpan === 0 ? "" : `<div class="cell ${cell.isCorrect && printMode === "answer" ? "correct" : ""}" style="${cell.columnSpan && cell.columnSpan > 1 ? `grid-column:span ${cell.columnSpan}` : ""}">${escape(cell.text)}</div>`).join("")}</div>`).join("");
-      const textHtml = textBoxes.filter((item) => item.pageId === page.id).map((box) => `<div class="textbox" style="left:${box.x / PAGE.logicalWidth * 100}%;top:${box.y / PAGE.logicalHeight * 100}%;width:${box.width / PAGE.logicalWidth * 100}%;min-height:${box.height / PAGE.logicalHeight * 100}%;font-size:${box.fontSize / PAGE.logicalWidth * 100}cqw">${annotated(box)}</div>`).join("");
+      const textHtml = textBoxes.filter((item) => item.pageId === page.id).map((box) => `<div class="textbox" style="left:${box.x * scalePrintX}px;top:${box.y * scalePrintY}px;width:${box.width * scalePrintX}px;min-height:${box.height * scalePrintY}px;font-size:${box.fontSize * scalePrintX}px">${annotated(box)}</div>`).join("");
       const header = page.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 };
-      const headerHtml = `<div class="name" style="display:flex;gap:8px;left:${header.nameX / PAGE.logicalWidth * 100}%;top:${header.nameY / PAGE.logicalHeight * 100}%;width:${header.lineWidth / PAGE.logicalWidth * 100}%;font-size:${header.fontSize / PAGE.logicalWidth * 100}cqw">Nom : <span style="flex:1;border-bottom:1.5px solid #111"></span></div><div class="name" style="display:flex;gap:8px;left:${header.groupX / PAGE.logicalWidth * 100}%;top:${header.groupY / PAGE.logicalHeight * 100}%;width:${header.lineWidth / PAGE.logicalWidth * 100}%;font-size:${header.fontSize / PAGE.logicalWidth * 100}cqw">Groupe : <span style="flex:1;border-bottom:1.5px solid #111"></span></div>`;
+      const headerHtml = `<div class="name" style="display:flex;gap:8px;left:${header.nameX * scalePrintX}px;top:${header.nameY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">Nom : <span style="flex:1;border-bottom:1.5px solid #111"></span></div><div class="name" style="display:flex;gap:8px;left:${header.groupX * scalePrintX}px;top:${header.groupY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">Groupe : <span style="flex:1;border-bottom:1.5px solid #111"></span></div>`;
       return `<section class="print-page ${page.orientation}"><div class="print-canvas">${headerHtml}${phraseHtml}${textHtml}<svg viewBox="0 0 ${PAGE.logicalWidth} ${PAGE.logicalHeight}" preserveAspectRatio="none">${lineHtml}</svg>${nodeHtml}${scoreHtml}${tableHtml}</div></section>`;
     }).join("");
-    popup.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0;container-type:inline-size}.landscape{width:11in;height:8.5in}.portrait{width:8.5in;height:11in}.name{position:absolute;top:2%;left:1%;font-size:16px}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:8.52cqw;height:5.68cqw;place-items:center;border:2px solid #111;font-size:2.25cqw}.table{display:grid;width:34.1cqw;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:4.6cqw;padding:.8cqw;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:1.65cqw;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}<script>window.onload=()=>window.print()<\/script></body></html>`);
-    popup.document.close();
+    printWindow.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0}.landscape{width:1056px;height:816px}.portrait{width:816px;height:1056px}.name{position:absolute}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:90px;height:60px;place-items:center;border:2px solid #111;font-size:24px}.table{display:grid;width:360px;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:49px;padding:8px;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:17px;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}</body></html>`);
+    printWindow.document.close();
+    window.setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.addEventListener("afterprint", () => frame.remove(), { once: true });
+    }, 100);
   }
 
   useEffect(() => {
