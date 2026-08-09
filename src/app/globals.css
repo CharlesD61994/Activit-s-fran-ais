@@ -6752,12 +6752,23 @@ textarea {
   background: var(--secondary);
 }
 
+.tree-analysis-text-toolbar {
+  position: sticky;
+  z-index: 29;
+  top: 64px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
+  backdrop-filter: blur(8px);
+}
+
 .tree-analysis-quick-add {
   position: sticky;
   z-index: 30;
   top: 8px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 7px;
   margin: 10px 0;
@@ -6767,12 +6778,23 @@ textarea {
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
   backdrop-filter: blur(8px);
+  overflow-x: auto;
 }
 
 .tree-analysis-quick-add > span {
+  flex: 0 0 auto;
   margin-right: 3px;
   font-size: .82rem;
   font-weight: 850;
+}
+
+.tree-analysis-quick-add button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 5px 8px;
+  gap: 4px;
+  font-size: .78rem;
+  white-space: nowrap;
 }
 
 .tree-analysis-page-controls > div {
@@ -6942,6 +6964,25 @@ textarea {
 
 .tree-analysis-builder-host:fullscreen .tree-analysis-builder-card {
   min-height: calc(100vh - 36px);
+}
+
+.tree-analysis-builder-host:fullscreen .tree-analysis-builder-heading {
+  margin: 0;
+}
+
+.tree-analysis-builder-host:fullscreen .tree-analysis-builder-heading > div:first-child,
+.tree-analysis-builder-host:fullscreen .tree-analysis-builder-tools > :not(.tree-analysis-fullscreen-toggle),
+.tree-analysis-builder-host:fullscreen .tree-analysis-builder-meta,
+.tree-analysis-builder-host:fullscreen .tree-analysis-page-controls,
+.tree-analysis-builder-host:fullscreen .tree-analysis-link-hint,
+.tree-analysis-builder-host:fullscreen .tree-analysis-box-size,
+.tree-analysis-builder-host:fullscreen .tree-analysis-relations-list {
+  display: none;
+}
+
+.tree-analysis-builder-host:fullscreen .tree-analysis-builder-tools {
+  width: 100%;
+  justify-content: flex-start;
 }
 
 .tree-analysis-builder-card {
@@ -7294,6 +7335,9 @@ textarea {
   line-height: 1.25;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: auto;
 }
 
 .tree-analysis-text-content:empty::before {

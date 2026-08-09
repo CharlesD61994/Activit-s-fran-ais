@@ -848,18 +848,6 @@ export function TreeAnalysisEditor({
         {trimmed || " "}
       </span>
 
-      <div className="tree-analysis-stepper" aria-label="Progression">
-        <span className={step === 1 ? "active" : "done"}>
-          <b>{step === 1 ? "1" : <Check size={14} />}</b>
-          Phrase
-        </span>
-        <i />
-        <span className={step === 2 ? "active" : ""}>
-          <b>2</b>
-          Arbre
-        </span>
-      </div>
-
       {step === 1 ? (
         <>
           <Card className="editor-section-card">
@@ -1010,9 +998,9 @@ export function TreeAnalysisEditor({
                   <Plus size={17} />
                   Ajouter un élément
                 </Button>
-                <Button type="button" variant="secondary" onClick={toggleFullscreen}>
+                <Button type="button" variant="secondary" className="tree-analysis-fullscreen-toggle" onClick={toggleFullscreen}>
                   {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-                  {isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+                  {isFullscreen ? "Retour" : "Plein écran"}
                 </Button>
                 {linkingParentId && (
                   <Button
@@ -1267,6 +1255,9 @@ export function TreeAnalysisEditor({
                         value={box.text}
                         placeholder="Écris ton texte ici…"
                         autoFocus
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onPointerMove={(event) => event.stopPropagation()}
+                        onPointerUp={(event) => event.stopPropagation()}
                         onBlur={() => setEditingTextBoxId(null)}
                         onChange={(event) => setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: event.target.value } : item))}
                         onSelect={(event) => {
