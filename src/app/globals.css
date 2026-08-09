@@ -7520,14 +7520,36 @@ textarea {
   border-left: 1px solid #111;
 }
 
-.tree-analysis-document-main-title {
+.tree-analysis-document-title-banner {
   position: absolute;
   z-index: 5;
+  height: 11.66cqw;
+  padding: 2.45cqw 4.41cqw 1.1cqw;
+  background: linear-gradient(to bottom, #d3d3d3 0%, #bfbfbf 100%);
+  color: #111;
+}
+
+.tree-analysis-document-title-line {
   font-family: "Arial Narrow", Arial, sans-serif;
   font-size: 2.94cqw;
   font-weight: 700;
   line-height: 1.1;
-  color: #111;
+  white-space: nowrap;
+}
+
+.tree-analysis-document-title-label {
+  display: inline-flex;
+  height: 4.29cqw;
+  margin-top: 1.47cqw;
+  padding: 0 .86cqw;
+  align-items: center;
+  background: #000;
+  color: #fff;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: 3.27cqw;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .tree-analysis-canvas.document-template .tree-analysis-text-content {

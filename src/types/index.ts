@@ -202,6 +202,7 @@ export type TreeAnalysisDocumentPage = {
     enabled: boolean;
     prefix: string;
     title: string;
+    subtitle?: string;
   };
 };
 
