@@ -166,12 +166,18 @@ export function TreeAnalysisEditor({
   const [activePhraseId, setActivePhraseId] = useState<string | null>(() => initialSentence?.treeAnalysisPhrases?.[0]?.id ?? (initialSentence?.originalText ? "primary-phrase" : null));
   const [phraseModalOpen, setPhraseModalOpen] = useState(false);
   const [phraseDraft, setPhraseDraft] = useState("");
-  const [documentPages, setDocumentPages] = useState<TreeAnalysisDocumentPage[]>(() => initialSentence?.treeAnalysisDocumentPages?.length ? initialSentence.treeAnalysisDocumentPages : [{ id: "page-1", orientation: "landscape", margins: { top: 24, right: 24, bottom: 24, left: 24 } }]);
+  const [documentPages, setDocumentPages] = useState<TreeAnalysisDocumentPage[]>(() => initialSentence?.treeAnalysisDocumentPages?.length ? initialSentence.treeAnalysisDocumentPages : [{ id: "page-1", orientation: "landscape", margins: { top: 24, right: 24, bottom: 24, left: 24 }, header: { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 } }]);
   const [activePageId, setActivePageId] = useState(() => initialSentence?.treeAnalysisDocumentPages?.[0]?.id ?? "page-1");
-  const [textBoxes, setTextBoxes] = useState<TreeAnalysisTextBox[]>(initialSentence?.treeAnalysisTextBoxes ?? []);
+  const [textBoxes, setTextBoxes] = useState<TreeAnalysisTextBox[]>(() => {
+    const existing = initialSentence?.treeAnalysisTextBoxes ?? [];
+    const converted = (initialSentence?.treeAnalysisPhrases ?? []).filter((phrase) => !existing.some((box) => box.id === `phrase-text-${phrase.id}`)).map((phrase) => ({ id: `phrase-text-${phrase.id}`, pageId: phrase.pageId ?? "page-1", x: phrase.x, y: phrase.y, width: 1000, height: 70, text: phrase.text, fontSize: phrase.fontSize, annotations: [] }));
+    return [...existing, ...converted];
+  });
   const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(null);
   const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
   const [textSelection, setTextSelection] = useState<{ start: number; end: number } | null>(null);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; x: number; y: number } | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [measuredWidth, setMeasuredWidth] = useState(0);
@@ -187,7 +193,7 @@ export function TreeAnalysisEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const builderRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
-    kind: "node" | "score" | "table" | "phrase" | "textbox";
+    kind: "node" | "score" | "table" | "phrase" | "textbox" | "textbox-resize" | "header-name" | "header-group";
     itemId: string;
     width: number;
     height: number;
@@ -377,7 +383,7 @@ export function TreeAnalysisEditor({
   }
 
   function addDocumentPage() {
-    const page: TreeAnalysisDocumentPage = { id: crypto.randomUUID(), orientation: "landscape", margins: { top: 24, right: 24, bottom: 24, left: 24 } };
+    const page: TreeAnalysisDocumentPage = { id: crypto.randomUUID(), orientation: "landscape", margins: { top: 24, right: 24, bottom: 24, left: 24 }, header: { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 } };
     setDocumentPages((current) => [...current, page]);
     setActivePageId(page.id);
   }
@@ -398,22 +404,16 @@ export function TreeAnalysisEditor({
     setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, annotations: [...box.annotations, { id: crypto.randomUUID(), start: textSelection.start, end: textSelection.end, ...patch }] } : box));
   }
 
-  function deleteSelectedTextBox() {
-    if (!selectedTextBoxId) return;
-    setTextBoxes((current) => current.filter((box) => box.id !== selectedTextBoxId));
-    setSelectedTextBoxId(null);
-    setEditingTextBoxId(null);
-    setTextSelection(null);
-  }
-
-  function deleteActivePhrase() {
-    if (!activePhraseId) return;
-    const removedNodeIds = new Set(nodes.filter((node) => node.phraseId === activePhraseId).map((node) => node.id));
-    setPhrases((current) => current.filter((phrase) => phrase.id !== activePhraseId));
-    setNodes((current) => current.filter((node) => node.phraseId !== activePhraseId));
+  function deleteTextBox(box: TreeAnalysisTextBox) {
+    setTextBoxes((current) => current.filter((item) => item.id !== box.id));
+    const phraseId = box.id.startsWith("phrase-text-") ? box.id.slice("phrase-text-".length) : null;
+    if (!phraseId) return;
+    const removedNodeIds = new Set(nodes.filter((node) => node.phraseId === phraseId).map((node) => node.id));
+    setPhrases((current) => current.filter((phrase) => phrase.id !== phraseId));
+    setNodes((current) => current.filter((node) => node.phraseId !== phraseId));
     setRelations((current) => current.filter((relation) => !removedNodeIds.has(relation.parentNodeId) && !removedNodeIds.has(relation.childNodeId)));
     setSelectedNodeIds((current) => current.filter((id) => !removedNodeIds.has(id)));
-    setActivePhraseId(null);
+    setActivePhraseId((current) => current === phraseId ? null : current);
   }
 
   function addScoreBox() {
@@ -453,6 +453,25 @@ export function TreeAnalysisEditor({
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
+  function startTextBoxResize(event: React.PointerEvent<HTMLElement>, box: TreeAnalysisTextBox) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    dragRef.current = { kind: "textbox-resize", itemId: box.id, width: box.width, height: box.height, offsetX: (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width) - box.width, offsetY: (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height) - box.height };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function startHeaderDrag(event: React.PointerEvent<HTMLElement>, kind: "header-name" | "header-group") {
+    const canvas = canvasRef.current;
+    const header = activePage?.header;
+    if (!canvas || !header) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = kind === "header-name" ? header.nameX : header.groupX;
+    const y = kind === "header-name" ? header.nameY : header.groupY;
+    dragRef.current = { kind, itemId: activePageId, width: header.lineWidth, height: header.fontSize * 1.5, offsetX: (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width) - x, offsetY: (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height) - y };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
   async function toggleFullscreen() {
     if (!document.fullscreenElement) await builderRef.current?.requestFullscreen();
     else await document.exitFullscreen();
@@ -475,11 +494,13 @@ export function TreeAnalysisEditor({
       const pageNodes = nodes.filter((node) => owns(node.pageId));
       const nodeHtml = pageNodes.map((node) => { const size = getNodeDimensions(node); return `<div class="node" style="left:${node.x / PAGE.logicalWidth * 100}%;top:${node.y / PAGE.logicalHeight * 100}%;width:${size.width / PAGE.logicalWidth * 100}%;height:${size.height / PAGE.logicalHeight * 100}%">${printMode === "answer" ? escape(getNodeLabel(node)) : ""}</div>`; }).join("");
       const lineHtml = relations.map((relation) => { const parent = pageNodes.find((node) => node.id === relation.parentNodeId); const child = pageNodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return ""; const ps = getNodeDimensions(parent); const cs = getNodeDimensions(child); return `<line x1="${parent.x + ps.width / 2}" y1="${parent.y + ps.height}" x2="${child.x + cs.width / 2}" y2="${child.y}"/>`; }).join("");
-      const phraseHtml = phrases.filter((item) => owns(item.pageId)).map((item) => `<div class="phrase" style="left:${item.x / PAGE.logicalWidth * 100}%;top:${item.y / PAGE.logicalHeight * 100}%;font-size:${item.fontSize / PAGE.logicalWidth * 100}cqw">${escape(item.text)}</div>`).join("");
+      const phraseHtml = "";
       const scoreHtml = scoreBoxes.filter((item) => owns(item.pageId)).map((item) => `<div class="score" style="left:${item.x / PAGE.logicalWidth * 100}%;top:${item.y / PAGE.logicalHeight * 100}%">/${item.total}</div>`).join("");
       const tableHtml = tables.filter((item) => owns(item.pageId)).map((table) => `<div class="table" style="left:${table.x / PAGE.logicalWidth * 100}%;top:${table.y / PAGE.logicalHeight * 100}%;grid-template-columns:repeat(${table.columns},1fr)">${table.cells.map((cell) => cell.columnSpan === 0 ? "" : `<div class="cell ${cell.isCorrect && printMode === "answer" ? "correct" : ""}" style="${cell.columnSpan && cell.columnSpan > 1 ? `grid-column:span ${cell.columnSpan}` : ""}">${escape(cell.text)}</div>`).join("")}</div>`).join("");
       const textHtml = textBoxes.filter((item) => item.pageId === page.id).map((box) => `<div class="textbox" style="left:${box.x / PAGE.logicalWidth * 100}%;top:${box.y / PAGE.logicalHeight * 100}%;width:${box.width / PAGE.logicalWidth * 100}%;min-height:${box.height / PAGE.logicalHeight * 100}%;font-size:${box.fontSize / PAGE.logicalWidth * 100}cqw">${annotated(box)}</div>`).join("");
-      return `<section class="print-page ${page.orientation}"><div class="print-canvas"><div class="name">Nom : ______________________________</div>${phraseHtml}${textHtml}<svg viewBox="0 0 ${PAGE.logicalWidth} ${PAGE.logicalHeight}" preserveAspectRatio="none">${lineHtml}</svg>${nodeHtml}${scoreHtml}${tableHtml}</div></section>`;
+      const header = page.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 };
+      const headerHtml = `<div class="name" style="display:flex;gap:8px;left:${header.nameX / PAGE.logicalWidth * 100}%;top:${header.nameY / PAGE.logicalHeight * 100}%;width:${header.lineWidth / PAGE.logicalWidth * 100}%;font-size:${header.fontSize / PAGE.logicalWidth * 100}cqw">Nom : <span style="flex:1;border-bottom:1.5px solid #111"></span></div><div class="name" style="display:flex;gap:8px;left:${header.groupX / PAGE.logicalWidth * 100}%;top:${header.groupY / PAGE.logicalHeight * 100}%;width:${header.lineWidth / PAGE.logicalWidth * 100}%;font-size:${header.fontSize / PAGE.logicalWidth * 100}cqw">Groupe : <span style="flex:1;border-bottom:1.5px solid #111"></span></div>`;
+      return `<section class="print-page ${page.orientation}"><div class="print-canvas">${headerHtml}${phraseHtml}${textHtml}<svg viewBox="0 0 ${PAGE.logicalWidth} ${PAGE.logicalHeight}" preserveAspectRatio="none">${lineHtml}</svg>${nodeHtml}${scoreHtml}${tableHtml}</div></section>`;
     }).join("");
     popup.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0;container-type:inline-size}.landscape{width:11in;height:8.5in}.portrait{width:8.5in;height:11in}.name{position:absolute;top:2%;left:1%;font-size:16px}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:8.52cqw;height:5.68cqw;place-items:center;border:2px solid #111;font-size:2.25cqw}.table{display:grid;width:34.1cqw;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:4.6cqw;padding:.8cqw;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:1.65cqw;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}<script>window.onload=()=>window.print()<\/script></body></html>`);
     popup.document.close();
@@ -572,11 +593,17 @@ export function TreeAnalysisEditor({
   ) {
     const drag = dragRef.current;
     const canvas = canvasRef.current;
-    if (!drag || !canvas) return;
+    if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
     const scaleX = PAGE.logicalWidth / rect.width;
     const scaleY = PAGE.logicalHeight / rect.height;
+
+    if (!drag && selectionBox) {
+      setSelectionBox((current) => current ? { ...current, x: (event.clientX - rect.left) * scaleX, y: (event.clientY - rect.top) * scaleY } : null);
+      return;
+    }
+    if (!drag) return;
 
     let logicalX =
       (event.clientX - rect.left) * scaleX - drag.offsetX;
@@ -630,6 +657,18 @@ export function TreeAnalysisEditor({
       return;
     }
 
+    if (drag.kind === "textbox-resize") {
+      setTextBoxes((current) => current.map((box) => box.id === drag.itemId ? { ...box, width: clamp(logicalX, 120, PAGE.logicalWidth - box.x), height: clamp(logicalY, 50, PAGE.logicalHeight - box.y) } : box));
+      return;
+    }
+
+    if (drag.kind === "header-name" || drag.kind === "header-group") {
+      const x = clamp(logicalX, 0, PAGE.logicalWidth - drag.width);
+      const y = clamp(logicalY, 0, PAGE.logicalHeight - drag.height);
+      setDocumentPages((current) => current.map((page) => page.id === activePageId ? { ...page, header: { ...(page.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), ...(drag.kind === "header-name" ? { nameX: x, nameY: y } : { groupX: x, groupY: y }) } } : page));
+      return;
+    }
+
     const primaryStart = drag.nodePositions?.find((item) => item.id === drag.itemId);
     if (!primaryStart) return;
     const nextPrimaryX = closestWordCenter === null ? snap(logicalX) : logicalX;
@@ -651,6 +690,24 @@ export function TreeAnalysisEditor({
 
   function stopDragging() {
     dragRef.current = null;
+    if (selectionBox) {
+      const left = Math.min(selectionBox.startX, selectionBox.x);
+      const right = Math.max(selectionBox.startX, selectionBox.x);
+      const top = Math.min(selectionBox.startY, selectionBox.y);
+      const bottom = Math.max(selectionBox.startY, selectionBox.y);
+      setSelectedNodeIds(nodes.filter((node) => (node.pageId ?? documentPages[0]?.id) === activePageId && node.x < right && node.x + getNodeDimensions(node).width > left && node.y < bottom && node.y + getNodeDimensions(node).height > top).map((node) => node.id));
+      setSelectionBox(null);
+    }
+  }
+
+  function startCanvasSelection(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width);
+    const y = (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height);
+    setEditingTextBoxId(null);
+    setSelectedTableId(null);
+    setSelectionBox({ startX: x, startY: y, x, y });
   }
 
   function handleNodeKeyDown(
@@ -972,6 +1029,8 @@ export function TreeAnalysisEditor({
               <div>{documentPages.map((page, index) => <button type="button" key={page.id} className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addDocumentPage}><Plus size={15} /> Page</button></div>
               <label>Orientation<select value={documentPages.find((page) => page.id === activePageId)?.orientation ?? "landscape"} onChange={(event) => updateActivePage({ orientation: event.target.value as "portrait" | "landscape" })}><option value="landscape">Paysage</option><option value="portrait">Portrait</option></select></label>
               {(["top", "right", "bottom", "left"] as const).map((side) => <label key={side}>Marge {side}<input type="number" min="0" max="120" value={documentPages.find((page) => page.id === activePageId)?.margins[side] ?? 24} onChange={(event) => { const page = documentPages.find((item) => item.id === activePageId); if (page) updateActivePage({ margins: { ...page.margins, [side]: Number(event.target.value) } }); }} /></label>)}
+              <label>Police Nom/Groupe<input type="number" min="12" max="48" value={activePage?.header?.fontSize ?? 20} onChange={(event) => updateActivePage({ header: { ...(activePage?.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), fontSize: Number(event.target.value) } })} /></label>
+              <label>Longueur des lignes<input type="number" min="120" max="500" value={activePage?.header?.lineWidth ?? 260} onChange={(event) => updateActivePage({ header: { ...(activePage?.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), lineWidth: Number(event.target.value) } })} /></label>
             </div>
             <div className="tree-analysis-quick-add" aria-label="Ajouter à la page">
               <span>Ajouter à la page</span>
@@ -989,14 +1048,6 @@ export function TreeAnalysisEditor({
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#2467d1" })}>Bleu</button>
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#22834b" })}>Vert</button>
                 <button type="button" onClick={() => applyTextAnnotation({ framed: true })}>Encadrer</button>
-                {editingTextBoxId === selectedTextBoxId && <button type="button" onClick={() => setEditingTextBoxId(null)}>Terminer l’édition</button>}
-                <button type="button" className="danger" onClick={deleteSelectedTextBox}><Trash2 size={15} /> Supprimer la boîte</button>
-              </div>
-            )}
-            {activePhraseId && phrases.some((phrase) => phrase.id === activePhraseId) && (
-              <div className="tree-analysis-legacy-phrase-actions">
-                <span>Ancienne phrase sélectionnée</span>
-                <Button type="button" variant="secondary" onClick={deleteActivePhrase}><Trash2 size={15} /> Supprimer la phrase et ses rectangles</Button>
               </div>
             )}
 
@@ -1024,6 +1075,7 @@ export function TreeAnalysisEditor({
                   "--page-margin-bottom": `${((activePage?.margins.bottom ?? 24) / PAGE.logicalHeight) * 100}%`,
                   "--page-margin-left": `${((activePage?.margins.left ?? 24) / PAGE.logicalWidth) * 100}%`
                 } as React.CSSProperties}
+                onPointerDown={startCanvasSelection}
                 onPointerMove={handleCanvasPointerMove}
                 onPointerUp={stopDragging}
                 onPointerCancel={stopDragging}
@@ -1034,23 +1086,10 @@ export function TreeAnalysisEditor({
                 }}
               >
                 <div className="tree-analysis-print-safe-guide" />
+                {selectionBox && <div className="tree-analysis-selection-box" style={{ left: `${(Math.min(selectionBox.startX, selectionBox.x) / PAGE.logicalWidth) * 100}%`, top: `${(Math.min(selectionBox.startY, selectionBox.y) / PAGE.logicalHeight) * 100}%`, width: `${(Math.abs(selectionBox.x - selectionBox.startX) / PAGE.logicalWidth) * 100}%`, height: `${(Math.abs(selectionBox.y - selectionBox.startY) / PAGE.logicalHeight) * 100}%` }} />}
 
-                <div className="tree-analysis-name-line">Nom : <span /></div>
-                {phrases.filter((phrase) => (phrase.pageId ?? documentPages[0]?.id) === activePageId).map((phrase) => (
-                  <button
-                    type="button"
-                    key={phrase.id}
-                    className={`tree-analysis-builder-sentence ${activePhraseId === phrase.id ? "active" : ""}`}
-                    style={{ left: `${(phrase.x / PAGE.logicalWidth) * 100}%`, top: `${(phrase.y / PAGE.logicalHeight) * 100}%`, fontSize: `${(phrase.fontSize / PAGE.logicalWidth) * 100}cqw` }}
-                    onClick={() => setActivePhraseId(phrase.id)}
-                    onPointerDown={(event) => {
-                      setActivePhraseId(phrase.id);
-                      startItemDrag(event, "phrase", phrase);
-                    }}
-                  >
-                    {phrase.text}
-                  </button>
-                ))}
+                <div className="tree-analysis-name-line movable" style={{ left: `${((activePage?.header?.nameX ?? 12) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.nameY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => startHeaderDrag(event, "header-name")}>Nom : <span /></div>
+                <div className="tree-analysis-name-line movable" style={{ left: `${((activePage?.header?.groupX ?? 430) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.groupY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => startHeaderDrag(event, "header-group")}>Groupe : <span /></div>
 
                 <svg
                   className="tree-analysis-lines"
@@ -1150,11 +1189,12 @@ export function TreeAnalysisEditor({
                 {tables.filter((table) => (table.pageId ?? documentPages[0]?.id) === activePageId).map((table) => (
                   <div
                     key={table.id}
-                    className="tree-analysis-activity-table"
+                    className={`tree-analysis-activity-table ${selectedTableId === table.id ? "selected" : ""}`}
                     style={{ left: `${(table.x / PAGE.logicalWidth) * 100}%`, top: `${(table.y / PAGE.logicalHeight) * 100}%`, gridTemplateColumns: `repeat(${table.columns}, minmax(0, 1fr))` }}
                     onPointerDown={(event) => startItemDrag(event, "table", table)}
+                    onClick={() => setSelectedTableId(table.id)}
                   >
-                    <button type="button" className="tree-analysis-merge-row" onClick={() => setTables((current) => current.map((item) => item.id === table.id ? { ...item, cells: item.cells.map((cell, index) => index === 0 ? { ...cell, columnSpan: table.columns } : index < table.columns ? { ...cell, columnSpan: 0 } : cell) } : item))}>Fusionner la 1re rangée</button>
+                    {selectedTableId === table.id && !(table.cells[0]?.columnSpan && table.cells[0].columnSpan > 1) && <button type="button" className="tree-analysis-merge-row" onClick={() => setTables((current) => current.map((item) => item.id === table.id ? { ...item, cells: item.cells.map((cell, index) => index === 0 ? { ...cell, columnSpan: table.columns } : index < table.columns ? { ...cell, columnSpan: 0 } : cell) } : item))}>Fusionner la 1re rangée</button>}
                     {table.cells.map((cell, cellIndex) => cell.columnSpan === 0 ? null : (
                       <div key={cellIndex} className={`tree-analysis-table-cell ${cell.isCorrect ? "correct" : ""} ${cell.columnSpan && cell.columnSpan > 1 ? "merged" : ""}`} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined }}>
                         <textarea
@@ -1172,7 +1212,7 @@ export function TreeAnalysisEditor({
                         </button>
                       </div>
                     ))}
-                    <button type="button" className="tree-analysis-delete-table" onClick={() => setTables((current) => current.filter((item) => item.id !== table.id))} aria-label="Supprimer le tableau"><X size={13} /></button>
+                    {selectedTableId === table.id && <button type="button" className="tree-analysis-delete-table" onClick={() => { setTables((current) => current.filter((item) => item.id !== table.id)); setSelectedTableId(null); }} aria-label="Supprimer le tableau"><X size={13} /></button>}
                   </div>
                 ))}
                 {textBoxes.filter((box) => box.pageId === activePageId).map((box) => (
@@ -1181,14 +1221,19 @@ export function TreeAnalysisEditor({
                     className={`tree-analysis-text-box ${selectedTextBoxId === box.id ? "selected" : ""}`}
                     style={{ left: `${(box.x / PAGE.logicalWidth) * 100}%`, top: `${(box.y / PAGE.logicalHeight) * 100}%`, width: `${(box.width / PAGE.logicalWidth) * 100}%`, minHeight: `${(box.height / PAGE.logicalHeight) * 100}%`, fontSize: `${(box.fontSize / PAGE.logicalWidth) * 100}cqw` }}
                     onClick={() => setSelectedTextBoxId(box.id)}
+                    onPointerDown={(event) => {
+                      if (event.target === event.currentTarget) startItemDrag(event, "textbox", box);
+                    }}
                   >
-                    <div className="tree-analysis-text-drag" onPointerDown={(event) => startItemDrag(event, "textbox", box)}>Déplacer</div>
+                    {selectedTextBoxId === box.id && <button type="button" className="tree-analysis-text-delete" onClick={(event) => { event.stopPropagation(); deleteTextBox(box); setSelectedTextBoxId(null); setEditingTextBoxId(null); }} aria-label="Supprimer la boîte"><X size={14} /></button>}
+                    {selectedTextBoxId === box.id && <span className="tree-analysis-text-resize" onPointerDown={(event) => startTextBoxResize(event, box)} />}
                     {editingTextBoxId === box.id ? (
                       <textarea
                         className="tree-analysis-text-editor"
                         value={box.text}
                         placeholder="Écris ton texte ici…"
                         autoFocus
+                        onBlur={() => setEditingTextBoxId(null)}
                         onChange={(event) => setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: event.target.value } : item))}
                         onSelect={(event) => {
                           setSelectedTextBoxId(box.id);

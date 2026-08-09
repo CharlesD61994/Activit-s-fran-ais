@@ -7235,22 +7235,36 @@ textarea {
   border-color: #3976bf;
 }
 
-.tree-analysis-text-drag {
-  display: none;
+.tree-analysis-text-delete {
   position: absolute;
-  right: 0;
-  bottom: 100%;
-  padding: 3px 7px;
-  border-radius: 5px 5px 0 0;
-  background: #3976bf;
+  z-index: 4;
+  top: -11px;
+  right: -11px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #a92525;
   color: white;
-  font-size: 11px;
-  cursor: grab;
-  touch-action: none;
+  cursor: pointer;
 }
 
-.tree-analysis-text-box.selected .tree-analysis-text-drag {
-  display: block;
+.tree-analysis-text-resize {
+  position: absolute;
+  z-index: 4;
+  right: -5px;
+  bottom: -5px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid white;
+  border-radius: 3px;
+  background: #3976bf;
+  box-shadow: 0 0 0 1px #3976bf;
+  cursor: nwse-resize;
+  touch-action: none;
 }
 
 .tree-analysis-text-content {
@@ -7281,6 +7295,24 @@ textarea {
   content: attr(data-placeholder);
   color: rgba(0, 0, 0, .34);
   pointer-events: none;
+}
+
+.tree-analysis-selection-box {
+  position: absolute;
+  z-index: 19;
+  border: 1.5px solid #3976bf;
+  background: rgba(57, 118, 191, .12);
+  pointer-events: none;
+}
+
+.tree-analysis-name-line.movable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.tree-analysis-activity-table.selected {
+  outline: 2px solid #3976bf;
+  outline-offset: 3px;
 }
 
 .tree-analysis-lines {
@@ -7549,7 +7581,10 @@ textarea {
   .tree-analysis-score-box > button,
   .tree-analysis-delete-table,
   .tree-analysis-correct-cell,
-  .tree-analysis-merge-row {
+  .tree-analysis-merge-row,
+  .tree-analysis-text-delete,
+  .tree-analysis-text-resize,
+  .tree-analysis-selection-box {
     display: none !important;
   }
 

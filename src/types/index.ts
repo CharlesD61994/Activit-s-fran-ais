@@ -183,6 +183,14 @@ export type TreeAnalysisDocumentPage = {
   id: string;
   orientation: "portrait" | "landscape";
   margins: TreeAnalysisPageMargins;
+  header?: {
+    nameX: number;
+    nameY: number;
+    groupX: number;
+    groupY: number;
+    fontSize: number;
+    lineWidth: number;
+  };
 };
 
 export type TreeAnalysisTextAnnotation = {
