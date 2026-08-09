@@ -226,6 +226,7 @@ export type TreeAnalysisTextBox = {
   height: number;
   text: string;
   fontSize: number;
+  textAlign?: "left" | "center" | "justify";
   annotations: TreeAnalysisTextAnnotation[];
 };
 
