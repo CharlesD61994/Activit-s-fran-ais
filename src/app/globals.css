@@ -7102,11 +7102,21 @@ textarea {
 }
 
 .tree-analysis-phase-list {
+  grid-column: 1 / -1;
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: 8px;
 }
 
+.tree-analysis-flow-panel > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .tree-analysis-phase {
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 10px;
