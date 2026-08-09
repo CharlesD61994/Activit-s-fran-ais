@@ -108,6 +108,20 @@ function snap(value: number) {
   return Math.round(value / GRID) * GRID;
 }
 
+function rebaseTextAnnotations(box: TreeAnalysisTextBox, nextText: string) {
+  const previousText = box.text;
+  if (previousText === nextText) return box.annotations;
+  let prefix = 0;
+  while (prefix < previousText.length && prefix < nextText.length && previousText[prefix] === nextText[prefix]) prefix += 1;
+  let suffix = 0;
+  while (suffix < previousText.length - prefix && suffix < nextText.length - prefix && previousText[previousText.length - 1 - suffix] === nextText[nextText.length - 1 - suffix]) suffix += 1;
+  const previousChangeEnd = previousText.length - suffix;
+  const nextChangeEnd = nextText.length - suffix;
+  const delta = nextText.length - previousText.length;
+  const mapIndex = (index: number) => index <= prefix ? index : index >= previousChangeEnd ? index + delta : nextChangeEnd;
+  return box.annotations.map((annotation) => ({ ...annotation, start: mapIndex(annotation.start), end: mapIndex(annotation.end) })).filter((annotation) => annotation.end > annotation.start);
+}
+
 function renderTextBoxContent(box: TreeAnalysisTextBox) {
   const boundaries = Array.from(new Set([0, box.text.length, ...box.annotations.flatMap((annotation) => [annotation.start, annotation.end])])).sort((a, b) => a - b);
   return boundaries.slice(0, -1).map((start, index) => {
@@ -427,7 +441,7 @@ export function TreeAnalysisEditor({
 
   function captureRenderedTextSelection(box: TreeAnalysisTextBox, element: HTMLDivElement) {
     const browserSelection = window.getSelection();
-    if (!browserSelection || browserSelection.rangeCount === 0 || browserSelection.isCollapsed) return;
+    if (!browserSelection || browserSelection.rangeCount === 0) return;
     const range = browserSelection.getRangeAt(0);
     if (!element.contains(range.startContainer) || !element.contains(range.endContainer)) return;
     const beforeStart = range.cloneRange();
@@ -1116,7 +1130,6 @@ export function TreeAnalysisEditor({
                 <label>Police <input type="number" min="12" max="96" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.fontSize ?? 32} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, fontSize: Number(event.target.value) } : box))} /></label>
                 <label>Largeur <input type="number" min="120" max="1056" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.width ?? 760} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, width: Number(event.target.value) } : box))} /></label>
                 <label>Hauteur <input type="number" min="50" max="816" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.height ?? 110} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, height: Number(event.target.value) } : box))} /></label>
-                <button type="button" onClick={() => setEditingTextBoxId(selectedTextBoxId)}>Modifier le texte</button>
                 <button type="button" className={selectedTextStyle.color === "#d93434" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#d93434"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#d93434" ? null : "#d93434" })}>Rouge</button>
                 <button type="button" className={selectedTextStyle.color === "#2467d1" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#2467d1"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#2467d1" ? null : "#2467d1" })}>Bleu</button>
                 <button type="button" className={selectedTextStyle.color === "#22834b" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#22834b"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#22834b" ? null : "#22834b" })}>Vert</button>
@@ -1305,42 +1318,28 @@ export function TreeAnalysisEditor({
                   >
                     {selectedTextBoxId === box.id && <button type="button" className="tree-analysis-text-delete" onClick={(event) => { event.stopPropagation(); deleteTextBox(box); setSelectedTextBoxId(null); setEditingTextBoxId(null); }} aria-label="Supprimer la boîte"><X size={14} /></button>}
                     {selectedTextBoxId === box.id && <span className="tree-analysis-text-resize" onPointerDown={(event) => startTextBoxResize(event, box)} />}
-                    {selectedTextBoxId === box.id && editingTextBoxId !== box.id && <span className="tree-analysis-text-move-handle" title="Glisser pour déplacer" onPointerDown={(event) => { event.stopPropagation(); startItemDrag(event, "textbox", box); }} />}
-                    {editingTextBoxId === box.id ? (
-                      <textarea
-                        className="tree-analysis-text-editor"
-                        value={box.text}
-                        placeholder="Écris ton texte ici…"
-                        autoFocus
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onPointerMove={(event) => event.stopPropagation()}
-                        onPointerUp={(event) => event.stopPropagation()}
-                        onClick={(event) => event.stopPropagation()}
-                        onBlur={() => setEditingTextBoxId(null)}
-                        onChange={(event) => setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: event.target.value } : item))}
-                        onSelect={(event) => {
-                          setSelectedTextBoxId(box.id);
-                          const selection = { start: event.currentTarget.selectionStart, end: event.currentTarget.selectionEnd };
-                          textSelectionRef.current = selection;
-                          setTextSelection(selection);
-                        }}
-                      />
-                    ) : (
-                      <div
-                        className="tree-analysis-text-content"
-                        data-placeholder="Écris ton texte ici…"
-                        onPointerDown={(event) => {
-                          event.stopPropagation();
-                          setSelectedTextBoxId(box.id);
-                          setSelectedTableId(null);
-                          setSelectedHeader(null);
-                        }}
-                        onMouseUp={(event) => captureRenderedTextSelection(box, event.currentTarget)}
-                      >
-                        {renderTextBoxContent(box)}
-                      </div>
-                    )}
+                    {selectedTextBoxId === box.id && <span className="tree-analysis-text-move-handle" title="Glisser pour déplacer" onPointerDown={(event) => { event.stopPropagation(); startItemDrag(event, "textbox", box); }} />}
+                    <div
+                      className="tree-analysis-text-content"
+                      data-placeholder="Écris ton texte ici…"
+                      contentEditable
+                      suppressContentEditableWarning
+                      spellCheck
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                        setSelectedTextBoxId(box.id);
+                        setSelectedTableId(null);
+                        setSelectedHeader(null);
+                      }}
+                      onInput={(event) => {
+                        const nextText = event.currentTarget.innerText.replace(/\r/g, "");
+                        setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: nextText, annotations: rebaseTextAnnotations(item, nextText) } : item));
+                      }}
+                      onMouseUp={(event) => captureRenderedTextSelection(box, event.currentTarget)}
+                      onKeyUp={(event) => captureRenderedTextSelection(box, event.currentTarget)}
+                    >
+                      {renderTextBoxContent(box)}
+                    </div>
                   </div>
                 ))}
                 </div>

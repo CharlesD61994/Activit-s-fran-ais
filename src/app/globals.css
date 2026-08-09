@@ -7345,6 +7345,8 @@ textarea {
   outline: 0;
   user-select: text !important;
   -webkit-user-select: text !important;
+  cursor: text;
+  caret-color: currentColor;
 }
 
 .tree-analysis-text-editor {
