@@ -56,6 +56,15 @@ function selectionMatches(text: string, selected: TextSelection, interaction: Tr
   return difference <= 2;
 }
 
+function estimateTableHeight(table: NonNullable<Sentence["treeAnalysisTables"]>[number]) {
+  const firstCell = table.cells[0];
+  const hasMergedQuestion = Boolean(firstCell?.columnSpan && firstCell.columnSpan > 1);
+  if (!hasMergedQuestion) return table.rows * 50;
+  const questionLines = Math.max(1, Math.ceil((firstCell?.text.length ?? 0) / 34));
+  const questionHeight = Math.max(50, questionLines * 23 + 20);
+  return questionHeight + Math.max(0, table.rows - 1) * 50;
+}
+
 export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange, finishControl }: Props) {
   const nodes = useMemo(() => sentence.treeAnalysisNodes ?? [], [sentence.treeAnalysisNodes]);
   const interactions = useMemo(() => sentence.treeAnalysisInteractions ?? [], [sentence.treeAnalysisInteractions]);
@@ -89,9 +98,9 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const isComplete = steps.length > 0 && completed.length >= steps.length;
   const freeTreePhase = flow.preset === "tree_functions_tables" && Boolean(currentNode);
   const contentTop = Math.min(...textBoxes.map((box) => box.y), ...nodes.map((node) => node.y), ...tables.map((table) => table.y), 90);
-  const contentBottom = Math.max(...textBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...nodes.map((node) => node.y + nodeHeight), ...tables.map((table) => table.y + table.rows * 50), 260);
+  const contentBottom = Math.max(...textBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...nodes.map((node) => node.y + nodeHeight), ...tables.map((table) => table.y + estimateTableHeight(table)), 260);
   const topOffset = Math.max(0, contentTop - 4);
-  const visibleBottom = Math.min(816, contentBottom + 12);
+  const visibleBottom = contentBottom + 32;
   const visibleHeight = Math.max(180, visibleBottom - topOffset);
 
   useEffect(() => {
