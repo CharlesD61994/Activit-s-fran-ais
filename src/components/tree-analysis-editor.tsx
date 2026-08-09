@@ -72,6 +72,7 @@ const TREE_BOTTOM = PAGE.logicalHeight - PAGE.marginTop;
 const MIN_SENTENCE_FONT_SIZE = 18;
 const MAX_SENTENCE_FONT_SIZE = 96;
 const SENTENCE_RIGHT_MARGIN = 20;
+const ALIGNMENT_TOLERANCE = 8;
 
 const FREE_PAGE = (id = crypto.randomUUID()): TreeAnalysisDocumentPage => ({ id, orientation: "landscape", template: "free", rectanglePreset: "normal", margins: { top: 24, right: 24, bottom: 24, left: 24 }, header: { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 } });
 const TEACHING_PAGE = (id = crypto.randomUUID()): TreeAnalysisDocumentPage => ({
@@ -245,6 +246,7 @@ export function TreeAnalysisEditor({
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedHeader, setSelectedHeader] = useState<"name" | "group" | null>(null);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; x: number; y: number } | null>(null);
+  const [alignmentGuides, setAlignmentGuides] = useState<{ x?: number; y?: number }>({});
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [editingScoreId, setEditingScoreId] = useState<string | null>(null);
@@ -818,8 +820,35 @@ export function TreeAnalysisEditor({
 
     let logicalX =
       (event.clientX - rect.left) * scaleX - drag.offsetX;
-    const logicalY =
+    let logicalY =
       (event.clientY - rect.top) * scaleY - drag.offsetY;
+
+    if ((drag.kind === "textbox" || drag.kind === "question-badge") && !event.altKey) {
+      const page = activePage;
+      const xCandidates = [page?.margins.left ?? 0];
+      const yCandidates = [page?.margins.top ?? 0];
+      if (drag.kind === "textbox") {
+        textBoxes.filter((box) => box.pageId === activePageId && box.id !== drag.itemId).forEach((box) => {
+          xCandidates.push(box.x);
+          yCandidates.push(box.y);
+        });
+      } else {
+        questionBadges.filter((badge) => badge.pageId === activePageId && badge.id !== drag.itemId).forEach((badge) => {
+          xCandidates.push(badge.x, badge.x + 16);
+          yCandidates.push(badge.y, badge.y + 16);
+        });
+      }
+      const movingXPoints = drag.kind === "question-badge" ? [{ value: logicalX, offset: 0 }, { value: logicalX + 16, offset: 16 }] : [{ value: logicalX, offset: 0 }];
+      const movingYPoints = drag.kind === "question-badge" ? [{ value: logicalY, offset: 0 }, { value: logicalY + 16, offset: 16 }] : [{ value: logicalY, offset: 0 }];
+      const xMatch = movingXPoints.flatMap((point) => xCandidates.map((candidate) => ({ candidate, offset: point.offset, distance: Math.abs(point.value - candidate) }))).sort((a, b) => a.distance - b.distance)[0];
+      const yMatch = movingYPoints.flatMap((point) => yCandidates.map((candidate) => ({ candidate, offset: point.offset, distance: Math.abs(point.value - candidate) }))).sort((a, b) => a.distance - b.distance)[0];
+      const nextGuides: { x?: number; y?: number } = {};
+      if (xMatch && xMatch.distance <= ALIGNMENT_TOLERANCE) { logicalX = xMatch.candidate - xMatch.offset; nextGuides.x = xMatch.candidate; }
+      if (yMatch && yMatch.distance <= ALIGNMENT_TOLERANCE) { logicalY = yMatch.candidate - yMatch.offset; nextGuides.y = yMatch.candidate; }
+      setAlignmentGuides(nextGuides);
+    } else if (alignmentGuides.x !== undefined || alignmentGuides.y !== undefined) {
+      setAlignmentGuides({});
+    }
 
     const closestWordCenter = drag.kind === "node" ? wordCenters.reduce<number | null>(
       (closest, center) => {
@@ -846,7 +875,7 @@ export function TreeAnalysisEditor({
     }
 
     if (drag.kind === "question-badge") {
-      setQuestionBadges((current) => current.map((badge) => badge.id === drag.itemId ? { ...badge, x: clamp(snap(logicalX), 0, PAGE.logicalWidth - 32), y: clamp(snap(logicalY), 0, PAGE.logicalHeight - 32) } : badge));
+      setQuestionBadges((current) => current.map((badge) => badge.id === drag.itemId ? { ...badge, x: clamp(logicalX, 0, PAGE.logicalWidth - 32), y: clamp(logicalY, 0, PAGE.logicalHeight - 32) } : badge));
       return;
     }
 
@@ -906,6 +935,7 @@ export function TreeAnalysisEditor({
 
   function stopDragging() {
     dragRef.current = null;
+    setAlignmentGuides({});
     if (selectionBox) {
       const left = Math.min(selectionBox.startX, selectionBox.x);
       const right = Math.max(selectionBox.startX, selectionBox.x);
@@ -1347,6 +1377,8 @@ export function TreeAnalysisEditor({
                 }}
               >
                 <div className="tree-analysis-print-safe-guide" />
+                {alignmentGuides.x !== undefined && <div className="tree-analysis-alignment-guide vertical" style={{ left: `${(alignmentGuides.x / PAGE.logicalWidth) * 100}%` }} />}
+                {alignmentGuides.y !== undefined && <div className="tree-analysis-alignment-guide horizontal" style={{ top: `${(alignmentGuides.y / PAGE.logicalHeight) * 100}%` }} />}
                 {selectionBox && <div className="tree-analysis-selection-box" style={{ left: `${(Math.min(selectionBox.startX, selectionBox.x) / PAGE.logicalWidth) * 100}%`, top: `${(Math.min(selectionBox.startY, selectionBox.y) / PAGE.logicalHeight) * 100}%`, width: `${(Math.abs(selectionBox.x - selectionBox.startX) / PAGE.logicalWidth) * 100}%`, height: `${(Math.abs(selectionBox.y - selectionBox.startY) / PAGE.logicalHeight) * 100}%` }} />}
 
                 <div className={`tree-analysis-name-line movable ${selectedHeader === "name" ? "selected" : ""}`} style={{ left: `${((activePage?.header?.nameX ?? 12) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.nameY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => { setSelectedHeader("name"); setSelectedTextBoxId(null); setSelectedTableId(null); startHeaderDrag(event, "header-name"); }}>Nom : <span /></div>

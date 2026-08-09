@@ -7325,6 +7325,27 @@ textarea {
   display: none;
 }
 
+.tree-analysis-alignment-guide {
+  position: absolute;
+  z-index: 25;
+  pointer-events: none;
+  opacity: .68;
+}
+
+.tree-analysis-alignment-guide.vertical {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  border-left: 1px dashed #6f9cc8;
+}
+
+.tree-analysis-alignment-guide.horizontal {
+  left: 0;
+  right: 0;
+  height: 1px;
+  border-top: 1px dashed #6f9cc8;
+}
+
 .tree-analysis-builder-sentence {
   position: absolute;
   left: .4%;
