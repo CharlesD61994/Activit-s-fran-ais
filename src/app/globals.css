@@ -7226,13 +7226,18 @@ textarea {
   position: absolute;
   z-index: 3;
   box-sizing: border-box;
-  border: 1px dashed transparent;
+  border: 0;
   background: transparent;
   color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 400;
+  font-kerning: normal;
+  letter-spacing: normal;
 }
 
 .tree-analysis-text-box.selected {
-  border-color: #3976bf;
+  outline: 1px dashed #3976bf;
+  outline-offset: 0;
 }
 
 .tree-analysis-text-delete {
