@@ -567,6 +567,7 @@ export default function PresentationPage({
         {isTreeAnalysisActivity ? (
           <TreeAnalysisReader
             sentence={sentence}
+            persistenceKey={readerPersistenceKey}
             onCompleteChange={setTreeAnalysisComplete}
             finishControl={
               <Button className="finish-button" onClick={finishSentence} disabled={finished || !treeAnalysisComplete}>

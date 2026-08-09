@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import { RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { Sentence, TreeAnalysisInteraction, TreeAnalysisNode, WordClass, WordGroupType } from "@/types";
 
 const groupLabels: Record<WordGroupType, string> = { GN: "GN", GV: "GV", GAdj: "GAdj", GAdv: "GAdv", GPrep: "GPrép" };
@@ -18,6 +20,7 @@ const nodeAliases: Record<WordGroupType | WordClass, string[]> = {
 
 type Props = {
   sentence: Sentence;
+  persistenceKey?: string;
   onCompleteChange?: (complete: boolean) => void;
   finishControl?: ReactNode;
 };
@@ -53,7 +56,7 @@ function selectionMatches(text: string, selected: TextSelection, interaction: Tr
   return difference <= 2;
 }
 
-export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }: Props) {
+export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange, finishControl }: Props) {
   const nodes = useMemo(() => sentence.treeAnalysisNodes ?? [], [sentence.treeAnalysisNodes]);
   const interactions = useMemo(() => sentence.treeAnalysisInteractions ?? [], [sentence.treeAnalysisInteractions]);
   const tables = useMemo(() => sentence.treeAnalysisTables ?? [], [sentence.treeAnalysisTables]);
@@ -68,6 +71,7 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
   const [framedAnswers, setFramedAnswers] = useState<Array<{ textBoxId: string; start: number; end: number }>>([]);
   const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
   const [drawingCurrent, setDrawingCurrent] = useState<{ x: number; y: number } | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   const automaticSteps = useMemo(() => {
     if (flow.preset === "groups_tree_tables") {
@@ -86,9 +90,42 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
   const freeTreePhase = flow.preset === "tree_functions_tables" && Boolean(currentNode);
   const contentTop = Math.min(...textBoxes.map((box) => box.y), ...nodes.map((node) => node.y), ...tables.map((table) => table.y), 90);
   const contentBottom = Math.max(...textBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...nodes.map((node) => node.y + nodeHeight), ...tables.map((table) => table.y + table.rows * 50), 260);
-  const topOffset = Math.max(0, contentTop - 24);
-  const visibleBottom = Math.min(816, contentBottom + 24);
-  const visibleHeight = Math.max(240, visibleBottom - topOffset);
+  const topOffset = Math.max(0, contentTop - 4);
+  const visibleBottom = Math.min(816, contentBottom + 12);
+  const visibleHeight = Math.max(180, visibleBottom - topOffset);
+
+  useEffect(() => {
+    if (!persistenceKey || typeof window === "undefined") { setHydrated(true); return; }
+    try {
+      const raw = window.sessionStorage.getItem(persistenceKey);
+      if (raw) {
+        const saved = JSON.parse(raw) as { completed?: string[]; nodeDrafts?: Record<string, string>; framedAnswers?: Array<{ textBoxId: string; start: number; end: number }> };
+        setCompleted(saved.completed ?? []);
+        setNodeDrafts(saved.nodeDrafts ?? {});
+        setFramedAnswers(saved.framedAnswers ?? []);
+        onCompleteChange?.((saved.completed?.length ?? 0) >= steps.length && steps.length > 0);
+      }
+    } catch { window.sessionStorage.removeItem(persistenceKey); }
+    setHydrated(true);
+    // Restore only when opening this activity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistenceKey, sentence.id]);
+
+  useEffect(() => {
+    if (!hydrated || !persistenceKey || typeof window === "undefined") return;
+    window.sessionStorage.setItem(persistenceKey, JSON.stringify({ completed, nodeDrafts, framedAnswers }));
+  }, [completed, framedAnswers, hydrated, nodeDrafts, persistenceKey]);
+
+  function restartActivity() {
+    setCompleted([]);
+    setNodeDrafts({});
+    setFramedAnswers([]);
+    setFeedback("");
+    setDrawingStart(null);
+    setDrawingCurrent(null);
+    onCompleteChange?.(false);
+    if (persistenceKey && typeof window !== "undefined") window.sessionStorage.removeItem(persistenceKey);
+  }
 
   function completeStep(id: string) {
     setCompleted((current) => {
@@ -182,7 +219,7 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
         {drawingStart && drawingCurrent && <div className="tree-reader-drawing-box" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
       </div>
 
-      <div className="interactive-reader-actions">{isComplete ? finishControl : null}</div>
+      <div className="interactive-reader-actions"><Button type="button" variant="secondary" onClick={restartActivity}><RotateCcw size={18} /> Recommencer</Button>{isComplete ? finishControl : null}</div>
     </div>
   );
 }
