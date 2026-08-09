@@ -8243,6 +8243,16 @@ textarea {
   user-select: none;
 }
 
+.tree-reader-page.clicking .tree-reader-word {
+  cursor: pointer;
+}
+
+.tree-reader-page.clicking .tree-reader-word:hover {
+  border-radius: 3px;
+  background: rgba(57,118,191,.14);
+  box-shadow: 0 0 0 2px rgba(57,118,191,.14);
+}
+
 .tree-reader-page.portrait {
   width: min(100%, 816px);
   margin-inline: auto;

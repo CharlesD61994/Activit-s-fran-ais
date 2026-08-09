@@ -126,6 +126,10 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const currentInteraction = currentStep?.startsWith("interaction:") ? interactions.find((item) => `interaction:${item.id}` === currentStep) : undefined;
   const currentNode = currentStep?.startsWith("node:") ? nodes.find((item) => `node:${item.id}` === currentStep) : undefined;
   const currentTable = currentStep?.startsWith("table:") ? tables.find((item) => `table:${item.id}` === currentStep) : undefined;
+  useEffect(() => {
+    setDrawingStart(null);
+    setDrawingCurrent(null);
+  }, [currentInteraction?.id, currentInteraction?.responseMode]);
   const currentPageId = currentNode?.pageId ?? currentTable?.pageId ?? textBoxes.find((box) => box.id === currentInteraction?.textBoxId)?.pageId ?? documentPages[0]?.id;
   const ownsCurrentPage = (pageId?: string) => (pageId ?? documentPages[0]?.id) === currentPageId;
   const visibleTextBoxes = textBoxes.filter((box) => ownsCurrentPage(box.pageId));
@@ -235,7 +239,13 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   function handleWordClick(event: ReactMouseEvent<HTMLElement>, boxId: string, start: number, end: number) {
     if (!currentInteraction || currentInteraction.responseMode !== "click") return;
     event.stopPropagation();
-    verifyFraming({ textBoxId: boxId, start, end });
+    if (currentInteraction.textBoxId !== boxId || end <= currentInteraction.start || start >= currentInteraction.end) {
+      setFeedback("Ce n’est pas le bon mot. Réessaie.");
+      return;
+    }
+    const box = textBoxes.find((item) => item.id === boxId);
+    if (box) setFramedAnswers((current) => [...current, trimSelectionWhitespace(box.text, { textBoxId: boxId, start: currentInteraction.start, end: currentInteraction.end })]);
+    completeStep(`interaction:${currentInteraction.id}`);
   }
 
   function submitNode(node: TreeAnalysisNode, value: string) {
@@ -261,7 +271,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
         </section>
       </div>
 
-      <div className="tree-reader-page-viewport"><div className={`tree-reader-page ${currentInteraction ? "drawing" : ""} ${showFullPortraitPage ? "portrait document-template" : ""}`} style={{ aspectRatio: showFullPortraitPage ? "8.5 / 11" : `1056 / ${visibleHeight}`, zoom }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart) return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: (event.clientX - rect.left) / zoom, y: (event.clientY - rect.top) / zoom }); }}>
+      <div className="tree-reader-page-viewport"><div className={`tree-reader-page ${currentInteraction && currentInteraction.responseMode !== "click" ? "drawing" : ""} ${currentInteraction?.responseMode === "click" ? "clicking" : ""} ${showFullPortraitPage ? "portrait document-template" : ""}`} style={{ aspectRatio: showFullPortraitPage ? "8.5 / 11" : `1056 / ${visibleHeight}`, zoom }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart || currentInteraction?.responseMode === "click") return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: (event.clientX - rect.left) / zoom, y: (event.clientY - rect.top) / zoom }); }}>
         {showFullPortraitPage && currentPage?.template === "teaching_document" && <>
           <div className="tree-analysis-document-header" style={{ left: `${currentPage.margins.left / 1056 * 100}%`, right: `${currentPage.margins.right / 1056 * 100}%`, top: `${(currentPage.header?.nameY ?? 25) / 816 * 100}%` }}>
             <div className="tree-analysis-document-header-top"><div className="tree-analysis-student-fields"><span>NOM</span><span>GROUPE</span></div><div className="tree-analysis-page-cell"><div className="tree-analysis-page-badge">{currentPageIndex + 1}</div></div></div>
