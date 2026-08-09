@@ -265,6 +265,7 @@ export function TreeAnalysisEditor({
   const [interactionModalOpen, setInteractionModalOpen] = useState(false);
   const [interactionKind, setInteractionKind] = useState<"function" | "group" | "nucleus">("function");
   const [interactionNucleusClass, setInteractionNucleusClass] = useState<WordClass>("noun");
+  const [interactionResponseMode, setInteractionResponseMode] = useState<"click" | "frame">("frame");
   const [interactionLabel, setInteractionLabel] = useState("Sujet");
   const [interactionInstruction, setInteractionInstruction] = useState("Encadre le sujet de la phrase.");
   const [interactionLinkedNodeId, setInteractionLinkedNodeId] = useState("");
@@ -559,6 +560,7 @@ export function TreeAnalysisEditor({
       setInteractionKind("function");
       setInteractionLabel("Sujet");
       setInteractionInstruction("Encadre le sujet de la phrase.");
+      setInteractionResponseMode("frame");
       setInteractionLinkedNodeId("");
       setInteractionModalOpen(true);
     }
@@ -576,6 +578,7 @@ export function TreeAnalysisEditor({
       setInteractionKind("function");
       setInteractionLabel("Sujet");
       setInteractionInstruction("Encadre le sujet de la phrase.");
+      setInteractionResponseMode("frame");
       setInteractionLinkedNodeId("");
       setInteractionModalOpen(true);
     }
@@ -596,6 +599,7 @@ export function TreeAnalysisEditor({
       instruction: interactionInstruction.trim(),
       linkedNodeId: interactionKind !== "function" && interactionLinkedNodeId ? interactionLinkedNodeId : undefined,
       nucleusWordClass: interactionKind === "nucleus" ? interactionNucleusClass : undefined,
+      responseMode: interactionResponseMode,
       authorMark: interactionAuthorMark
     };
     setInteractions((current) => [...current, interaction]);
@@ -1801,9 +1805,10 @@ export function TreeAnalysisEditor({
                       <div><span className="eyebrow">Réponse interactive</span><h3>Que représente ce passage?</h3></div>
                       <button type="button" onClick={cancelInteraction} aria-label="Fermer"><X size={18} /></button>
                     </div>
-                    <label>Type de réponse<select value={interactionKind} onChange={(event) => { const kind = event.target.value as "function" | "group" | "nucleus"; setInteractionKind(kind); setInteractionLinkedNodeId(""); if (kind === "function") { setInteractionLabel("Sujet"); setInteractionInstruction("Encadre le sujet de la phrase."); } else if (kind === "group") { setInteractionLabel("Groupe"); setInteractionInstruction("Encadre le groupe lié à ce rectangle."); } else { setInteractionLabel(wordClassLabels[interactionNucleusClass]); setInteractionInstruction("Encadre le noyau du groupe."); } }}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option><option value="nucleus">Noyau du groupe</option></select></label>
+                    <label>Type de réponse<select value={interactionKind} onChange={(event) => { const kind = event.target.value as "function" | "group" | "nucleus"; setInteractionKind(kind); setInteractionLinkedNodeId(""); if (kind === "function") { setInteractionLabel("Sujet"); setInteractionInstruction("Encadre le sujet de la phrase."); setInteractionResponseMode("frame"); } else if (kind === "group") { setInteractionLabel("Groupe"); setInteractionInstruction("Encadre le groupe lié à ce rectangle."); setInteractionResponseMode("frame"); } else { setInteractionLabel(wordClassLabels[interactionNucleusClass]); setInteractionInstruction("Clique sur le noyau du groupe."); setInteractionResponseMode("click"); } }}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option><option value="nucleus">Noyau du groupe</option></select></label>
                     {interactionKind === "function" && <label>Fonction<select value={interactionLabel} onChange={(event) => { const label = event.target.value; setInteractionLabel(label); setInteractionInstruction(functionInstruction(label)); }}>{sentenceFunctionOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>}
                     {interactionKind === "nucleus" && <label>Classe du noyau<select value={interactionNucleusClass} onChange={(event) => { const wordClass = event.target.value as WordClass; setInteractionNucleusClass(wordClass); setInteractionLabel(wordClassLabels[wordClass]); }}>{(Object.keys(wordClassLabels) as WordClass[]).map((wordClass) => <option key={wordClass} value={wordClass}>{wordClassLabels[wordClass]}</option>)}</select></label>}
+                    <label>Action de l’élève<select value={interactionResponseMode} onChange={(event) => { const mode = event.target.value as "click" | "frame"; setInteractionResponseMode(mode); setInteractionInstruction(mode === "click" ? `Clique sur ${interactionKind === "nucleus" ? "le noyau du groupe" : interactionLabel.toLowerCase()}.` : `Encadre ${interactionKind === "nucleus" ? "le noyau du groupe" : interactionLabel.toLowerCase()}.`); }}><option value="click">Cliquer sur le mot</option><option value="frame">Tracer un encadrement</option></select></label>
                     <label>Consigne affichée<input value={interactionInstruction} onChange={(event) => setInteractionInstruction(event.target.value)} placeholder="Ex. Encadre le sujet de la phrase." /></label>
                     {interactionKind !== "function" && <div className="tree-analysis-linked-node-picker"><span>Rectangle déclenché (facultatif)</span><strong>{selectedInteractionNode ? `Rectangle sélectionné — ${getNodeLabel(selectedInteractionNode) || "sans réponse"}` : "Aucun rectangle sélectionné"}</strong><div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}>Choisir dans l’arbre</Button>{interactionLinkedNodeId && <Button type="button" variant="secondary" onClick={() => setInteractionLinkedNodeId("")}>Ne lier aucun rectangle</Button>}</div></div>}
                     <p>La couleur ou l’encadrement sert à repérer la réponse dans le corrigé. Dans le lecteur, l’élève répondra toujours en encadrant le passage.</p>

@@ -249,6 +249,7 @@ export type TreeAnalysisInteraction = {
   linkedNodeId?: string;
   authorMark?: "frame" | "red" | "blue" | "green";
   nucleusWordClass?: WordClass;
+  responseMode?: "click" | "frame";
 };
 
 export type TreeAnalysisFlowPreset =

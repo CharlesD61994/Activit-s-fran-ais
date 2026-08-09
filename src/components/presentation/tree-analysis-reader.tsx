@@ -203,7 +203,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   }
 
   function handleDrawingClick(event: ReactMouseEvent<HTMLDivElement>) {
-    if (!currentInteraction) return;
+    if (!currentInteraction || currentInteraction.responseMode === "click") return;
     if ((event.target as HTMLElement).closest("button")) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: (event.clientX - rect.left) / zoom, y: (event.clientY - rect.top) / zoom };
@@ -232,6 +232,12 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
     verifyFraming(candidate);
   }
 
+  function handleWordClick(event: ReactMouseEvent<HTMLElement>, boxId: string, start: number, end: number) {
+    if (!currentInteraction || currentInteraction.responseMode !== "click") return;
+    event.stopPropagation();
+    verifyFraming({ textBoxId: boxId, start, end });
+  }
+
   function submitNode(node: TreeAnalysisNode, value: string) {
     const correctAnswer = node.groupType ?? node.wordClass ?? "";
     if (!correctAnswer || !nodeAliases[correctAnswer].includes(normalizeAnswer(value))) {
@@ -250,7 +256,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
           <span className="eyebrow">Étape {Math.min(completed.length + 1, steps.length || 1)} sur {steps.length || 1}</span>
           <h2>{currentInteraction?.instruction ?? (currentNode ? (freeTreePhase ? "Identifie tous les groupes et toutes les classes de mots dans les rectangles." : "Identifie le rectangle actif.") : currentTable ? "Choisis la bonne réponse dans le tableau." : "Activité terminée!")}</h2>
           <div className="tree-reader-control-buttons"><div className="tree-reader-zoom"><button type="button" onClick={() => setZoom((value) => Math.max(.6, value - .1))} aria-label="Réduire"><Minus size={16} /></button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)} %</button><button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Agrandir"><Plus size={16} /></button></div><button type="button" className={`tree-reader-pin-control ${pointsPinned ? "active" : ""}`} onClick={() => setPointsPinned((value) => !value)}>{pointsPinned ? <Pin size={16} /> : <PinOff size={16} />} Points/étapes</button><button type="button" className={`tree-reader-pin-control ${instructionsPinned ? "active" : ""}`} onClick={() => setInstructionsPinned((value) => !value)}>{instructionsPinned ? <Pin size={16} /> : <PinOff size={16} />} Instructions</button></div>
-          {currentInteraction && <strong className="tree-reader-draw-help">Clique un premier coin, puis le coin opposé pour tracer ton encadrement.</strong>}
+          {currentInteraction && <strong className="tree-reader-draw-help">{currentInteraction.responseMode === "click" ? "Clique directement sur le mot demandé." : "Clique un premier coin, puis le coin opposé pour tracer ton encadrement."}</strong>}
           {feedback && <p>{feedback}</p>}
         </section>
       </div>
@@ -265,9 +271,16 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
           {questionBadges.filter((badge) => badge.pageId === currentPageId).map((badge) => <div key={badge.id} className="tree-analysis-question-badge reader" style={{ left: `${badge.x / 1056 * 100}%`, top: `${badge.y / 816 * 100}%` }}><span>{badge.number}</span></div>)}
         </>}
         {visibleTextBoxes.map((box) => {
-          const answerRanges = framedAnswers.filter((item) => item.textBoxId === box.id).map((item) => trimSelectionWhitespace(box.text, item));
-          const boundaries = Array.from(new Set([0, box.text.length, ...answerRanges.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
-          return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / visibleHeight * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw`, textAlign: box.textAlign ?? "left" }}>{boundaries.slice(0, -1).map((segmentStart, segmentIndex) => { const segmentEnd = boundaries[segmentIndex + 1]; const framed = answerRanges.some((item) => item.start <= segmentStart && item.end >= segmentEnd); let tokenOffset = segmentStart; const tokens = box.text.slice(segmentStart, segmentEnd).match(/\S+|\s+/g) ?? []; return <span key={`${segmentStart}-${segmentEnd}`} className={framed ? "tree-reader-framed" : undefined}>{tokens.map((token, tokenIndex) => { const start = tokenOffset; const end = start + token.length; tokenOffset = end; return /^\s+$/u.test(token) ? token : <span key={`${tokenIndex}-${start}`} className="tree-reader-word" data-box-id={box.id} data-start={start} data-end={end}>{token}</span>; })}</span>; })}</div>;
+          const revealed = interactions.filter((item) => item.textBoxId === box.id && completed.includes(`interaction:${item.id}`)).map((item) => ({ ...item, ...trimSelectionWhitespace(box.text, item) }));
+          const boundaries = Array.from(new Set([0, box.text.length, ...revealed.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
+          return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / visibleHeight * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw`, textAlign: box.textAlign ?? "left" }}>{boundaries.slice(0, -1).map((segmentStart, segmentIndex) => {
+            const segmentEnd = boundaries[segmentIndex + 1];
+            const answer = revealed.find((item) => item.start <= segmentStart && item.end >= segmentEnd);
+            const color = answer?.authorMark === "red" ? "#d93434" : answer?.authorMark === "blue" ? "#2467d1" : answer?.authorMark === "green" ? "#22834b" : undefined;
+            let tokenOffset = segmentStart;
+            const tokens = box.text.slice(segmentStart, segmentEnd).match(/\S+|\s+/g) ?? [];
+            return <span key={`${segmentStart}-${segmentEnd}`} className={answer && (!answer.authorMark || answer.authorMark === "frame") ? "tree-reader-framed" : undefined} style={{ color }}>{tokens.map((token, tokenIndex) => { const start = tokenOffset; const end = start + token.length; tokenOffset = end; return /^\s+$/u.test(token) ? token : <span key={`${tokenIndex}-${start}`} className="tree-reader-word" data-box-id={box.id} data-start={start} data-end={end} onClick={(event) => handleWordClick(event, box.id, start, end)}>{token}</span>; })}</span>;
+          })}</div>;
         })}
         <svg className="tree-reader-lines" viewBox={`0 0 1056 ${visibleHeight}`} preserveAspectRatio="none">{relations.map((relation) => { const parent = visibleNodes.find((node) => node.id === relation.parentNodeId); const child = visibleNodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return null; const parentSize = nodeDimensions(parent); const childSize = nodeDimensions(child); return <line key={relation.id} x1={parent.x + parentSize.width / 2} y1={parent.y + parentSize.height + 1 - topOffset} x2={child.x + childSize.width / 2} y2={child.y - 1 - topOffset} />; })}</svg>
         {visibleNodes.map((node) => {
