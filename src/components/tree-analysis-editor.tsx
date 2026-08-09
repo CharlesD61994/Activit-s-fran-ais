@@ -113,9 +113,9 @@ function renderTextBoxContent(box: TreeAnalysisTextBox) {
   return boundaries.slice(0, -1).map((start, index) => {
     const end = boundaries[index + 1];
     const annotations = box.annotations.filter((item) => item.start <= start && item.end >= end);
-    const color = [...annotations].reverse().find((item) => item.color)?.color;
-    const framed = annotations.some((item) => item.framed);
-    const bold = annotations.some((item) => item.bold);
+    const color = [...annotations].reverse().find((item) => item.color !== undefined)?.color ?? undefined;
+    const framed = [...annotations].reverse().find((item) => item.framed !== undefined)?.framed ?? false;
+    const bold = [...annotations].reverse().find((item) => item.bold !== undefined)?.bold ?? false;
     return <span key={`${start}-${end}`} style={{ color, border: framed ? "2px solid currentColor" : undefined, padding: framed ? "0 .08em" : undefined, fontWeight: bold ? 700 : undefined }}>{box.text.slice(start, end)}</span>;
   });
 }
@@ -409,11 +409,37 @@ export function TreeAnalysisEditor({
     setAddMenuOpen(false);
   }
 
-  function applyTextAnnotation(patch: { color?: string; framed?: boolean; bold?: boolean }) {
+  function getTextStyle(box: TreeAnalysisTextBox | undefined, selection: { start: number; end: number } | null) {
+    if (!box || !selection || selection.start === selection.end) return { color: undefined as string | null | undefined, framed: false, bold: false };
+    const marks = box.annotations.filter((item) => item.start <= selection.start && item.end > selection.start);
+    return {
+      color: [...marks].reverse().find((item) => item.color !== undefined)?.color,
+      framed: [...marks].reverse().find((item) => item.framed !== undefined)?.framed ?? false,
+      bold: [...marks].reverse().find((item) => item.bold !== undefined)?.bold ?? false
+    };
+  }
+
+  function applyTextAnnotation(patch: { color?: string | null; framed?: boolean; bold?: boolean }) {
     const selection = textSelectionRef.current ?? textSelection;
     if (!selectedTextBoxId || !selection || selection.start === selection.end) return;
     setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, annotations: [...box.annotations, { id: crypto.randomUUID(), start: selection.start, end: selection.end, ...patch }] } : box));
-    setEditingTextBoxId(null);
+  }
+
+  function captureRenderedTextSelection(box: TreeAnalysisTextBox, element: HTMLDivElement) {
+    const browserSelection = window.getSelection();
+    if (!browserSelection || browserSelection.rangeCount === 0 || browserSelection.isCollapsed) return;
+    const range = browserSelection.getRangeAt(0);
+    if (!element.contains(range.startContainer) || !element.contains(range.endContainer)) return;
+    const beforeStart = range.cloneRange();
+    beforeStart.selectNodeContents(element);
+    beforeStart.setEnd(range.startContainer, range.startOffset);
+    const beforeEnd = range.cloneRange();
+    beforeEnd.selectNodeContents(element);
+    beforeEnd.setEnd(range.endContainer, range.endOffset);
+    const selection = { start: beforeStart.toString().length, end: beforeEnd.toString().length };
+    textSelectionRef.current = selection;
+    setTextSelection(selection);
+    setSelectedTextBoxId(box.id);
   }
 
   function deleteTextBox(box: TreeAnalysisTextBox) {
@@ -521,9 +547,9 @@ export function TreeAnalysisEditor({
       return boundaries.slice(0, -1).map((start, index) => {
         const end = boundaries[index + 1];
         const marks = printMode === "answer" ? box.annotations.filter((item) => item.start <= start && item.end >= end) : [];
-        const color = [...marks].reverse().find((item) => item.color)?.color;
-        const framed = marks.some((item) => item.framed);
-        const bold = marks.some((item) => item.bold);
+        const color = [...marks].reverse().find((item) => item.color !== undefined)?.color;
+        const framed = [...marks].reverse().find((item) => item.framed !== undefined)?.framed ?? false;
+        const bold = [...marks].reverse().find((item) => item.bold !== undefined)?.bold ?? false;
         return `<span style="${color ? `color:${color};` : ""}${framed ? "border:2px solid currentColor;padding:0 .08em;" : ""}${bold ? "font-weight:700;" : ""}">${escape(box.text.slice(start, end))}</span>`;
       }).join("");
     };
@@ -864,6 +890,9 @@ export function TreeAnalysisEditor({
     });
   }
 
+  const selectedTextBox = textBoxes.find((box) => box.id === selectedTextBoxId);
+  const selectedTextStyle = getTextStyle(selectedTextBox, textSelectionRef.current ?? textSelection);
+
   return (
     <div className="tree-analysis-editor">
       <span
@@ -1087,11 +1116,12 @@ export function TreeAnalysisEditor({
                 <label>Police <input type="number" min="12" max="96" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.fontSize ?? 32} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, fontSize: Number(event.target.value) } : box))} /></label>
                 <label>Largeur <input type="number" min="120" max="1056" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.width ?? 760} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, width: Number(event.target.value) } : box))} /></label>
                 <label>Hauteur <input type="number" min="50" max="816" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.height ?? 110} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, height: Number(event.target.value) } : box))} /></label>
-                <button type="button" onClick={() => applyTextAnnotation({ color: "#d93434" })}>Rouge</button>
-                <button type="button" onClick={() => applyTextAnnotation({ color: "#2467d1" })}>Bleu</button>
-                <button type="button" onClick={() => applyTextAnnotation({ color: "#22834b" })}>Vert</button>
-                <button type="button" onClick={() => applyTextAnnotation({ framed: true })}>Encadrer</button>
-                <button type="button" onClick={() => applyTextAnnotation({ bold: true })}>Gras</button>
+                <button type="button" onClick={() => setEditingTextBoxId(selectedTextBoxId)}>Modifier le texte</button>
+                <button type="button" className={selectedTextStyle.color === "#d93434" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#d93434"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#d93434" ? null : "#d93434" })}>Rouge</button>
+                <button type="button" className={selectedTextStyle.color === "#2467d1" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#2467d1"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#2467d1" ? null : "#2467d1" })}>Bleu</button>
+                <button type="button" className={selectedTextStyle.color === "#22834b" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#22834b"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#22834b" ? null : "#22834b" })}>Vert</button>
+                <button type="button" className={selectedTextStyle.framed ? "active" : ""} aria-pressed={selectedTextStyle.framed} onClick={() => applyTextAnnotation({ framed: !selectedTextStyle.framed })}>Encadrer</button>
+                <button type="button" className={selectedTextStyle.bold ? "active" : ""} aria-pressed={selectedTextStyle.bold} onClick={() => applyTextAnnotation({ bold: !selectedTextStyle.bold })}>Gras</button>
               </div>
             )}
             {selectedHeader && (
@@ -1306,11 +1336,7 @@ export function TreeAnalysisEditor({
                           setSelectedTableId(null);
                           setSelectedHeader(null);
                         }}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setSelectedTextBoxId(box.id);
-                          setEditingTextBoxId(box.id);
-                        }}
+                        onMouseUp={(event) => captureRenderedTextSelection(box, event.currentTarget)}
                       >
                         {renderTextBoxContent(box)}
                       </div>

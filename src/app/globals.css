@@ -6830,6 +6830,13 @@ textarea {
   background: color-mix(in srgb, var(--primary) 12%, var(--surface));
 }
 
+.tree-analysis-text-toolbar button.active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface));
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
 .tree-analysis-text-toolbar button.danger {
   margin-left: auto;
   border-color: color-mix(in srgb, #b53b3b 55%, var(--border));

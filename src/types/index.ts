@@ -199,7 +199,7 @@ export type TreeAnalysisTextAnnotation = {
   id: string;
   start: number;
   end: number;
-  color?: string;
+  color?: string | null;
   framed?: boolean;
   bold?: boolean;
 };
