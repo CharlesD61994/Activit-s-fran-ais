@@ -11,8 +11,6 @@ import {
   AlignJustify,
   AlignLeft,
   ArrowRight,
-  ChevronDown,
-  ChevronUp,
   Check,
   Eye,
   Grid3X3,
@@ -86,7 +84,8 @@ const TEACHING_PAGE = (id = crypto.randomUUID()): TreeAnalysisDocumentPage => ({
   // Logical coordinates corresponding to the Word document's physical margins.
   margins: { top: 68, right: 121, bottom: 50, left: 121 },
   header: { nameX: 121, nameY: 25, groupX: 650, groupY: 25, fontSize: 11, lineWidth: 250, activityType: "EXERCICES", activityTitle: "Les analyses en arbre", showPageBadge: true },
-  mainTitle: { enabled: true, prefix: "Exercices", title: "Les analyses en arbre", subtitle: "L’analyse des groupes de mots" }
+  mainTitle: { enabled: true, prefix: "Exercices", title: "Les analyses en arbre", subtitle: "L’analyse des groupes de mots" },
+  readerMode: "tree_functions"
 });
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
@@ -727,6 +726,7 @@ export function TreeAnalysisEditor({
     }).join("");
     printWindow.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0}.landscape{width:1056px;height:816px}.portrait{width:816px;height:1056px}.name{position:absolute}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.framed-text{box-shadow:0 0 0 2px #111;box-decoration-break:clone;-webkit-box-decoration-break:clone}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:90px;height:60px;place-items:center;border:2px solid #111;font-size:24px}.score.large{width:180px;height:92px;font-size:36px;font-weight:700}.table{display:grid;width:360px;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:49px;padding:8px;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:17px;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}</body></html>`);
     printWindow.document.write(`<style>@page portraitPage{size:letter portrait;margin:0}@page landscapePage{size:letter landscape;margin:0}.print-page.portrait{page:portraitPage;width:8.5in;height:11in}.print-page.landscape{page:landscapePage;width:11in;height:8.5in}.print-page,.print-page *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.document-header,.document-title-banner,.page-badge,.question-badge{position:absolute}.document-header{display:grid;grid-template-rows:31px 21px;font-family:'Arial Narrow',Arial,sans-serif}.document-header-top,.document-header-bottom{display:grid;grid-template-columns:77.92% 22.08%}.document-student-fields{display:flex;align-items:end;justify-content:space-between;padding:0 5px 5px 0;border-bottom:1px solid #111;font-family:Arial,sans-serif;font-size:10.67px}.document-page-cell{position:relative}.document-header-bottom>div{display:flex;align-items:center;height:21px;padding:3px 5px 0;border-top:1px solid #111;font-size:9.33px}.document-header-bottom>div:first-child{justify-content:flex-end;border-right:1px solid #111}.document-header-bottom>div:last-child{border-left:1px solid #111}.document-title-banner{height:95px;padding:20px 36px 9px;background:linear-gradient(to bottom,#d3d3d3 0%,#bfbfbf 100%)}.document-title-line{font-family:'Arial Narrow',Arial,sans-serif;font-size:24px;font-weight:700;line-height:1.1;white-space:nowrap}.document-title-label{display:inline-flex;height:35px;margin-top:12px;padding:0 7px;align-items:center;background:#000!important;color:#fff!important;font-family:'Arial Narrow',Arial,sans-serif;font-size:26.67px;font-weight:700;line-height:1;white-space:nowrap}.page-badge,.question-badge{display:grid;place-items:center;width:29px;height:29px;border-radius:50%;background:#555!important;color:#fff!important;font-weight:700;box-shadow:inset 0 0 0 1px #7f7f7f}.page-badge{top:0;right:5px;font-size:18.67px}.question-badge{background:#111!important;font-size:16px}.textbox{line-height:1.1}</style>`);
+    printWindow.document.write(`<style>.document-title-banner{height:104px!important}</style>`);
     printWindow.document.close();
     window.setTimeout(() => {
       printWindow.focus();
@@ -1045,11 +1045,13 @@ export function TreeAnalysisEditor({
     if (!phrases.length || !title.trim() || !levelId) return;
     const now = new Date().toISOString();
 
-    const automaticSteps = flow.preset === "tree_functions_tables"
-      ? [...nodes.map((node) => `node:${node.id}`), ...interactions.map((item) => `interaction:${item.id}`), ...tables.map((table) => `table:${table.id}`)]
-      : flow.preset === "groups_tree_tables"
-        ? [...interactions.filter((item) => item.kind === "group").map((item) => `interaction:${item.id}`), ...nodes.map((node) => `node:${node.id}`), ...interactions.filter((item) => item.kind === "function").map((item) => `interaction:${item.id}`), ...tables.map((table) => `table:${table.id}`)]
-        : flow.orderedStepIds;
+    const automaticSteps = documentPages.flatMap((page) => {
+      const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
+      const pageNodes = nodes.filter((node) => owns(node.pageId)).map((node) => `node:${node.id}`);
+      if ((page.readerMode ?? "tree_functions") === "tree_only") return pageNodes;
+      if (page.readerMode === "tree_tables") return [...pageNodes, ...tables.filter((table) => owns(table.pageId)).map((table) => `table:${table.id}`)];
+      return [...pageNodes, ...interactions.filter((item) => owns(textBoxes.find((box) => box.id === item.textBoxId)?.pageId)).map((item) => `interaction:${item.id}`)];
+    });
     onSave({
       id: initialSentence?.id ?? crypto.randomUUID(),
       activityType: "tree_analysis",
@@ -1089,22 +1091,8 @@ export function TreeAnalysisEditor({
 
   const selectedTextBox = textBoxes.find((box) => box.id === selectedTextBoxId);
   const selectedTextBoxPage = documentPages.find((page) => page.id === selectedTextBox?.pageId);
+  const activePageInteractions = interactions.filter((item) => textBoxes.find((box) => box.id === item.textBoxId)?.pageId === activePageId);
   const selectedTextStyle = getTextStyle(selectedTextBox, textSelectionRef.current ?? textSelection);
-  const allFlowStepIds = [...nodes.map((node) => `node:${node.id}`), ...interactions.map((item) => `interaction:${item.id}`), ...tables.map((table) => `table:${table.id}`)];
-  const customFlowSteps = [...flow.orderedStepIds.filter((id) => allFlowStepIds.includes(id)), ...allFlowStepIds.filter((id) => !flow.orderedStepIds.includes(id))];
-  const flowStepLabel = (id: string) => {
-    const [kind, itemId] = id.split(":");
-    if (kind === "node") return `Identifier le rectangle — ${getNodeLabel(nodes.find((node) => node.id === itemId) ?? { id: "", x: 0, y: 0 })}`;
-    if (kind === "interaction") return interactions.find((item) => item.id === itemId)?.instruction ?? "Encadrement interactif";
-    return "Répondre au tableau";
-  };
-  const moveFlowStep = (index: number, direction: -1 | 1) => {
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= customFlowSteps.length) return;
-    const next = [...customFlowSteps];
-    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-    setFlow((current) => ({ ...current, preset: "custom", orderedStepIds: next }));
-  };
 
   return (
     <div className="tree-analysis-editor">
@@ -1375,12 +1363,11 @@ export function TreeAnalysisEditor({
 
             <section className="tree-analysis-flow-panel">
               <div><span className="eyebrow">Déroulement du lecteur</span><h3>Ordre de l’activité</h3></div>
-              <label>Modèle<select value={flow.preset} onChange={(event) => setFlow((current) => ({ ...current, preset: event.target.value as TreeAnalysisFlow["preset"] }))}><option value="tree_functions_tables">Arbre → fonctions → tableaux</option><option value="groups_tree_tables">Groupes encadrés → arbre → tableaux</option><option value="custom">Ordre personnalisé</option></select></label>
+              <label>Contenu de la page<select value={activePage?.readerMode ?? "tree_functions"} onChange={(event) => updateActivePage({ readerMode: event.target.value as NonNullable<TreeAnalysisDocumentPage["readerMode"]> })}><option value="tree_only">Arbres seulement</option><option value="tree_functions">Arbres et fonctions</option><option value="tree_tables">Arbres et tableaux</option></select></label>
               <label>Tolérance de sélection<select value={flow.selectionTolerance} onChange={(event) => setFlow((current) => ({ ...current, selectionTolerance: event.target.value as TreeAnalysisFlow["selectionTolerance"] }))}><option value="strict">Stricte</option><option value="normal">Normale</option><option value="permissive">Permissive</option></select></label>
               <div className="tree-analysis-event-list">
-                {interactions.length === 0 ? <p>Encadre un passage pour créer le premier événement interactif.</p> : interactions.map((item, index) => <div key={item.id}><span>{index + 1}</span><div><strong>{item.instruction}</strong><small>{item.kind === "function" ? "Fonction" : "Groupe lié à l’arbre"} — {item.label}</small></div><button type="button" onClick={() => setInteractions((current) => current.filter((entry) => entry.id !== item.id))} aria-label="Supprimer l’événement"><X size={14} /></button></div>)}
+                {activePageInteractions.length === 0 ? <p>Encadre un passage sur cette page pour créer le premier événement interactif.</p> : activePageInteractions.map((item, index) => <div key={item.id}><span>{index + 1}</span><div><strong>{item.instruction}</strong><small>{item.kind === "function" ? "Fonction" : "Groupe lié à l’arbre"} — {item.label}</small></div><button type="button" onClick={() => setInteractions((current) => current.filter((entry) => entry.id !== item.id))} aria-label="Supprimer l’événement"><X size={14} /></button></div>)}
               </div>
-              {flow.preset === "custom" && <div className="tree-analysis-custom-order">{customFlowSteps.map((id, index) => <div key={id}><span>{index + 1}</span><strong>{flowStepLabel(id)}</strong><button type="button" onClick={() => moveFlowStep(index, -1)} disabled={index === 0} aria-label="Monter"><ChevronUp size={15} /></button><button type="button" onClick={() => moveFlowStep(index, 1)} disabled={index === customFlowSteps.length - 1} aria-label="Descendre"><ChevronDown size={15} /></button></div>)}</div>}
             </section>
 
             <div className={`tree-analysis-workspace tree-print-${printMode}`}>

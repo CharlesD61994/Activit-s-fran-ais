@@ -204,6 +204,7 @@ export type TreeAnalysisDocumentPage = {
     title: string;
     subtitle?: string;
   };
+  readerMode?: "tree_only" | "tree_functions" | "tree_tables";
 };
 
 export type TreeAnalysisQuestionBadge = {
