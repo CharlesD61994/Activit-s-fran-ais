@@ -98,6 +98,13 @@ const wordClassLabels: Record<WordClass, string> = {
   interjection: "Interj"
 };
 
+const sentenceFunctionOptions = ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut du sujet", "Complément du nom", "Complément de l’adjectif", "Modificateur"];
+
+function functionInstruction(label: string) {
+  const lower = label.toLocaleLowerCase("fr-CA");
+  return `Encadre ${lower.startsWith("attribut") ? "l’" : "le "}${lower} de la phrase.`;
+}
+
 function getNodeLabel(node: TreeAnalysisNode) {
   if (node.wordClass) return wordClassLabels[node.wordClass];
   if (node.groupType) return groupLabels[node.groupType];
@@ -1604,8 +1611,8 @@ export function TreeAnalysisEditor({
                       <div><span className="eyebrow">Réponse interactive</span><h3>Que représente ce passage?</h3></div>
                       <button type="button" onClick={cancelInteraction} aria-label="Fermer"><X size={18} /></button>
                     </div>
-                    <label>Type de réponse<select value={interactionKind} onChange={(event) => setInteractionKind(event.target.value as "function" | "group")}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option></select></label>
-                    <label>Réponse attendue<input value={interactionLabel} onChange={(event) => setInteractionLabel(event.target.value)} placeholder="Ex. Sujet" /></label>
+                    <label>Type de réponse<select value={interactionKind} onChange={(event) => { const kind = event.target.value as "function" | "group"; setInteractionKind(kind); if (kind === "function") { setInteractionLabel("Sujet"); setInteractionInstruction("Encadre le sujet de la phrase."); } }}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option></select></label>
+                    {interactionKind === "function" ? <label>Fonction<select value={interactionLabel} onChange={(event) => { const label = event.target.value; setInteractionLabel(label); setInteractionInstruction(functionInstruction(label)); }}>{sentenceFunctionOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label> : <label>Groupe attendu<input value={interactionLabel} onChange={(event) => setInteractionLabel(event.target.value)} placeholder="Ex. Groupe nominal sujet" /></label>}
                     <label>Consigne affichée<input value={interactionInstruction} onChange={(event) => setInteractionInstruction(event.target.value)} placeholder="Ex. Encadre le sujet de la phrase." /></label>
                     {interactionKind === "group" && <label>Rectangle déclenché<select value={interactionLinkedNodeId} onChange={(event) => setInteractionLinkedNodeId(event.target.value)}><option value="">Choisir un rectangle…</option>{nodes.map((node, index) => <option key={node.id} value={node.id}>Rectangle {index + 1} — {getNodeLabel(node)}</option>)}</select></label>}
                     <p>La couleur ou l’encadrement sert à repérer la réponse dans le corrigé. Dans le lecteur, l’élève répondra toujours en encadrant le passage.</p>

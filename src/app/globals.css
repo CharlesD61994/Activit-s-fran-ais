@@ -7850,6 +7850,27 @@ textarea {
   box-shadow: 0 8px 30px rgba(0,0,0,.13);
 }
 
+.tree-reader-page.drawing {
+  cursor: crosshair;
+  user-select: none;
+}
+
+.tree-reader-draw-help {
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  font-size: .86rem;
+}
+
+.tree-reader-drawing-box {
+  position: absolute;
+  z-index: 50;
+  border: 3px solid #3976bf;
+  background: rgba(57,118,191,.08);
+  pointer-events: none;
+}
+
 .tree-reader-text {
   position: absolute;
   z-index: 3;
@@ -7954,6 +7975,8 @@ textarea {
 }
 
 .tree-reader-modal h3 { margin: 0; }
+.tree-reader-modal p { margin: 0; color: var(--muted-foreground); }
+.tree-reader-modal input { width: 100%; font-size: 1.2rem; text-align: center; }
 .tree-reader-modal select { width: 100%; }
 .tree-reader-modal-close { position: absolute; top: 10px; right: 10px; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .tree-reader-category { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

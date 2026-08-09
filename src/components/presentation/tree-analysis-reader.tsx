@@ -1,13 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Sentence, TreeAnalysisInteraction, TreeAnalysisNode, WordClass, WordGroupType } from "@/types";
 
 const groupLabels: Record<WordGroupType, string> = { GN: "GN", GV: "GV", GAdj: "GAdj", GAdv: "GAdv", GPrep: "GPrép" };
-const wordClassLabels: Record<WordClass, string> = { noun: "Nom", determiner: "Déterminant", verb: "Verbe", preposition: "Préposition", adverb: "Adverbe", adjective: "Adjectif", pronoun: "Pronom", conjunction: "Conjonction", interjection: "Interjection" };
+const wordClassLabels: Record<WordClass, string> = { noun: "N", determiner: "Dét", verb: "V", preposition: "Prép", adverb: "Adv", adjective: "Adj", pronoun: "Pron", conjunction: "Conj", interjection: "Interj" };
+
+function normalizeAnswer(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z]/g, "").toLowerCase();
+}
+
+const nodeAliases: Record<WordGroupType | WordClass, string[]> = {
+  GN: ["gn", "groupenominal"], GV: ["gv", "groupeverbal"], GAdj: ["gadj", "groupeadjectival"], GAdv: ["gadv", "groupeadverbial"], GPrep: ["gprep", "groupeprepositionnel"],
+  noun: ["n", "nom"], determiner: ["det", "determinant"], verb: ["v", "verbe"], preposition: ["prep", "preposition"], adverb: ["adv", "adverbe"], adjective: ["adj", "adjectif"], pronoun: ["pron", "pronom"], conjunction: ["conj", "conjonction"], interjection: ["interj", "interjection"]
+};
 
 type Props = {
   sentence: Sentence;
@@ -56,12 +65,12 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
   const nodeHeight = sentence.treeAnalysisPage?.nodeHeight ?? 44;
   const flow = sentence.treeAnalysisFlow ?? { preset: "tree_functions_tables" as const, orderedStepIds: [], selectionTolerance: "normal" as const };
   const [completed, setCompleted] = useState<string[]>([]);
-  const [selectedText, setSelectedText] = useState<TextSelection | null>(null);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
-  const [nodeCategory, setNodeCategory] = useState<"group" | "class" | "">("");
   const [nodeAnswer, setNodeAnswer] = useState("");
   const [feedback, setFeedback] = useState("");
   const [framedAnswers, setFramedAnswers] = useState<Array<{ textBoxId: string; start: number; end: number }>>([]);
+  const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
+  const [drawingCurrent, setDrawingCurrent] = useState<{ x: number; y: number } | null>(null);
 
   const automaticSteps = useMemo(() => {
     if (flow.preset === "groups_tree_tables") {
@@ -79,6 +88,8 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
   const isComplete = steps.length > 0 && completed.length >= steps.length;
   const activeNodeTarget = nodes.find((node) => node.id === activeNodeId);
   const freeTreePhase = flow.preset === "tree_functions_tables" && Boolean(currentNode);
+  const contentTop = Math.min(...textBoxes.map((box) => box.y), ...nodes.map((node) => node.y), ...tables.map((table) => table.y), 90);
+  const topOffset = Math.max(0, contentTop - 24);
 
   function completeStep(id: string) {
     setCompleted((current) => {
@@ -90,48 +101,57 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
     setFeedback("Bonne réponse!");
   }
 
-  function captureSelection(textBoxId: string, element: HTMLDivElement) {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
-    const range = selection.getRangeAt(0);
-    if (!element.contains(range.startContainer) || !element.contains(range.endContainer)) return;
-    const startRange = range.cloneRange();
-    startRange.selectNodeContents(element);
-    startRange.setEnd(range.startContainer, range.startOffset);
-    const endRange = range.cloneRange();
-    endRange.selectNodeContents(element);
-    endRange.setEnd(range.endContainer, range.endOffset);
-    setSelectedText({ textBoxId, start: startRange.toString().length, end: endRange.toString().length });
-    setFeedback("");
-  }
-
-  function submitFraming() {
-    if (!currentInteraction || !selectedText || selectedText.textBoxId !== currentInteraction.textBoxId) {
+  function verifyFraming(candidate: TextSelection | null) {
+    if (!currentInteraction || !candidate || candidate.textBoxId !== currentInteraction.textBoxId) {
       setFeedback("Sélectionne d’abord le passage demandé.");
       return;
     }
     const box = textBoxes.find((item) => item.id === currentInteraction.textBoxId);
-    if (!box || !selectionMatches(box.text, selectedText, currentInteraction, flow.selectionTolerance)) {
+    if (!box || !selectionMatches(box.text, candidate, currentInteraction, flow.selectionTolerance)) {
       setFeedback("Ce n’est pas tout à fait le bon passage. Réessaie.");
       return;
     }
-    setFramedAnswers((current) => [...current, selectedText]);
+    setFramedAnswers((current) => [...current, candidate]);
     completeStep(`interaction:${currentInteraction.id}`);
     window.getSelection()?.removeAllRanges();
-    setSelectedText(null);
   }
 
-  function submitNode() {
+  function handleDrawingClick(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!currentInteraction) return;
+    if ((event.target as HTMLElement).closest("button")) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    if (!drawingStart) {
+      setDrawingStart(point);
+      setDrawingCurrent(point);
+      setFeedback("Clique maintenant sur le coin opposé du rectangle.");
+      return;
+    }
+    const left = Math.min(drawingStart.x, point.x);
+    const right = Math.max(drawingStart.x, point.x);
+    const top = Math.min(drawingStart.y, point.y);
+    const bottom = Math.max(drawingStart.y, point.y);
+    const words = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(`.tree-reader-word[data-box-id="${currentInteraction.textBoxId}"]`)).filter((word) => {
+      const wordRect = word.getBoundingClientRect();
+      const centerX = wordRect.left + wordRect.width / 2 - rect.left;
+      const centerY = wordRect.top + wordRect.height / 2 - rect.top;
+      return centerX >= left && centerX <= right && centerY >= top && centerY <= bottom;
+    });
+    const candidate = words.length ? { textBoxId: currentInteraction.textBoxId, start: Math.min(...words.map((word) => Number(word.dataset.start))), end: Math.max(...words.map((word) => Number(word.dataset.end))) } : null;
+    setDrawingStart(null);
+    setDrawingCurrent(null);
+    verifyFraming(candidate);
+  }
+
+  function submitNode(value = nodeAnswer) {
     if (!activeNodeTarget) return;
-    const correctCategory = activeNodeTarget.groupType ? "group" : "class";
     const correctAnswer = activeNodeTarget.groupType ?? activeNodeTarget.wordClass ?? "";
-    if (nodeCategory !== correctCategory || nodeAnswer !== correctAnswer) {
-      setFeedback("Vérifie s’il s’agit d’un groupe ou d’une classe de mots.");
+    if (!correctAnswer || !nodeAliases[correctAnswer].includes(normalizeAnswer(value))) {
+      setFeedback("Ce n’est pas la bonne réponse. Essaie une abréviation ou le nom complet.");
       return;
     }
     completeStep(`node:${activeNodeTarget.id}`);
     setActiveNodeId(null);
-    setNodeCategory("");
     setNodeAnswer("");
   }
 
@@ -141,27 +161,29 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
       <section className="tree-reader-instruction">
         <span className="eyebrow">Étape {Math.min(completed.length + 1, steps.length || 1)} sur {steps.length || 1}</span>
         <h2>{currentInteraction?.instruction ?? (currentNode ? (freeTreePhase ? "Identifie tous les groupes et toutes les classes de mots dans les rectangles." : "Identifie le rectangle actif.") : currentTable ? "Choisis la bonne réponse dans le tableau." : "Activité terminée!")}</h2>
-        {currentInteraction && <Button type="button" onClick={submitFraming}>Encadrer la sélection</Button>}
+        {currentInteraction && <strong className="tree-reader-draw-help">Clique un premier coin, puis le coin opposé pour tracer ton encadrement.</strong>}
         {feedback && <p>{feedback}</p>}
       </section>
 
-      <div className="tree-reader-page">
+      <div className={`tree-reader-page ${currentInteraction ? "drawing" : ""}`} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart) return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: event.clientX - rect.left, y: event.clientY - rect.top }); }}>
         {textBoxes.map((box) => {
           const answerRanges = framedAnswers.filter((item) => item.textBoxId === box.id);
-          const boundaries = Array.from(new Set([0, box.text.length, ...answerRanges.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
-          return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${box.y / 816 * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw` }} onMouseUp={(event) => captureSelection(box.id, event.currentTarget)}>{boundaries.slice(0, -1).map((start, index) => { const end = boundaries[index + 1]; const framed = answerRanges.some((item) => item.start <= start && item.end >= end); return <span key={`${start}-${end}`} className={framed ? "tree-reader-framed" : ""}>{box.text.slice(start, end)}</span>; })}</div>;
+          let offset = 0;
+          const tokens = box.text.match(/\S+|\s+/g) ?? [];
+          return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / 816 * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw` }}>{tokens.map((token, index) => { const start = offset; const end = start + token.length; offset = end; const framed = answerRanges.some((item) => item.start <= start && item.end >= end); return /^\s+$/u.test(token) ? token : <span key={`${index}-${start}`} className={`tree-reader-word ${framed ? "tree-reader-framed" : ""}`} data-box-id={box.id} data-start={start} data-end={end}>{token}</span>; })}</div>;
         })}
-        <svg className="tree-reader-lines" viewBox="0 0 1056 816" preserveAspectRatio="none">{relations.map((relation) => { const parent = nodes.find((node) => node.id === relation.parentNodeId); const child = nodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return null; return <line key={relation.id} x1={parent.x + nodeWidth / 2} y1={parent.y + nodeHeight} x2={child.x + nodeWidth / 2} y2={child.y} />; })}</svg>
+        <svg className="tree-reader-lines" viewBox="0 0 1056 816" preserveAspectRatio="none">{relations.map((relation) => { const parent = nodes.find((node) => node.id === relation.parentNodeId); const child = nodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return null; return <line key={relation.id} x1={parent.x + nodeWidth / 2} y1={parent.y + nodeHeight - topOffset} x2={child.x + nodeWidth / 2} y2={child.y - topOffset} />; })}</svg>
         {nodes.map((node) => {
           const stepId = `node:${node.id}`;
           const done = completed.includes(stepId);
           const active = !done && (freeTreePhase || currentNode?.id === node.id);
-          return <button type="button" key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${node.y / 816 * 100}%`, width: `${nodeWidth / 1056 * 100}%`, height: `${nodeHeight / 816 * 100}%` }} disabled={!active} onClick={() => { setActiveNodeId(node.id); setFeedback(""); }}>{done ? expectedNodeLabel(node) : active ? "?" : ""}</button>;
+          return <button type="button" key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${(node.y - topOffset) / 816 * 100}%`, width: `${nodeWidth / 1056 * 100}%`, height: `${nodeHeight / 816 * 100}%` }} disabled={!active} onClick={(event) => { event.stopPropagation(); setActiveNodeId(node.id); setFeedback(""); }}>{done ? expectedNodeLabel(node) : active ? "?" : ""}</button>;
         })}
-        {tables.map((table) => <div key={table.id} className={`tree-reader-table ${currentTable?.id === table.id ? "active" : ""}`} style={{ left: `${table.x / 1056 * 100}%`, top: `${table.y / 816 * 100}%`, gridTemplateColumns: `repeat(${table.columns},1fr)` }}>{table.cells.map((cell, index) => cell.columnSpan === 0 ? null : <button type="button" key={index} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined }} disabled={currentTable?.id !== table.id} onClick={() => cell.isCorrect ? completeStep(`table:${table.id}`) : setFeedback("Ce n’est pas la bonne cellule.")}>{cell.text}</button>)}</div>)}
+        {tables.map((table) => <div key={table.id} className={`tree-reader-table ${currentTable?.id === table.id ? "active" : ""}`} style={{ left: `${table.x / 1056 * 100}%`, top: `${(table.y - topOffset) / 816 * 100}%`, gridTemplateColumns: `repeat(${table.columns},1fr)` }}>{table.cells.map((cell, index) => cell.columnSpan === 0 ? null : <button type="button" key={index} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined }} disabled={currentTable?.id !== table.id} onClick={(event) => { event.stopPropagation(); if (cell.isCorrect) completeStep(`table:${table.id}`); else setFeedback("Ce n’est pas la bonne cellule."); }}>{cell.text}</button>)}</div>)}
+        {drawingStart && drawingCurrent && <div className="tree-reader-drawing-box" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
       </div>
 
-      {activeNodeId && activeNodeTarget && <div className="tree-reader-modal-backdrop"><div className="tree-reader-modal"><button className="tree-reader-modal-close" type="button" onClick={() => setActiveNodeId(null)}><X size={18} /></button><h3>Que représente ce rectangle?</h3><div className="tree-reader-category"><button type="button" className={nodeCategory === "group" ? "active" : ""} onClick={() => { setNodeCategory("group"); setNodeAnswer(""); }}>Groupe de mots</button><button type="button" className={nodeCategory === "class" ? "active" : ""} onClick={() => { setNodeCategory("class"); setNodeAnswer(""); }}>Classe de mots</button></div>{nodeCategory === "group" && <select value={nodeAnswer} onChange={(event) => setNodeAnswer(event.target.value)}><option value="">Choisir…</option>{Object.entries(groupLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>}{nodeCategory === "class" && <select value={nodeAnswer} onChange={(event) => setNodeAnswer(event.target.value)}><option value="">Choisir…</option>{Object.entries(wordClassLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>}<Button type="button" onClick={submitNode} disabled={!nodeAnswer}><Check size={17} /> Valider</Button></div></div>}
+      {activeNodeId && activeNodeTarget && <div className="tree-reader-modal-backdrop"><form className="tree-reader-modal" onSubmit={(event) => { event.preventDefault(); submitNode(); }}><button className="tree-reader-modal-close" type="button" onClick={() => setActiveNodeId(null)}><X size={18} /></button><h3>Que représente ce rectangle?</h3><p>Écris l’abréviation ou le nom complet : GN, GPrép, N, nom, préposition… La réponse se valide automatiquement.</p><input value={nodeAnswer} onChange={(event) => { const value = event.target.value; setNodeAnswer(value); const expected = activeNodeTarget.groupType ?? activeNodeTarget.wordClass; if (expected && nodeAliases[expected].includes(normalizeAnswer(value))) submitNode(value); }} autoFocus autoComplete="off" placeholder="Ta réponse" /><Button type="submit" disabled={!nodeAnswer.trim()}><Check size={17} /> Valider</Button></form></div>}
       <div className="interactive-reader-actions">{isComplete ? finishControl : null}</div>
     </div>
   );
