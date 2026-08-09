@@ -6803,6 +6803,24 @@ textarea {
   gap: 5px;
 }
 
+.tree-analysis-document-header-controls {
+  display: grid;
+  grid-template-columns: minmax(160px, .7fr) minmax(260px, 1.3fr);
+  gap: 10px;
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--secondary);
+}
+
+.tree-analysis-document-header-controls label {
+  display: grid;
+  gap: 5px;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
 .tree-analysis-page-controls label,
 .tree-analysis-text-toolbar label {
   display: grid;
@@ -7348,6 +7366,74 @@ textarea {
 .tree-analysis-name-line span {
   flex: 1;
   border-bottom: 1.5px solid #111;
+}
+
+.tree-analysis-page-badge,
+.tree-analysis-question-badge {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  width: 3.03%;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: #555;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 1.32cqw;
+  font-weight: 800;
+}
+
+.tree-analysis-question-badge {
+  z-index: 9;
+  width: 3.03%;
+  background: #111;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tree-analysis-question-badge > button {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #a92525;
+  color: #fff;
+  cursor: pointer;
+}
+
+.tree-analysis-question-badge:hover > button,
+.tree-analysis-question-badge:focus-within > button {
+  display: grid;
+}
+
+.tree-analysis-document-heading {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  padding-top: .55%;
+  border-top: 1px solid #111;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: .95cqw;
+  letter-spacing: .04em;
+}
+
+.tree-analysis-document-heading span {
+  font-size: 1.7cqw;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.tree-analysis-canvas.document-template .tree-analysis-text-content {
+  line-height: 1.1;
 }
 
 .tree-analysis-text-box {

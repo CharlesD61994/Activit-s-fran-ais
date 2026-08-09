@@ -32,6 +32,7 @@ import type {
   TreeAnalysisNode,
   TreeAnalysisPageConfig,
   TreeAnalysisDocumentPage,
+  TreeAnalysisQuestionBadge,
   TreeAnalysisPhrase,
   TreeAnalysisRelation,
   TreeAnalysisScoreBox,
@@ -71,6 +72,17 @@ const TREE_BOTTOM = PAGE.logicalHeight - PAGE.marginTop;
 const MIN_SENTENCE_FONT_SIZE = 18;
 const MAX_SENTENCE_FONT_SIZE = 96;
 const SENTENCE_RIGHT_MARGIN = 20;
+
+const FREE_PAGE = (id = crypto.randomUUID()): TreeAnalysisDocumentPage => ({ id, orientation: "landscape", template: "free", rectanglePreset: "normal", margins: { top: 24, right: 24, bottom: 24, left: 24 }, header: { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 } });
+const TEACHING_PAGE = (id = crypto.randomUUID()): TreeAnalysisDocumentPage => ({
+  id,
+  orientation: "portrait",
+  template: "teaching_document",
+  rectanglePreset: "compact",
+  // Logical coordinates corresponding to the Word document's physical margins.
+  margins: { top: 68, right: 121, bottom: 50, left: 121 },
+  header: { nameX: 121, nameY: 25, groupX: 650, groupY: 25, fontSize: 11, lineWidth: 250, activityType: "EXERCICES", activityTitle: "Les analyses en arbre", showPageBadge: true }
+});
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -211,8 +223,9 @@ export function TreeAnalysisEditor({
   const [activePhraseId, setActivePhraseId] = useState<string | null>(() => initialSentence?.treeAnalysisPhrases?.[0]?.id ?? (initialSentence?.originalText ? "primary-phrase" : null));
   const [phraseModalOpen, setPhraseModalOpen] = useState(false);
   const [phraseDraft, setPhraseDraft] = useState("");
-  const [documentPages, setDocumentPages] = useState<TreeAnalysisDocumentPage[]>(() => initialSentence?.treeAnalysisDocumentPages?.length ? initialSentence.treeAnalysisDocumentPages : [{ id: "page-1", orientation: "landscape", margins: { top: 24, right: 24, bottom: 24, left: 24 }, header: { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 } }]);
+  const [documentPages, setDocumentPages] = useState<TreeAnalysisDocumentPage[]>(() => initialSentence?.treeAnalysisDocumentPages?.length ? initialSentence.treeAnalysisDocumentPages : [FREE_PAGE("page-1")]);
   const [activePageId, setActivePageId] = useState(() => initialSentence?.treeAnalysisDocumentPages?.[0]?.id ?? "page-1");
+  const [questionBadges, setQuestionBadges] = useState<TreeAnalysisQuestionBadge[]>(initialSentence?.treeAnalysisQuestionBadges ?? []);
   const [textBoxes, setTextBoxes] = useState<TreeAnalysisTextBox[]>(() => {
     const existing = initialSentence?.treeAnalysisTextBoxes ?? [];
     const converted = (initialSentence?.treeAnalysisPhrases ?? []).filter((phrase) => !existing.some((box) => box.id === `phrase-text-${phrase.id}`)).map((phrase) => ({ id: `phrase-text-${phrase.id}`, pageId: phrase.pageId ?? "page-1", x: phrase.x, y: phrase.y, width: 1000, height: 70, text: phrase.text, fontSize: phrase.fontSize, annotations: [] }));
@@ -253,7 +266,7 @@ export function TreeAnalysisEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const builderRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
-    kind: "node" | "score" | "table" | "phrase" | "textbox" | "textbox-resize" | "header-name" | "header-group";
+    kind: "node" | "score" | "table" | "phrase" | "textbox" | "textbox-resize" | "header-name" | "header-group" | "question-badge";
     itemId: string;
     width: number;
     height: number;
@@ -385,8 +398,11 @@ export function TreeAnalysisEditor({
     nodes.every((node) => Boolean(node.groupType || node.wordClass));
   const editingNode = nodes.find((node) => node.id === editingNodeId);
   const activePage = documentPages.find((page) => page.id === activePageId) ?? documentPages[0];
+  const activePageIndex = Math.max(0, documentPages.findIndex((page) => page.id === activePageId));
 
   function getNodeDimensions(node: TreeAnalysisNode) {
+    const nodePage = documentPages.find((page) => page.id === (node.pageId ?? documentPages[0]?.id));
+    if (nodePage?.rectanglePreset === "compact") return { width: 64, height: 39 };
     const phrase = phrases.find((item) => item.id === node.phraseId);
     return { width: phrase?.nodeWidth ?? nodeWidth, height: phrase?.nodeHeight ?? nodeHeight };
   }
@@ -443,9 +459,23 @@ export function TreeAnalysisEditor({
   }
 
   function addDocumentPage() {
-    const page: TreeAnalysisDocumentPage = { id: crypto.randomUUID(), orientation: "landscape", margins: { top: 24, right: 24, bottom: 24, left: 24 }, header: { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 } };
+    const page = activePage?.template === "teaching_document" ? TEACHING_PAGE() : FREE_PAGE();
     setDocumentPages((current) => [...current, page]);
     setActivePageId(page.id);
+  }
+
+  function applyPageTemplate(template: "free" | "teaching_document") {
+    if (template === "teaching_document") {
+      const preset = TEACHING_PAGE(activePageId);
+      updateActivePage({ ...preset, id: activePageId });
+      return;
+    }
+    updateActivePage({ template: "free" });
+  }
+
+  function addQuestionBadge() {
+    const pageBadges = questionBadges.filter((badge) => badge.pageId === activePageId);
+    setQuestionBadges((current) => [...current, { id: crypto.randomUUID(), pageId: activePageId, x: activePage?.margins.left ?? 24, y: 135 + pageBadges.length * 78, number: pageBadges.length + 1 }]);
   }
 
   function updateActivePage(patch: Partial<TreeAnalysisDocumentPage>) {
@@ -453,7 +483,8 @@ export function TreeAnalysisEditor({
   }
 
   function addTextBox() {
-    const box: TreeAnalysisTextBox = { id: crypto.randomUUID(), pageId: activePageId, x: 40, y: 90, width: 760, height: 110, text: "Écris ton texte ici.", fontSize: 32, annotations: [] };
+    const teaching = activePage?.template === "teaching_document";
+    const box: TreeAnalysisTextBox = { id: crypto.randomUUID(), pageId: activePageId, x: teaching ? activePage.margins.left : 40, y: teaching ? 120 : 90, width: teaching ? PAGE.logicalWidth - activePage.margins.left - activePage.margins.right : 760, height: teaching ? 80 : 110, text: "Écris ton texte ici.", fontSize: teaching ? 20 : 32, annotations: [] };
     setTextBoxes((current) => [...current, box]);
     setSelectedTextBoxId(box.id);
     setAddMenuOpen(false);
@@ -594,15 +625,15 @@ export function TreeAnalysisEditor({
     setAddMenuOpen(false);
   }
 
-  function startItemDrag(event: React.PointerEvent<HTMLElement>, kind: "score" | "table" | "phrase" | "textbox", item: { id: string; x: number; y: number; size?: "normal" | "large" }) {
+  function startItemDrag(event: React.PointerEvent<HTMLElement>, kind: "score" | "table" | "phrase" | "textbox" | "question-badge", item: { id: string; x: number; y: number; size?: "normal" | "large" }) {
     if (kind !== "phrase" && (event.target as HTMLElement).closest("input,textarea,button")) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     dragRef.current = {
       kind, itemId: item.id,
-      width: kind === "score" ? (item.size === "large" ? 180 : 90) : kind === "table" ? 360 : kind === "phrase" ? 1000 : 760,
-      height: kind === "score" ? (item.size === "large" ? 92 : 60) : kind === "table" ? 120 : kind === "phrase" ? 60 : 110,
+      width: kind === "question-badge" ? 32 : kind === "score" ? (item.size === "large" ? 180 : 90) : kind === "table" ? 360 : kind === "phrase" ? 1000 : 760,
+      height: kind === "question-badge" ? 32 : kind === "score" ? (item.size === "large" ? 92 : 60) : kind === "table" ? 120 : kind === "phrase" ? 60 : 110,
       offsetX: (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width) - item.x,
       offsetY: (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height) - item.y
     };
@@ -652,7 +683,7 @@ export function TreeAnalysisEditor({
       const printableBox = printMode === "answer" ? box : { ...box, annotations: [] };
       return getTextStyleGroups(printableBox).map((group) => `<span class="${group.framed ? "framed-text" : ""}">${group.segments.map((segment) => `<span style="${segment.color ? `color:${segment.color};` : ""}${segment.bold ? "font-weight:700;" : ""}">${escape(segment.text)}</span>`).join("")}</span>`).join("");
     };
-    const htmlPages = documentPages.map((page) => {
+    const htmlPages = documentPages.map((page, pageIndex) => {
       const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
       const outputWidth = page.orientation === "landscape" ? 1056 : 816;
       const outputHeight = page.orientation === "landscape" ? 816 : 1056;
@@ -666,10 +697,14 @@ export function TreeAnalysisEditor({
       const tableHtml = tables.filter((item) => owns(item.pageId)).map((table) => `<div class="table" style="left:${table.x / PAGE.logicalWidth * 100}%;top:${table.y / PAGE.logicalHeight * 100}%;grid-template-columns:repeat(${table.columns},1fr)">${table.cells.map((cell) => cell.columnSpan === 0 ? "" : `<div class="cell ${cell.isCorrect && printMode === "answer" ? "correct" : ""}" style="${cell.columnSpan && cell.columnSpan > 1 ? `grid-column:span ${cell.columnSpan}` : ""}">${escape(cell.text)}</div>`).join("")}</div>`).join("");
       const textHtml = textBoxes.filter((item) => item.pageId === page.id).map((box) => `<div class="textbox" style="left:${box.x * scalePrintX}px;top:${box.y * scalePrintY}px;width:${box.width * scalePrintX}px;min-height:${box.height * scalePrintY}px;font-size:${box.fontSize * scalePrintX}px">${annotated(box)}</div>`).join("");
       const header = page.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 };
-      const headerHtml = `<div class="name" style="display:flex;gap:8px;left:${header.nameX * scalePrintX}px;top:${header.nameY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">Nom : <span style="flex:1;border-bottom:1.5px solid #111"></span></div><div class="name" style="display:flex;gap:8px;left:${header.groupX * scalePrintX}px;top:${header.groupY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">Groupe : <span style="flex:1;border-bottom:1.5px solid #111"></span></div>`;
-      return `<section class="print-page ${page.orientation}"><div class="print-canvas">${headerHtml}${phraseHtml}${textHtml}<svg viewBox="0 0 ${PAGE.logicalWidth} ${PAGE.logicalHeight}" preserveAspectRatio="none">${lineHtml}</svg>${nodeHtml}${scoreHtml}${tableHtml}</div></section>`;
+      const teachingHeader = page.template === "teaching_document" ? `<div class="document-heading" style="left:${page.margins.left * scalePrintX}px;right:${page.margins.right * scalePrintX}px;top:${72 * scalePrintY}px"><strong>${escape(header.activityType || "EXERCICES")}</strong><span>${escape(header.activityTitle || title || "Les analyses en arbre")}</span></div>` : "";
+      const pageBadge = header.showPageBadge ? `<div class="page-badge" style="right:${page.margins.right * scalePrintX}px;top:${header.nameY * scalePrintY}px">${pageIndex + 1}</div>` : "";
+      const headerHtml = `<div class="name" style="display:flex;gap:8px;left:${header.nameX * scalePrintX}px;top:${header.nameY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">NOM <span style="flex:1;border-bottom:1.5px solid #111"></span></div><div class="name" style="display:flex;gap:8px;left:${header.groupX * scalePrintX}px;top:${header.groupY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">GROUPE <span style="flex:1;border-bottom:1.5px solid #111"></span></div>${pageBadge}${teachingHeader}`;
+      const badgeHtml = questionBadges.filter((badge) => badge.pageId === page.id).map((badge) => `<div class="question-badge" style="left:${badge.x * scalePrintX}px;top:${badge.y * scalePrintY}px">${badge.number}</div>`).join("");
+      return `<section class="print-page ${page.orientation}"><div class="print-canvas">${headerHtml}${badgeHtml}${phraseHtml}${textHtml}<svg viewBox="0 0 ${PAGE.logicalWidth} ${PAGE.logicalHeight}" preserveAspectRatio="none">${lineHtml}</svg>${nodeHtml}${scoreHtml}${tableHtml}</div></section>`;
     }).join("");
     printWindow.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0}.landscape{width:1056px;height:816px}.portrait{width:816px;height:1056px}.name{position:absolute}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.framed-text{box-shadow:0 0 0 2px #111;box-decoration-break:clone;-webkit-box-decoration-break:clone}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:90px;height:60px;place-items:center;border:2px solid #111;font-size:24px}.score.large{width:180px;height:92px;font-size:36px;font-weight:700}.table{display:grid;width:360px;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:49px;padding:8px;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:17px;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}</body></html>`);
+    printWindow.document.write(`<style>.document-heading,.page-badge,.question-badge{position:absolute}.document-heading{display:flex;justify-content:space-between;align-items:end;border-top:1px solid #111;padding-top:5px;font-family:'Arial Narrow',Arial,sans-serif;font-size:10px;letter-spacing:.04em}.document-heading span{font-size:18px;font-weight:700;letter-spacing:0}.page-badge,.question-badge{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#555;color:#fff;font-weight:700}.page-badge{font-size:13px}.question-badge{background:#111;font-size:15px}.textbox{line-height:1.1}</style>`);
     printWindow.document.close();
     window.setTimeout(() => {
       printWindow.focus();
@@ -807,6 +842,11 @@ export function TreeAnalysisEditor({
           ? { ...box, x: clamp(snap(logicalX), 0, PAGE.logicalWidth - drag.width), y: clamp(snap(logicalY), TREE_TOP, TREE_BOTTOM - drag.height) }
           : box
       ));
+      return;
+    }
+
+    if (drag.kind === "question-badge") {
+      setQuestionBadges((current) => current.map((badge) => badge.id === drag.itemId ? { ...badge, x: clamp(snap(logicalX), 0, PAGE.logicalWidth - 32), y: clamp(snap(logicalY), 0, PAGE.logicalHeight - 32) } : badge));
       return;
     }
 
@@ -981,6 +1021,7 @@ export function TreeAnalysisEditor({
       treeAnalysisTables: tables,
       treeAnalysisPhrases: phrases,
       treeAnalysisDocumentPages: documentPages,
+      treeAnalysisQuestionBadges: questionBadges,
       treeAnalysisTextBoxes: textBoxes,
       treeAnalysisInteractions: interactions,
       treeAnalysisFlow: { ...flow, orderedStepIds: automaticSteps },
@@ -1219,8 +1260,10 @@ export function TreeAnalysisEditor({
             </div>
             <div className="tree-analysis-page-controls">
               <div>{documentPages.map((page, index) => <button type="button" key={page.id} className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addDocumentPage}><Plus size={15} /> Page</button></div>
+              <label>Gabarit<select value={activePage?.template ?? "free"} onChange={(event) => applyPageTemplate(event.target.value as "free" | "teaching_document")}><option value="free">Page libre</option><option value="teaching_document">Document pédagogique</option></select></label>
               <label>Orientation<select value={documentPages.find((page) => page.id === activePageId)?.orientation ?? "landscape"} onChange={(event) => updateActivePage({ orientation: event.target.value as "portrait" | "landscape" })}><option value="landscape">Paysage</option><option value="portrait">Portrait</option></select></label>
-              {(["top", "right", "bottom", "left"] as const).map((side) => <label key={side}>Marge {side}<input type="number" min="0" max="120" value={documentPages.find((page) => page.id === activePageId)?.margins[side] ?? 24} onChange={(event) => { const page = documentPages.find((item) => item.id === activePageId); if (page) updateActivePage({ margins: { ...page.margins, [side]: Number(event.target.value) } }); }} /></label>)}
+              <label>Rectangles<select value={activePage?.rectanglePreset ?? "normal"} onChange={(event) => updateActivePage({ rectanglePreset: event.target.value as "normal" | "compact" })}><option value="normal">Normaux</option><option value="compact">Compacts</option></select></label>
+              {(["top", "right", "bottom", "left"] as const).map((side) => <label key={side}>Marge {side}<input type="number" min="0" max="180" value={documentPages.find((page) => page.id === activePageId)?.margins[side] ?? 24} onChange={(event) => { const page = documentPages.find((item) => item.id === activePageId); if (page) updateActivePage({ margins: { ...page.margins, [side]: Number(event.target.value) } }); }} /></label>)}
             </div>
             <div className="tree-analysis-quick-add" aria-label="Ajouter à la page">
               <span>Ajouter à la page</span>
@@ -1228,6 +1271,7 @@ export function TreeAnalysisEditor({
               <Button type="button" variant="secondary" onClick={addNode}><span className="tree-analysis-add-icon">□</span> Rectangle</Button>
               <Button type="button" variant="secondary" onClick={() => openScoreModal()}><span className="tree-analysis-add-icon">/x</span> Points</Button>
               <Button type="button" variant="secondary" onClick={addActivityTable}><Grid3X3 size={17} /> Tableau</Button>
+              <Button type="button" variant="secondary" onClick={addQuestionBadge}><span className="tree-analysis-add-icon">1</span> Numéro</Button>
               <Button type="button" variant="secondary" onClick={() => setSelectedNodeIds(nodes.filter((node) => (node.pageId ?? documentPages[0]?.id) === activePageId).map((node) => node.id))}>Sélectionner les rectangles</Button>
             </div>
             {selectedTextBoxId && (
@@ -1249,6 +1293,12 @@ export function TreeAnalysisEditor({
                 <strong>{selectedHeader === "name" ? "Nom" : "Groupe"}</strong>
                 <label>Taille de police<input type="number" min="12" max="64" value={activePage?.header?.fontSize ?? 20} onChange={(event) => updateActivePage({ header: { ...(activePage?.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), fontSize: Number(event.target.value) } })} /></label>
                 <label>Longueur de la ligne<input type="number" min="120" max="600" value={activePage?.header?.lineWidth ?? 260} onChange={(event) => updateActivePage({ header: { ...(activePage?.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), lineWidth: Number(event.target.value) } })} /></label>
+              </div>
+            )}
+            {activePage?.template === "teaching_document" && (
+              <div className="tree-analysis-document-header-controls">
+                <label>Type d’activité<input value={activePage.header?.activityType ?? "EXERCICES"} onChange={(event) => updateActivePage({ header: { ...(activePage.header!), activityType: event.target.value } })} /></label>
+                <label>Titre dans l’entête<input value={activePage.header?.activityTitle ?? "Les analyses en arbre"} onChange={(event) => updateActivePage({ header: { ...(activePage.header!), activityTitle: event.target.value } })} /></label>
               </div>
             )}
 
@@ -1279,7 +1329,7 @@ export function TreeAnalysisEditor({
                 ref={canvasRef}
                 className={`tree-analysis-page tree-analysis-canvas ${
                   linkingParentId ? "linking" : ""
-                } ${activePage?.orientation === "portrait" ? "portrait" : "landscape"}`}
+                } ${activePage?.orientation === "portrait" ? "portrait" : "landscape"} ${activePage?.template === "teaching_document" ? "document-template" : ""}`}
                 style={{
                   "--page-margin-top": `${((activePage?.margins.top ?? 24) / PAGE.logicalHeight) * 100}%`,
                   "--page-margin-right": `${((activePage?.margins.right ?? 24) / PAGE.logicalWidth) * 100}%`,
@@ -1301,6 +1351,9 @@ export function TreeAnalysisEditor({
 
                 <div className={`tree-analysis-name-line movable ${selectedHeader === "name" ? "selected" : ""}`} style={{ left: `${((activePage?.header?.nameX ?? 12) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.nameY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => { setSelectedHeader("name"); setSelectedTextBoxId(null); setSelectedTableId(null); startHeaderDrag(event, "header-name"); }}>Nom : <span /></div>
                 <div className={`tree-analysis-name-line movable ${selectedHeader === "group" ? "selected" : ""}`} style={{ left: `${((activePage?.header?.groupX ?? 430) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.groupY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => { setSelectedHeader("group"); setSelectedTextBoxId(null); setSelectedTableId(null); startHeaderDrag(event, "header-group"); }}>Groupe : <span /></div>
+                {activePage?.header?.showPageBadge && <div className="tree-analysis-page-badge" style={{ right: `${((activePage.margins.right ?? 24) / PAGE.logicalWidth) * 100}%`, top: `${((activePage.header.nameY ?? 18) / PAGE.logicalHeight) * 100}%` }}>{activePageIndex + 1}</div>}
+                {activePage?.template === "teaching_document" && <div className="tree-analysis-document-heading" style={{ left: `${(activePage.margins.left / PAGE.logicalWidth) * 100}%`, right: `${(activePage.margins.right / PAGE.logicalWidth) * 100}%`, top: `${(72 / PAGE.logicalHeight) * 100}%` }}><strong>{activePage.header?.activityType || "EXERCICES"}</strong><span>{activePage.header?.activityTitle || title || "Les analyses en arbre"}</span></div>}
+                {questionBadges.filter((badge) => badge.pageId === activePageId).map((badge) => <div key={badge.id} className="tree-analysis-question-badge" style={{ left: `${(badge.x / PAGE.logicalWidth) * 100}%`, top: `${(badge.y / PAGE.logicalHeight) * 100}%` }} onPointerDown={(event) => startItemDrag(event, "question-badge", badge)} onDoubleClick={() => { const raw = window.prompt("Numéro", String(badge.number)); if (raw !== null) setQuestionBadges((current) => current.map((item) => item.id === badge.id ? { ...item, number: Math.max(1, Math.round(Number(raw) || 1)) } : item)); }}><span>{badge.number}</span><button type="button" aria-label="Supprimer le numéro" onClick={(event) => { event.stopPropagation(); setQuestionBadges((current) => current.filter((item) => item.id !== badge.id)); }}><X size={10} /></button></div>)}
 
                 <svg
                   className="tree-analysis-lines"

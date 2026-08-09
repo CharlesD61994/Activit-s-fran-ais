@@ -184,6 +184,8 @@ export type TreeAnalysisPageMargins = {
 export type TreeAnalysisDocumentPage = {
   id: string;
   orientation: "portrait" | "landscape";
+  template?: "free" | "teaching_document";
+  rectanglePreset?: "normal" | "compact";
   margins: TreeAnalysisPageMargins;
   header?: {
     nameX: number;
@@ -192,7 +194,18 @@ export type TreeAnalysisDocumentPage = {
     groupY: number;
     fontSize: number;
     lineWidth: number;
+    activityType?: string;
+    activityTitle?: string;
+    showPageBadge?: boolean;
   };
+};
+
+export type TreeAnalysisQuestionBadge = {
+  id: string;
+  pageId: string;
+  x: number;
+  y: number;
+  number: number;
 };
 
 export type TreeAnalysisTextAnnotation = {
@@ -288,6 +301,7 @@ export type Sentence = {
   treeAnalysisTables?: TreeAnalysisTable[];
   treeAnalysisPhrases?: TreeAnalysisPhrase[];
   treeAnalysisDocumentPages?: TreeAnalysisDocumentPage[];
+  treeAnalysisQuestionBadges?: TreeAnalysisQuestionBadge[];
   treeAnalysisTextBoxes?: TreeAnalysisTextBox[];
   treeAnalysisInteractions?: TreeAnalysisInteraction[];
   treeAnalysisFlow?: TreeAnalysisFlow;
