@@ -7761,6 +7761,11 @@ textarea {
   -webkit-box-decoration-break: clone;
 }
 
+.tree-analysis-page.landscape .tree-analysis-framed-text {
+  padding-inline: 0;
+  margin-inline: 0;
+}
+
 .tree-analysis-selection-box {
   position: absolute;
   z-index: 19;
@@ -8292,6 +8297,11 @@ textarea {
   box-shadow: 0 0 0 2px #111;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
+}
+
+.tree-reader-page:not(.portrait) .tree-reader-framed {
+  padding-inline: 0;
+  margin-inline: 0;
 }
 
 .tree-reader-node {
