@@ -504,7 +504,8 @@ export function TreeAnalysisEditor({
   function addTextBox() {
     const teaching = activePage?.template === "teaching_document";
     const bannerOffset = teaching && (activePage.mainTitle?.enabled ?? true) ? 175 : 120;
-    const box: TreeAnalysisTextBox = { id: crypto.randomUUID(), pageId: activePageId, x: teaching ? activePage.margins.left : 40, y: teaching ? bannerOffset : 90, width: teaching ? PAGE.logicalWidth - activePage.margins.left - activePage.margins.right : 760, height: teaching ? 80 : 110, text: "Écris ton texte ici.", fontSize: teaching ? pointsToLogicalFont(11.5, activePage) : 32, textAlign: "left", annotations: [] };
+    const availableWidth = teaching ? PAGE.logicalWidth - activePage.margins.left - activePage.margins.right : PAGE.logicalWidth - 80;
+    const box: TreeAnalysisTextBox = { id: crypto.randomUUID(), pageId: activePageId, x: teaching ? activePage.margins.left : 40, y: teaching ? bannerOffset : 90, width: Math.min(420, availableWidth), height: teaching ? 80 : 110, text: "Écris ton texte ici.", fontSize: teaching ? pointsToLogicalFont(11.5, activePage) : 32, textAlign: "left", annotations: [] };
     setTextBoxes((current) => [...current, box]);
     setSelectedTextBoxId(box.id);
     setAddMenuOpen(false);
@@ -645,15 +646,15 @@ export function TreeAnalysisEditor({
     setAddMenuOpen(false);
   }
 
-  function startItemDrag(event: React.PointerEvent<HTMLElement>, kind: "score" | "table" | "phrase" | "textbox" | "question-badge", item: { id: string; x: number; y: number; size?: "normal" | "large" }) {
+  function startItemDrag(event: React.PointerEvent<HTMLElement>, kind: "score" | "table" | "phrase" | "textbox" | "question-badge", item: { id: string; x: number; y: number; size?: "normal" | "large"; width?: number; height?: number }) {
     if (kind !== "phrase" && (event.target as HTMLElement).closest("input,textarea,button")) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     dragRef.current = {
       kind, itemId: item.id,
-      width: kind === "question-badge" ? 32 : kind === "score" ? (item.size === "large" ? 180 : 90) : kind === "table" ? 360 : kind === "phrase" ? 1000 : 760,
-      height: kind === "question-badge" ? 32 : kind === "score" ? (item.size === "large" ? 92 : 60) : kind === "table" ? 120 : kind === "phrase" ? 60 : 110,
+      width: kind === "question-badge" ? 32 : kind === "score" ? (item.size === "large" ? 180 : 90) : kind === "table" ? 360 : kind === "phrase" ? 1000 : kind === "textbox" ? (item.width ?? 420) : 760,
+      height: kind === "question-badge" ? 32 : kind === "score" ? (item.size === "large" ? 92 : 60) : kind === "table" ? 120 : kind === "phrase" ? 60 : kind === "textbox" ? (item.height ?? 80) : 110,
       offsetX: (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width) - item.x,
       offsetY: (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height) - item.y
     };
@@ -923,7 +924,7 @@ export function TreeAnalysisEditor({
     }
 
     if (drag.kind === "textbox-resize") {
-      setTextBoxes((current) => current.map((box) => box.id === drag.itemId ? { ...box, width: clamp(logicalX, 120, PAGE.logicalWidth - box.x), height: clamp(logicalY, 50, PAGE.logicalHeight - box.y) } : box));
+      setTextBoxes((current) => current.map((box) => box.id === drag.itemId ? { ...box, width: clamp(logicalX, 32, PAGE.logicalWidth - box.x), height: clamp(logicalY, 24, PAGE.logicalHeight - box.y) } : box));
       return;
     }
 
