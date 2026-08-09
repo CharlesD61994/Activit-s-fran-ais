@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { Check, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { Sentence, TreeAnalysisInteraction, TreeAnalysisNode, WordClass, WordGroupType } from "@/types";
 
 const groupLabels: Record<WordGroupType, string> = { GN: "GN", GV: "GV", GAdj: "GAdj", GAdv: "GAdv", GPrep: "GPrép" };
@@ -65,8 +63,7 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
   const nodeHeight = sentence.treeAnalysisPage?.nodeHeight ?? 44;
   const flow = sentence.treeAnalysisFlow ?? { preset: "tree_functions_tables" as const, orderedStepIds: [], selectionTolerance: "normal" as const };
   const [completed, setCompleted] = useState<string[]>([]);
-  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
-  const [nodeAnswer, setNodeAnswer] = useState("");
+  const [nodeDrafts, setNodeDrafts] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState("");
   const [framedAnswers, setFramedAnswers] = useState<Array<{ textBoxId: string; start: number; end: number }>>([]);
   const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
@@ -86,7 +83,6 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
   const currentNode = currentStep?.startsWith("node:") ? nodes.find((item) => `node:${item.id}` === currentStep) : undefined;
   const currentTable = currentStep?.startsWith("table:") ? tables.find((item) => `table:${item.id}` === currentStep) : undefined;
   const isComplete = steps.length > 0 && completed.length >= steps.length;
-  const activeNodeTarget = nodes.find((node) => node.id === activeNodeId);
   const freeTreePhase = flow.preset === "tree_functions_tables" && Boolean(currentNode);
   const contentTop = Math.min(...textBoxes.map((box) => box.y), ...nodes.map((node) => node.y), ...tables.map((table) => table.y), 90);
   const topOffset = Math.max(0, contentTop - 24);
@@ -127,15 +123,18 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
       setFeedback("Clique maintenant sur le coin opposé du rectangle.");
       return;
     }
-    const left = Math.min(drawingStart.x, point.x);
-    const right = Math.max(drawingStart.x, point.x);
-    const top = Math.min(drawingStart.y, point.y);
-    const bottom = Math.max(drawingStart.y, point.y);
+    const margin = 12;
+    const left = Math.min(drawingStart.x, point.x) - margin;
+    const right = Math.max(drawingStart.x, point.x) + margin;
+    const top = Math.min(drawingStart.y, point.y) - margin;
+    const bottom = Math.max(drawingStart.y, point.y) + margin;
     const words = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(`.tree-reader-word[data-box-id="${currentInteraction.textBoxId}"]`)).filter((word) => {
       const wordRect = word.getBoundingClientRect();
-      const centerX = wordRect.left + wordRect.width / 2 - rect.left;
-      const centerY = wordRect.top + wordRect.height / 2 - rect.top;
-      return centerX >= left && centerX <= right && centerY >= top && centerY <= bottom;
+      const wordLeft = wordRect.left - rect.left;
+      const wordRight = wordRect.right - rect.left;
+      const wordTop = wordRect.top - rect.top;
+      const wordBottom = wordRect.bottom - rect.top;
+      return wordRight >= left && wordLeft <= right && wordBottom >= top && wordTop <= bottom;
     });
     const candidate = words.length ? { textBoxId: currentInteraction.textBoxId, start: Math.min(...words.map((word) => Number(word.dataset.start))), end: Math.max(...words.map((word) => Number(word.dataset.end))) } : null;
     setDrawingStart(null);
@@ -143,16 +142,14 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
     verifyFraming(candidate);
   }
 
-  function submitNode(value = nodeAnswer) {
-    if (!activeNodeTarget) return;
-    const correctAnswer = activeNodeTarget.groupType ?? activeNodeTarget.wordClass ?? "";
+  function submitNode(node: TreeAnalysisNode, value: string) {
+    const correctAnswer = node.groupType ?? node.wordClass ?? "";
     if (!correctAnswer || !nodeAliases[correctAnswer].includes(normalizeAnswer(value))) {
       setFeedback("Ce n’est pas la bonne réponse. Essaie une abréviation ou le nom complet.");
       return;
     }
-    completeStep(`node:${activeNodeTarget.id}`);
-    setActiveNodeId(null);
-    setNodeAnswer("");
+    completeStep(`node:${node.id}`);
+    setNodeDrafts((current) => ({ ...current, [node.id]: "" }));
   }
 
   return (
@@ -177,13 +174,12 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
           const stepId = `node:${node.id}`;
           const done = completed.includes(stepId);
           const active = !done && (freeTreePhase || currentNode?.id === node.id);
-          return <button type="button" key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${(node.y - topOffset) / 816 * 100}%`, width: `${nodeWidth / 1056 * 100}%`, height: `${nodeHeight / 816 * 100}%` }} disabled={!active} onClick={(event) => { event.stopPropagation(); setActiveNodeId(node.id); setFeedback(""); }}>{done ? expectedNodeLabel(node) : active ? "?" : ""}</button>;
+          return <div key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${(node.y - topOffset) / 816 * 100}%`, width: `${nodeWidth / 1056 * 100}%`, height: `${nodeHeight / 816 * 100}%` }}>{done ? <strong>{expectedNodeLabel(node)}</strong> : active ? <input aria-label="Réponse du rectangle" value={nodeDrafts[node.id] ?? ""} onClick={(event) => event.stopPropagation()} onChange={(event) => { const value = event.target.value; setNodeDrafts((current) => ({ ...current, [node.id]: value })); setFeedback(""); const expected = node.groupType ?? node.wordClass; if (expected && nodeAliases[expected].includes(normalizeAnswer(value))) submitNode(node, value); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); submitNode(node, nodeDrafts[node.id] ?? ""); } }} autoComplete="off" placeholder="?" /> : null}</div>;
         })}
         {tables.map((table) => <div key={table.id} className={`tree-reader-table ${currentTable?.id === table.id ? "active" : ""}`} style={{ left: `${table.x / 1056 * 100}%`, top: `${(table.y - topOffset) / 816 * 100}%`, gridTemplateColumns: `repeat(${table.columns},1fr)` }}>{table.cells.map((cell, index) => cell.columnSpan === 0 ? null : <button type="button" key={index} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined }} disabled={currentTable?.id !== table.id} onClick={(event) => { event.stopPropagation(); if (cell.isCorrect) completeStep(`table:${table.id}`); else setFeedback("Ce n’est pas la bonne cellule."); }}>{cell.text}</button>)}</div>)}
         {drawingStart && drawingCurrent && <div className="tree-reader-drawing-box" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
       </div>
 
-      {activeNodeId && activeNodeTarget && <div className="tree-reader-modal-backdrop"><form className="tree-reader-modal" onSubmit={(event) => { event.preventDefault(); submitNode(); }}><button className="tree-reader-modal-close" type="button" onClick={() => setActiveNodeId(null)}><X size={18} /></button><h3>Que représente ce rectangle?</h3><p>Écris l’abréviation ou le nom complet : GN, GPrép, N, nom, préposition… La réponse se valide automatiquement.</p><input value={nodeAnswer} onChange={(event) => { const value = event.target.value; setNodeAnswer(value); const expected = activeNodeTarget.groupType ?? activeNodeTarget.wordClass; if (expected && nodeAliases[expected].includes(normalizeAnswer(value))) submitNode(value); }} autoFocus autoComplete="off" placeholder="Ta réponse" /><Button type="submit" disabled={!nodeAnswer.trim()}><Check size={17} /> Valider</Button></form></div>}
       <div className="interactive-reader-actions">{isComplete ? finishControl : null}</div>
     </div>
   );
