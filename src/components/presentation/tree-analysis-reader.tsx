@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { Minus, Plus, RotateCcw } from "lucide-react";
+import { Minus, Pin, PinOff, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Sentence, TreeAnalysisInteraction, TreeAnalysisNode, WordClass, WordGroupType } from "@/types";
 
@@ -96,6 +96,12 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const [drawingCurrent, setDrawingCurrent] = useState<{ x: number; y: number } | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [controlsPinned, setControlsPinned] = useState(true);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("tree-reader-controls-unpinned", !controlsPinned);
+    return () => document.documentElement.classList.remove("tree-reader-controls-unpinned");
+  }, [controlsPinned]);
 
   const automaticSteps = useMemo(() => documentPages.flatMap((page) => {
     const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
@@ -232,12 +238,12 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
 
   return (
     <div className="tree-reader">
-      <div className="tree-reader-sticky-header">
+      <div className={`tree-reader-sticky-header ${controlsPinned ? "pinned" : "unpinned"}`}>
         <div className="tree-reader-progress"><span style={{ width: `${steps.length ? completed.length / steps.length * 100 : 0}%` }} /></div>
         <section className="tree-reader-instruction">
           <span className="eyebrow">Étape {Math.min(completed.length + 1, steps.length || 1)} sur {steps.length || 1}</span>
           <h2>{currentInteraction?.instruction ?? (currentNode ? (freeTreePhase ? "Identifie tous les groupes et toutes les classes de mots dans les rectangles." : "Identifie le rectangle actif.") : currentTable ? "Choisis la bonne réponse dans le tableau." : "Activité terminée!")}</h2>
-          <div className="tree-reader-zoom"><button type="button" onClick={() => setZoom((value) => Math.max(.6, value - .1))} aria-label="Réduire"><Minus size={16} /></button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)} %</button><button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Agrandir"><Plus size={16} /></button></div>
+          <div className="tree-reader-control-buttons"><div className="tree-reader-zoom"><button type="button" onClick={() => setZoom((value) => Math.max(.6, value - .1))} aria-label="Réduire"><Minus size={16} /></button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)} %</button><button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Agrandir"><Plus size={16} /></button></div><button type="button" className="tree-reader-pin-control" onClick={() => setControlsPinned((value) => !value)}>{controlsPinned ? <Pin size={16} /> : <PinOff size={16} />}{controlsPinned ? " Épinglé" : " Non épinglé"}</button></div>
           {currentInteraction && <strong className="tree-reader-draw-help">Clique un premier coin, puis le coin opposé pour tracer ton encadrement.</strong>}
           {feedback && <p>{feedback}</p>}
         </section>

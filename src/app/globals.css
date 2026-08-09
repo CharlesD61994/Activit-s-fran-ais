@@ -2362,7 +2362,7 @@ textarea {
 .reader-meta-row {
   position: sticky;
   z-index: 120;
-  top: 66px;
+  top: 58px;
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -2370,9 +2370,10 @@ textarea {
   color: var(--text-muted);
   font-size: .9rem;
   font-weight: 800;
-  padding: 6px;
-  background: color-mix(in srgb, var(--background) 92%, transparent);
-  backdrop-filter: blur(8px);
+  margin: 0 -4vw;
+  padding: 8px 4vw;
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--border);
 }
 
 .reader-meta-row span {
@@ -8062,9 +8063,28 @@ textarea {
 .tree-reader-sticky-header {
   position: sticky;
   z-index: 100;
-  top: 112px;
+  top: 100px;
   display: grid;
-  gap: 7px;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 20px rgba(0,0,0,.12);
+}
+
+.tree-reader-sticky-header.unpinned,
+.tree-reader-controls-unpinned .reader-meta-row {
+  position: static;
+}
+
+.tree-reader-sticky-header .tree-reader-progress {
+  border-radius: 0;
+}
+
+.tree-reader-sticky-header .tree-reader-instruction {
+  border: 0;
+  border-radius: 0;
 }
 
 .tree-reader-page-viewport {
@@ -8076,6 +8096,26 @@ textarea {
 .tree-reader-zoom {
   display: inline-flex;
   gap: 3px;
+}
+
+.tree-reader-control-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tree-reader-pin-control {
+  display: inline-flex;
+  min-height: 32px;
+  padding: 0 9px;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-weight: 750;
+  cursor: pointer;
 }
 
 .tree-reader-zoom button {
