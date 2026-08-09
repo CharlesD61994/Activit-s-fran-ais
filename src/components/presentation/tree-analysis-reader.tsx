@@ -206,7 +206,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
     if (!currentInteraction) return;
     if ((event.target as HTMLElement).closest("button")) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    const point = { x: (event.clientX - rect.left) / zoom, y: (event.clientY - rect.top) / zoom };
     if (!drawingStart) {
       setDrawingStart(point);
       setDrawingCurrent(point);
@@ -219,10 +219,10 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
     const bottom = Math.max(drawingStart.y, point.y) + 18;
     const words = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(`.tree-reader-word[data-box-id="${currentInteraction.textBoxId}"]`)).filter((word) => {
       const wordRect = word.getBoundingClientRect();
-      const wordLeft = wordRect.left - rect.left;
-      const wordRight = wordRect.right - rect.left;
-      const wordTop = wordRect.top - rect.top;
-      const wordBottom = wordRect.bottom - rect.top;
+      const wordLeft = (wordRect.left - rect.left) / zoom;
+      const wordRight = (wordRect.right - rect.left) / zoom;
+      const wordTop = (wordRect.top - rect.top) / zoom;
+      const wordBottom = (wordRect.bottom - rect.top) / zoom;
       const centerX = (wordLeft + wordRight) / 2;
       return centerX >= left && centerX <= right && wordBottom >= top && wordTop <= bottom;
     });
@@ -255,7 +255,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
         </section>
       </div>
 
-      <div className="tree-reader-page-viewport"><div className={`tree-reader-page ${currentInteraction ? "drawing" : ""} ${showFullPortraitPage ? "portrait document-template" : ""}`} style={{ aspectRatio: showFullPortraitPage ? "8.5 / 11" : `1056 / ${visibleHeight}`, zoom }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart) return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: event.clientX - rect.left, y: event.clientY - rect.top }); }}>
+      <div className="tree-reader-page-viewport"><div className={`tree-reader-page ${currentInteraction ? "drawing" : ""} ${showFullPortraitPage ? "portrait document-template" : ""}`} style={{ aspectRatio: showFullPortraitPage ? "8.5 / 11" : `1056 / ${visibleHeight}`, zoom }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart) return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: (event.clientX - rect.left) / zoom, y: (event.clientY - rect.top) / zoom }); }}>
         {showFullPortraitPage && currentPage?.template === "teaching_document" && <>
           <div className="tree-analysis-document-header" style={{ left: `${currentPage.margins.left / 1056 * 100}%`, right: `${currentPage.margins.right / 1056 * 100}%`, top: `${(currentPage.header?.nameY ?? 25) / 816 * 100}%` }}>
             <div className="tree-analysis-document-header-top"><div className="tree-analysis-student-fields"><span>NOM</span><span>GROUPE</span></div><div className="tree-analysis-page-cell"><div className="tree-analysis-page-badge">{currentPageIndex + 1}</div></div></div>
