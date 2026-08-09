@@ -225,6 +225,7 @@ export type TreeAnalysisInteraction = {
   label: string;
   instruction: string;
   linkedNodeId?: string;
+  authorMark?: "frame" | "red" | "blue" | "green";
 };
 
 export type TreeAnalysisFlowPreset =

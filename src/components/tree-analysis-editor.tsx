@@ -218,6 +218,7 @@ export function TreeAnalysisEditor({
   const [interactionLabel, setInteractionLabel] = useState("Sujet");
   const [interactionInstruction, setInteractionInstruction] = useState("Encadre le sujet de la phrase.");
   const [interactionLinkedNodeId, setInteractionLinkedNodeId] = useState("");
+  const [interactionAuthorMark, setInteractionAuthorMark] = useState<"frame" | "red" | "blue" | "green">("frame");
   const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(null);
   const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
   const [textSelection, setTextSelection] = useState<{ start: number; end: number } | null>(null);
@@ -472,9 +473,27 @@ export function TreeAnalysisEditor({
     const selection = textSelectionRef.current ?? textSelection;
     applyTextAnnotation({ framed: !removing });
     if (removing && selectedTextBoxId && selection) {
-      setInteractions((current) => current.filter((item) => !(item.textBoxId === selectedTextBoxId && item.start === selection.start && item.end === selection.end)));
+      setInteractions((current) => current.filter((item) => !(item.textBoxId === selectedTextBoxId && item.start === selection.start && item.end === selection.end && (item.authorMark ?? "frame") === "frame")));
     }
     if (!removing && selectedTextBoxId && selection) {
+      setInteractionAuthorMark("frame");
+      setInteractionKind("function");
+      setInteractionLabel("Sujet");
+      setInteractionInstruction("Encadre le sujet de la phrase.");
+      setInteractionLinkedNodeId("");
+      setInteractionModalOpen(true);
+    }
+  }
+
+  function toggleInteractiveColor(color: "#d93434" | "#2467d1" | "#22834b", authorMark: "red" | "blue" | "green") {
+    const selection = textSelectionRef.current ?? textSelection;
+    const removing = selectedTextStyle.color === color;
+    applyTextAnnotation({ color: removing ? null : color });
+    if (removing && selectedTextBoxId && selection) {
+      setInteractions((current) => current.filter((item) => !(item.textBoxId === selectedTextBoxId && item.start === selection.start && item.end === selection.end && item.authorMark === authorMark)));
+    }
+    if (!removing && selectedTextBoxId && selection) {
+      setInteractionAuthorMark(authorMark);
       setInteractionKind("function");
       setInteractionLabel("Sujet");
       setInteractionInstruction("Encadre le sujet de la phrase.");
@@ -494,14 +513,14 @@ export function TreeAnalysisEditor({
       kind: interactionKind,
       label: interactionLabel.trim(),
       instruction: interactionInstruction.trim(),
-      linkedNodeId: interactionKind === "group" && interactionLinkedNodeId ? interactionLinkedNodeId : undefined
+      linkedNodeId: interactionKind === "group" && interactionLinkedNodeId ? interactionLinkedNodeId : undefined,
+      authorMark: interactionAuthorMark
     };
     setInteractions((current) => [...current, interaction]);
     setInteractionModalOpen(false);
   }
 
   function cancelInteraction() {
-    applyTextAnnotation({ framed: false });
     setInteractionModalOpen(false);
   }
 
@@ -1211,9 +1230,9 @@ export function TreeAnalysisEditor({
                 <label>Police <input type="number" min="12" max="96" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.fontSize ?? 32} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, fontSize: Number(event.target.value) } : box))} /></label>
                 <label>Largeur <input type="number" min="120" max="1056" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.width ?? 760} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, width: Number(event.target.value) } : box))} /></label>
                 <label>Hauteur <input type="number" min="50" max="816" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.height ?? 110} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, height: Number(event.target.value) } : box))} /></label>
-                <button type="button" className={selectedTextStyle.color === "#d93434" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#d93434"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#d93434" ? null : "#d93434" })}>Rouge</button>
-                <button type="button" className={selectedTextStyle.color === "#2467d1" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#2467d1"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#2467d1" ? null : "#2467d1" })}>Bleu</button>
-                <button type="button" className={selectedTextStyle.color === "#22834b" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#22834b"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#22834b" ? null : "#22834b" })}>Vert</button>
+                <button type="button" className={selectedTextStyle.color === "#d93434" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#d93434"} onClick={() => toggleInteractiveColor("#d93434", "red")}>Rouge</button>
+                <button type="button" className={selectedTextStyle.color === "#2467d1" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#2467d1"} onClick={() => toggleInteractiveColor("#2467d1", "blue")}>Bleu</button>
+                <button type="button" className={selectedTextStyle.color === "#22834b" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#22834b"} onClick={() => toggleInteractiveColor("#22834b", "green")}>Vert</button>
                 <button type="button" className={selectedTextStyle.framed ? "active" : ""} aria-pressed={selectedTextStyle.framed} onClick={toggleFraming}>Encadrer</button>
                 <button type="button" className={selectedTextStyle.bold ? "active" : ""} aria-pressed={selectedTextStyle.bold} onClick={() => applyTextAnnotation({ bold: !selectedTextStyle.bold })}>Gras</button>
               </div>
@@ -1582,15 +1601,15 @@ export function TreeAnalysisEditor({
                 }}>
                   <aside className="tree-analysis-inspector tree-analysis-modal" role="dialog" aria-modal="true" aria-label="Créer une réponse interactive">
                     <div className="tree-analysis-modal-heading">
-                      <div><span className="eyebrow">Encadrement interactif</span><h3>Que doit reconnaître l’élève?</h3></div>
+                      <div><span className="eyebrow">Réponse interactive</span><h3>Que représente ce passage?</h3></div>
                       <button type="button" onClick={cancelInteraction} aria-label="Fermer"><X size={18} /></button>
                     </div>
                     <label>Type de réponse<select value={interactionKind} onChange={(event) => setInteractionKind(event.target.value as "function" | "group")}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option></select></label>
                     <label>Réponse attendue<input value={interactionLabel} onChange={(event) => setInteractionLabel(event.target.value)} placeholder="Ex. Sujet" /></label>
                     <label>Consigne affichée<input value={interactionInstruction} onChange={(event) => setInteractionInstruction(event.target.value)} placeholder="Ex. Encadre le sujet de la phrase." /></label>
                     {interactionKind === "group" && <label>Rectangle déclenché<select value={interactionLinkedNodeId} onChange={(event) => setInteractionLinkedNodeId(event.target.value)}><option value="">Choisir un rectangle…</option>{nodes.map((node, index) => <option key={node.id} value={node.id}>Rectangle {index + 1} — {getNodeLabel(node)}</option>)}</select></label>}
-                    <p>Les couleurs et le gras restent uniquement visuels. Cet encadrement deviendra une réponse dans le lecteur.</p>
-                    <Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim()}>Créer l’événement</Button>
+                    <p>La couleur ou l’encadrement sert à repérer la réponse dans le corrigé. Dans le lecteur, l’élève répondra toujours en encadrant le passage.</p>
+                    <div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={cancelInteraction}>Visuel seulement</Button><Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim()}>Créer l’événement</Button></div>
                   </aside>
                 </div>
               )}
