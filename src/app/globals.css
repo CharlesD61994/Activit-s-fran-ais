@@ -6821,6 +6821,17 @@ textarea {
   font-weight: 800;
 }
 
+.tree-analysis-document-header-controls .tree-analysis-main-title-toggle {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tree-analysis-main-title-toggle input {
+  width: auto;
+}
+
 .tree-analysis-page-controls label,
 .tree-analysis-text-toolbar label {
   display: grid;
@@ -7507,6 +7518,16 @@ textarea {
 
 .tree-analysis-document-header-bottom > div:last-child {
   border-left: 1px solid #111;
+}
+
+.tree-analysis-document-main-title {
+  position: absolute;
+  z-index: 5;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: 2.94cqw;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #111;
 }
 
 .tree-analysis-canvas.document-template .tree-analysis-text-content {

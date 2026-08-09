@@ -198,6 +198,11 @@ export type TreeAnalysisDocumentPage = {
     activityTitle?: string;
     showPageBadge?: boolean;
   };
+  mainTitle?: {
+    enabled: boolean;
+    prefix: string;
+    title: string;
+  };
 };
 
 export type TreeAnalysisQuestionBadge = {

@@ -71,8 +71,13 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const tables = useMemo(() => sentence.treeAnalysisTables ?? [], [sentence.treeAnalysisTables]);
   const textBoxes = useMemo(() => sentence.treeAnalysisTextBoxes ?? [], [sentence.treeAnalysisTextBoxes]);
   const relations = useMemo(() => sentence.treeAnalysisRelations ?? [], [sentence.treeAnalysisRelations]);
+  const documentPages = useMemo(() => sentence.treeAnalysisDocumentPages ?? [], [sentence.treeAnalysisDocumentPages]);
   const nodeWidth = sentence.treeAnalysisPage?.nodeWidth ?? 72;
   const nodeHeight = sentence.treeAnalysisPage?.nodeHeight ?? 44;
+  const nodeDimensions = (node: TreeAnalysisNode) => {
+    const page = documentPages.find((item) => item.id === (node.pageId ?? documentPages[0]?.id));
+    return page?.rectanglePreset === "compact" ? { width: 78, height: 19 } : { width: nodeWidth, height: nodeHeight };
+  };
   const flow = sentence.treeAnalysisFlow ?? { preset: "tree_functions_tables" as const, orderedStepIds: [], selectionTolerance: "normal" as const };
   const [completed, setCompleted] = useState<string[]>([]);
   const [nodeDrafts, setNodeDrafts] = useState<Record<string, string>>({});
@@ -98,7 +103,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const isComplete = steps.length > 0 && completed.length >= steps.length;
   const freeTreePhase = flow.preset === "tree_functions_tables" && Boolean(currentNode);
   const contentTop = Math.min(...textBoxes.map((box) => box.y), ...nodes.map((node) => node.y), ...tables.map((table) => table.y), 90);
-  const contentBottom = Math.max(...textBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...nodes.map((node) => node.y + nodeHeight), ...tables.map((table) => table.y + estimateTableHeight(table)), 260);
+  const contentBottom = Math.max(...textBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...nodes.map((node) => node.y + nodeDimensions(node).height), ...tables.map((table) => table.y + estimateTableHeight(table)), 260);
   const topOffset = Math.max(0, contentTop - 4);
   const visibleBottom = contentBottom + 32;
   const visibleHeight = Math.max(180, visibleBottom - topOffset);
@@ -217,12 +222,13 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
           const boundaries = Array.from(new Set([0, box.text.length, ...answerRanges.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
           return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / visibleHeight * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw`, textAlign: box.textAlign ?? "left" }}>{boundaries.slice(0, -1).map((segmentStart, segmentIndex) => { const segmentEnd = boundaries[segmentIndex + 1]; const framed = answerRanges.some((item) => item.start <= segmentStart && item.end >= segmentEnd); let tokenOffset = segmentStart; const tokens = box.text.slice(segmentStart, segmentEnd).match(/\S+|\s+/g) ?? []; return <span key={`${segmentStart}-${segmentEnd}`} className={framed ? "tree-reader-framed" : undefined}>{tokens.map((token, tokenIndex) => { const start = tokenOffset; const end = start + token.length; tokenOffset = end; return /^\s+$/u.test(token) ? token : <span key={`${tokenIndex}-${start}`} className="tree-reader-word" data-box-id={box.id} data-start={start} data-end={end}>{token}</span>; })}</span>; })}</div>;
         })}
-        <svg className="tree-reader-lines" viewBox={`0 0 1056 ${visibleHeight}`} preserveAspectRatio="none">{relations.map((relation) => { const parent = nodes.find((node) => node.id === relation.parentNodeId); const child = nodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return null; return <line key={relation.id} x1={parent.x + nodeWidth / 2} y1={parent.y + nodeHeight - topOffset} x2={child.x + nodeWidth / 2} y2={child.y - topOffset} />; })}</svg>
+        <svg className="tree-reader-lines" viewBox={`0 0 1056 ${visibleHeight}`} preserveAspectRatio="none">{relations.map((relation) => { const parent = nodes.find((node) => node.id === relation.parentNodeId); const child = nodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return null; const parentSize = nodeDimensions(parent); const childSize = nodeDimensions(child); return <line key={relation.id} x1={parent.x + parentSize.width / 2} y1={parent.y + parentSize.height - topOffset} x2={child.x + childSize.width / 2} y2={child.y - topOffset} />; })}</svg>
         {nodes.map((node) => {
           const stepId = `node:${node.id}`;
           const done = completed.includes(stepId);
           const active = !done && (freeTreePhase || currentNode?.id === node.id);
-          return <div key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${(node.y - topOffset) / visibleHeight * 100}%`, width: `${nodeWidth / 1056 * 100}%`, height: `${nodeHeight / visibleHeight * 100}%` }}>{done ? <strong>{expectedNodeLabel(node)}</strong> : active ? <input aria-label="Réponse du rectangle" value={nodeDrafts[node.id] ?? ""} onClick={(event) => event.stopPropagation()} onChange={(event) => setNodeDrafts((current) => ({ ...current, [node.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); submitNode(node, nodeDrafts[node.id] ?? ""); } }} autoComplete="off" placeholder="?" /> : null}</div>;
+          const currentSize = nodeDimensions(node);
+          return <div key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${(node.y - topOffset) / visibleHeight * 100}%`, width: `${currentSize.width / 1056 * 100}%`, height: `${currentSize.height / visibleHeight * 100}%` }}>{done ? <strong>{expectedNodeLabel(node)}</strong> : active ? <input aria-label="Réponse du rectangle" value={nodeDrafts[node.id] ?? ""} onClick={(event) => event.stopPropagation()} onChange={(event) => setNodeDrafts((current) => ({ ...current, [node.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); submitNode(node, nodeDrafts[node.id] ?? ""); } }} autoComplete="off" placeholder="?" /> : null}</div>;
         })}
         {tables.map((table) => { const tableDone = completed.includes(`table:${table.id}`); return <div key={table.id} className={`tree-reader-table ${currentTable?.id === table.id ? "active" : ""}`} style={{ left: `${table.x / 1056 * 100}%`, top: `${(table.y - topOffset) / visibleHeight * 100}%`, gridTemplateColumns: `repeat(${table.columns},1fr)` }}>{table.cells.map((cell, index) => cell.columnSpan === 0 ? null : <button type="button" key={index} className={tableDone && cell.isCorrect ? "selected-correct" : ""} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined }} disabled={currentTable?.id !== table.id} onClick={(event) => { event.stopPropagation(); if (cell.isCorrect) completeStep(`table:${table.id}`); else setFeedback("Ce n’est pas la bonne cellule."); }}>{cell.text}</button>)}</div>; })}
         {drawingStart && drawingCurrent && <div className="tree-reader-drawing-box" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
