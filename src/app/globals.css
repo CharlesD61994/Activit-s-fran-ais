@@ -7075,6 +7075,22 @@ textarea {
   font-weight: 750;
 }
 
+.tree-analysis-linked-node-picker {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--secondary);
+}
+
+.tree-analysis-linked-node-picker > span {
+  color: var(--muted-foreground);
+  font-size: .78rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
 .tree-analysis-box-size {
   margin: 10px 0 14px;
   padding: 8px 11px;
@@ -8059,6 +8075,15 @@ textarea {
 .tree-reader-page.drawing {
   cursor: crosshair;
   user-select: none;
+}
+
+.tree-reader-page.portrait {
+  width: min(100%, 816px);
+  margin-inline: auto;
+}
+
+.tree-analysis-question-badge.reader {
+  pointer-events: none;
 }
 
 .tree-reader-draw-help {

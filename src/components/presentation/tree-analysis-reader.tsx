@@ -27,6 +27,14 @@ type Props = {
 
 type TextSelection = { textBoxId: string; start: number; end: number };
 
+function trimSelectionWhitespace(text: string, selection: TextSelection): TextSelection {
+  let start = selection.start;
+  let end = selection.end;
+  while (start < end && /\s/u.test(text[start])) start += 1;
+  while (end > start && /\s/u.test(text[end - 1])) end -= 1;
+  return { ...selection, start, end };
+}
+
 function expectedNodeLabel(node: TreeAnalysisNode) {
   if (node.groupType) return groupLabels[node.groupType];
   if (node.wordClass) return wordClassLabels[node.wordClass];
@@ -72,6 +80,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const textBoxes = useMemo(() => sentence.treeAnalysisTextBoxes ?? [], [sentence.treeAnalysisTextBoxes]);
   const relations = useMemo(() => sentence.treeAnalysisRelations ?? [], [sentence.treeAnalysisRelations]);
   const documentPages = useMemo(() => sentence.treeAnalysisDocumentPages ?? [], [sentence.treeAnalysisDocumentPages]);
+  const questionBadges = useMemo(() => sentence.treeAnalysisQuestionBadges ?? [], [sentence.treeAnalysisQuestionBadges]);
   const nodeWidth = sentence.treeAnalysisPage?.nodeWidth ?? 72;
   const nodeHeight = sentence.treeAnalysisPage?.nodeHeight ?? 44;
   const nodeDimensions = (node: TreeAnalysisNode) => {
@@ -112,12 +121,14 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const visibleTables = tables.filter((table) => ownsCurrentPage(table.pageId));
   const isComplete = steps.length > 0 && completed.length >= steps.length;
   const currentPage = documentPages.find((page) => page.id === currentPageId);
+  const currentPageIndex = Math.max(0, documentPages.findIndex((page) => page.id === currentPageId));
+  const showFullPortraitPage = currentPage?.orientation === "portrait";
   const freeTreePhase = currentPage?.readerMode !== "groups_then_tree" && flow.preset === "tree_functions_tables" && Boolean(currentNode);
   const contentTop = Math.min(...visibleTextBoxes.map((box) => box.y), ...visibleNodes.map((node) => node.y), ...visibleTables.map((table) => table.y), 90);
   const contentBottom = Math.max(...visibleTextBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...visibleNodes.map((node) => node.y + nodeDimensions(node).height), ...visibleTables.map((table) => table.y + estimateTableHeight(table)), 260);
-  const topOffset = Math.max(0, contentTop - 4);
+  const topOffset = showFullPortraitPage ? 0 : Math.max(0, contentTop - 4);
   const visibleBottom = contentBottom + 32;
-  const visibleHeight = Math.max(180, visibleBottom - topOffset);
+  const visibleHeight = showFullPortraitPage ? 816 : Math.max(180, visibleBottom - topOffset);
 
   useEffect(() => {
     if (!persistenceKey || typeof window === "undefined") { setHydrated(true); return; }
@@ -172,7 +183,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
       setFeedback("Ce n’est pas tout à fait le bon passage. Réessaie.");
       return;
     }
-    setFramedAnswers((current) => [...current, candidate]);
+    setFramedAnswers((current) => [...current, trimSelectionWhitespace(box.text, candidate)]);
     completeStep(`interaction:${currentInteraction.id}`);
     window.getSelection()?.removeAllRanges();
   }
@@ -227,9 +238,17 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
         {feedback && <p>{feedback}</p>}
       </section>
 
-      <div className={`tree-reader-page ${currentInteraction ? "drawing" : ""}`} style={{ aspectRatio: `1056 / ${visibleHeight}` }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart) return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: event.clientX - rect.left, y: event.clientY - rect.top }); }}>
+      <div className={`tree-reader-page ${currentInteraction ? "drawing" : ""} ${showFullPortraitPage ? "portrait document-template" : ""}`} style={{ aspectRatio: showFullPortraitPage ? "8.5 / 11" : `1056 / ${visibleHeight}` }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart) return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: event.clientX - rect.left, y: event.clientY - rect.top }); }}>
+        {showFullPortraitPage && currentPage?.template === "teaching_document" && <>
+          <div className="tree-analysis-document-header" style={{ left: `${currentPage.margins.left / 1056 * 100}%`, right: `${currentPage.margins.right / 1056 * 100}%`, top: `${(currentPage.header?.nameY ?? 25) / 816 * 100}%` }}>
+            <div className="tree-analysis-document-header-top"><div className="tree-analysis-student-fields"><span>NOM</span><span>GROUPE</span></div><div className="tree-analysis-page-cell"><div className="tree-analysis-page-badge">{currentPageIndex + 1}</div></div></div>
+            <div className="tree-analysis-document-header-bottom"><div>{currentPage.header?.activityType || "EXERCICES"}</div><div>{currentPage.header?.activityTitle || sentence.title || "Les analyses en arbre"}</div></div>
+          </div>
+          {(currentPage.mainTitle?.enabled ?? true) && <div className="tree-analysis-document-title-banner" style={{ left: `${(currentPage.margins.left - 53) / 1056 * 100}%`, right: `${(currentPage.margins.right - 53) / 1056 * 100}%`, top: `${82 / 816 * 100}%` }}><div className="tree-analysis-document-title-line">{currentPage.mainTitle?.prefix || "Exercices"} <span>–</span> {currentPage.mainTitle?.title || "Les analyses en arbre"}</div><div className="tree-analysis-document-title-label">{currentPage.mainTitle?.subtitle || "L’analyse des groupes de mots"}</div></div>}
+          {questionBadges.filter((badge) => badge.pageId === currentPageId).map((badge) => <div key={badge.id} className="tree-analysis-question-badge reader" style={{ left: `${badge.x / 1056 * 100}%`, top: `${badge.y / 816 * 100}%` }}><span>{badge.number}</span></div>)}
+        </>}
         {visibleTextBoxes.map((box) => {
-          const answerRanges = framedAnswers.filter((item) => item.textBoxId === box.id);
+          const answerRanges = framedAnswers.filter((item) => item.textBoxId === box.id).map((item) => trimSelectionWhitespace(box.text, item));
           const boundaries = Array.from(new Set([0, box.text.length, ...answerRanges.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
           return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / visibleHeight * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw`, textAlign: box.textAlign ?? "left" }}>{boundaries.slice(0, -1).map((segmentStart, segmentIndex) => { const segmentEnd = boundaries[segmentIndex + 1]; const framed = answerRanges.some((item) => item.start <= segmentStart && item.end >= segmentEnd); let tokenOffset = segmentStart; const tokens = box.text.slice(segmentStart, segmentEnd).match(/\S+|\s+/g) ?? []; return <span key={`${segmentStart}-${segmentEnd}`} className={framed ? "tree-reader-framed" : undefined}>{tokens.map((token, tokenIndex) => { const start = tokenOffset; const end = start + token.length; tokenOffset = end; return /^\s+$/u.test(token) ? token : <span key={`${tokenIndex}-${start}`} className="tree-reader-word" data-box-id={box.id} data-start={start} data-end={end}>{token}</span>; })}</span>; })}</div>;
         })}

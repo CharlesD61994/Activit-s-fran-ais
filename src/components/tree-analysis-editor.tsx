@@ -254,6 +254,7 @@ export function TreeAnalysisEditor({
   const [interactionLabel, setInteractionLabel] = useState("Sujet");
   const [interactionInstruction, setInteractionInstruction] = useState("Encadre le sujet de la phrase.");
   const [interactionLinkedNodeId, setInteractionLinkedNodeId] = useState("");
+  const [pickingInteractionNode, setPickingInteractionNode] = useState(false);
   const [interactionAuthorMark, setInteractionAuthorMark] = useState<"frame" | "red" | "blue" | "green">("frame");
   const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(null);
   const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
@@ -577,10 +578,12 @@ export function TreeAnalysisEditor({
     };
     setInteractions((current) => [...current, interaction]);
     setInteractionModalOpen(false);
+    setPickingInteractionNode(false);
   }
 
   function cancelInteraction() {
     setInteractionModalOpen(false);
+    setPickingInteractionNode(false);
   }
 
   function captureRenderedTextSelection(box: TreeAnalysisTextBox, element: HTMLDivElement) {
@@ -774,6 +777,15 @@ export function TreeAnalysisEditor({
     event: React.PointerEvent<HTMLDivElement>,
     node: TreeAnalysisNode
   ) {
+    if (pickingInteractionNode) {
+      event.stopPropagation();
+      setInteractionLinkedNodeId(node.id);
+      setInteractionLabel(getNodeLabel(node) || "Groupe");
+      setInteractionInstruction("Encadre le groupe lié à ce rectangle.");
+      setPickingInteractionNode(false);
+      setInteractionModalOpen(true);
+      return;
+    }
     setSelectedTextBoxId(null);
     setEditingTextBoxId(null);
     setSelectedTableId(null);
@@ -844,11 +856,17 @@ export function TreeAnalysisEditor({
     let logicalY =
       (event.clientY - rect.top) * scaleY - drag.offsetY;
 
-    if ((drag.kind === "textbox" || drag.kind === "question-badge") && !event.altKey) {
+    if ((drag.kind === "textbox" || drag.kind === "question-badge" || drag.kind === "node") && !event.altKey) {
       const page = activePage;
       const xCandidates = [page?.margins.left ?? 0];
       const yCandidates = [page?.margins.top ?? 0];
-      if (drag.kind === "textbox") {
+      if (drag.kind === "node") {
+        nodes.filter((node) => (node.pageId ?? documentPages[0]?.id) === activePageId && node.id !== drag.itemId).forEach((node) => {
+          const size = getNodeDimensions(node);
+          xCandidates.push(node.x, node.x + size.width / 2, node.x + size.width);
+          yCandidates.push(node.y, node.y + size.height / 2, node.y + size.height);
+        });
+      } else if (drag.kind === "textbox") {
         textBoxes.filter((box) => box.pageId === activePageId && box.id !== drag.itemId).forEach((box) => {
           xCandidates.push(box.x);
           yCandidates.push(box.y);
@@ -859,8 +877,8 @@ export function TreeAnalysisEditor({
           yCandidates.push(badge.y, badge.y + 16);
         });
       }
-      const movingXPoints = drag.kind === "question-badge" ? [{ value: logicalX, offset: 0 }, { value: logicalX + 16, offset: 16 }] : [{ value: logicalX, offset: 0 }];
-      const movingYPoints = drag.kind === "question-badge" ? [{ value: logicalY, offset: 0 }, { value: logicalY + 16, offset: 16 }] : [{ value: logicalY, offset: 0 }];
+      const movingXPoints = drag.kind === "question-badge" ? [{ value: logicalX, offset: 0 }, { value: logicalX + 16, offset: 16 }] : drag.kind === "node" ? [{ value: logicalX, offset: 0 }, { value: logicalX + drag.width / 2, offset: drag.width / 2 }, { value: logicalX + drag.width, offset: drag.width }] : [{ value: logicalX, offset: 0 }];
+      const movingYPoints = drag.kind === "question-badge" ? [{ value: logicalY, offset: 0 }, { value: logicalY + 16, offset: 16 }] : drag.kind === "node" ? [{ value: logicalY, offset: 0 }, { value: logicalY + drag.height / 2, offset: drag.height / 2 }, { value: logicalY + drag.height, offset: drag.height }] : [{ value: logicalY, offset: 0 }];
       const xMatch = movingXPoints.flatMap((point) => xCandidates.map((candidate) => ({ candidate, offset: point.offset, distance: Math.abs(point.value - candidate) }))).sort((a, b) => a.distance - b.distance)[0];
       const yMatch = movingYPoints.flatMap((point) => yCandidates.map((candidate) => ({ candidate, offset: point.offset, distance: Math.abs(point.value - candidate) }))).sort((a, b) => a.distance - b.distance)[0];
       const nextGuides: { x?: number; y?: number } = {};
@@ -1099,6 +1117,7 @@ export function TreeAnalysisEditor({
   const selectedTextBox = textBoxes.find((box) => box.id === selectedTextBoxId);
   const selectedTextBoxPage = documentPages.find((page) => page.id === selectedTextBox?.pageId);
   const activePageInteractions = interactions.filter((item) => textBoxes.find((box) => box.id === item.textBoxId)?.pageId === activePageId);
+  const selectedInteractionNode = nodes.find((node) => node.id === interactionLinkedNodeId);
   const selectedTextStyle = getTextStyle(selectedTextBox, textSelectionRef.current ?? textSelection);
 
   return (
@@ -1361,6 +1380,13 @@ export function TreeAnalysisEditor({
               <div className="tree-analysis-link-hint">
                 <Link2 size={17} />
                 Clique maintenant sur le rectangle enfant.
+              </div>
+            )}
+            {pickingInteractionNode && (
+              <div className="tree-analysis-link-hint">
+                <Link2 size={17} />
+                <strong>Choisis le rectangle lié directement dans l’arbre.</strong>
+                <Button type="button" variant="secondary" onClick={() => { setPickingInteractionNode(false); setInteractionModalOpen(true); }}>Retour à la fenêtre</Button>
               </div>
             )}
 
@@ -1726,12 +1752,12 @@ export function TreeAnalysisEditor({
                       <div><span className="eyebrow">Réponse interactive</span><h3>Que représente ce passage?</h3></div>
                       <button type="button" onClick={cancelInteraction} aria-label="Fermer"><X size={18} /></button>
                     </div>
-                    <label>Type de réponse<select value={interactionKind} onChange={(event) => { const kind = event.target.value as "function" | "group"; setInteractionKind(kind); if (kind === "function") { setInteractionLabel("Sujet"); setInteractionInstruction("Encadre le sujet de la phrase."); } }}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option></select></label>
-                    {interactionKind === "function" ? <label>Fonction<select value={interactionLabel} onChange={(event) => { const label = event.target.value; setInteractionLabel(label); setInteractionInstruction(functionInstruction(label)); }}>{sentenceFunctionOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label> : <label>Groupe attendu<input value={interactionLabel} onChange={(event) => setInteractionLabel(event.target.value)} placeholder="Ex. Groupe nominal sujet" /></label>}
+                    <label>Type de réponse<select value={interactionKind} onChange={(event) => { const kind = event.target.value as "function" | "group"; setInteractionKind(kind); setInteractionLinkedNodeId(""); if (kind === "function") { setInteractionLabel("Sujet"); setInteractionInstruction("Encadre le sujet de la phrase."); } else { setInteractionLabel("Groupe"); setInteractionInstruction("Encadre le groupe lié à ce rectangle."); } }}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option></select></label>
+                    {interactionKind === "function" && <label>Fonction<select value={interactionLabel} onChange={(event) => { const label = event.target.value; setInteractionLabel(label); setInteractionInstruction(functionInstruction(label)); }}>{sentenceFunctionOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>}
                     <label>Consigne affichée<input value={interactionInstruction} onChange={(event) => setInteractionInstruction(event.target.value)} placeholder="Ex. Encadre le sujet de la phrase." /></label>
-                    {interactionKind === "group" && <label>Rectangle déclenché<select value={interactionLinkedNodeId} onChange={(event) => setInteractionLinkedNodeId(event.target.value)}><option value="">Choisir un rectangle…</option>{nodes.map((node, index) => <option key={node.id} value={node.id}>Rectangle {index + 1} — {getNodeLabel(node)}</option>)}</select></label>}
+                    {interactionKind === "group" && <div className="tree-analysis-linked-node-picker"><span>Rectangle déclenché</span><strong>{selectedInteractionNode ? `Rectangle sélectionné — ${getNodeLabel(selectedInteractionNode) || "sans réponse"}` : "Aucun rectangle sélectionné"}</strong><Button type="button" variant="secondary" onClick={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}>Choisir dans l’arbre</Button></div>}
                     <p>La couleur ou l’encadrement sert à repérer la réponse dans le corrigé. Dans le lecteur, l’élève répondra toujours en encadrant le passage.</p>
-                    <div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={cancelInteraction}>Visuel seulement</Button><Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim()}>Créer l’événement</Button></div>
+                    <div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={cancelInteraction}>Visuel seulement</Button><Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim() || (interactionKind === "group" && !interactionLinkedNodeId)}>Créer l’événement</Button></div>
                   </aside>
                 </div>
               )}
