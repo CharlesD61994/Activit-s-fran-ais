@@ -85,7 +85,7 @@ const TEACHING_PAGE = (id = crypto.randomUUID()): TreeAnalysisDocumentPage => ({
   margins: { top: 68, right: 121, bottom: 50, left: 121 },
   header: { nameX: 121, nameY: 25, groupX: 650, groupY: 25, fontSize: 11, lineWidth: 250, activityType: "EXERCICES", activityTitle: "Les analyses en arbre", showPageBadge: true },
   mainTitle: { enabled: true, prefix: "Exercices", title: "Les analyses en arbre", subtitle: "L’analyse des groupes de mots" },
-  readerMode: "tree_functions"
+  readerMode: "groups_then_tree"
 });
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
@@ -1048,9 +1048,15 @@ export function TreeAnalysisEditor({
     const automaticSteps = documentPages.flatMap((page) => {
       const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
       const pageNodes = nodes.filter((node) => owns(node.pageId)).map((node) => `node:${node.id}`);
+      const pageInteractions = interactions.filter((item) => owns(textBoxes.find((box) => box.id === item.textBoxId)?.pageId));
+      if (page.readerMode === "groups_then_tree") {
+        const groupInteractions = pageInteractions.filter((item) => item.kind === "group");
+        const linkedNodes = new Set(groupInteractions.map((item) => item.linkedNodeId).filter(Boolean));
+        return [...groupInteractions.flatMap((item) => [`interaction:${item.id}`, ...(item.linkedNodeId ? [`node:${item.linkedNodeId}`] : [])]), ...nodes.filter((node) => owns(node.pageId) && !linkedNodes.has(node.id)).map((node) => `node:${node.id}`)];
+      }
       if ((page.readerMode ?? "tree_functions") === "tree_only") return pageNodes;
       if (page.readerMode === "tree_tables") return [...pageNodes, ...tables.filter((table) => owns(table.pageId)).map((table) => `table:${table.id}`)];
-      return [...pageNodes, ...interactions.filter((item) => owns(textBoxes.find((box) => box.id === item.textBoxId)?.pageId)).map((item) => `interaction:${item.id}`)];
+      return [...pageNodes, ...pageInteractions.map((item) => `interaction:${item.id}`)];
     });
     onSave({
       id: initialSentence?.id ?? crypto.randomUUID(),
@@ -1300,7 +1306,7 @@ export function TreeAnalysisEditor({
             <div className="tree-analysis-page-controls">
               <div>{documentPages.map((page, index) => <button type="button" key={page.id} className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addDocumentPage}><Plus size={15} /> Page</button></div>
               <label>Gabarit<select value={activePage?.template ?? "free"} onChange={(event) => applyPageTemplate(event.target.value as "free" | "teaching_document")}><option value="free">Page libre</option><option value="teaching_document">Document pédagogique</option></select></label>
-              <label>Orientation<select value={documentPages.find((page) => page.id === activePageId)?.orientation ?? "landscape"} onChange={(event) => updateActivePage({ orientation: event.target.value as "portrait" | "landscape" })}><option value="landscape">Paysage</option><option value="portrait">Portrait</option></select></label>
+              <label>Orientation<select value={documentPages.find((page) => page.id === activePageId)?.orientation ?? "landscape"} onChange={(event) => { const orientation = event.target.value as "portrait" | "landscape"; updateActivePage({ orientation, ...(orientation === "portrait" ? { readerMode: "groups_then_tree" as const } : {}) }); }}><option value="landscape">Paysage</option><option value="portrait">Portrait</option></select></label>
               <label>Rectangles<select value={activePage?.rectanglePreset ?? "normal"} onChange={(event) => updateActivePage({ rectanglePreset: event.target.value as "normal" | "compact" })}><option value="normal">Normaux</option><option value="compact">Compacts</option></select></label>
               {(["top", "right", "bottom", "left"] as const).map((side) => <label key={side}>Marge {side}<input type="number" min="0" max="180" value={documentPages.find((page) => page.id === activePageId)?.margins[side] ?? 24} onChange={(event) => { const page = documentPages.find((item) => item.id === activePageId); if (page) updateActivePage({ margins: { ...page.margins, [side]: Number(event.target.value) } }); }} /></label>)}
             </div>
@@ -1363,7 +1369,7 @@ export function TreeAnalysisEditor({
 
             <section className="tree-analysis-flow-panel">
               <div><span className="eyebrow">Déroulement du lecteur</span><h3>Ordre de l’activité</h3></div>
-              <label>Contenu de la page<select value={activePage?.readerMode ?? "tree_functions"} onChange={(event) => updateActivePage({ readerMode: event.target.value as NonNullable<TreeAnalysisDocumentPage["readerMode"]> })}><option value="tree_only">Arbres seulement</option><option value="tree_functions">Arbres et fonctions</option><option value="tree_tables">Arbres et tableaux</option></select></label>
+              <label>Contenu de la page<select value={activePage?.readerMode ?? (activePage?.orientation === "portrait" ? "groups_then_tree" : "tree_functions")} onChange={(event) => updateActivePage({ readerMode: event.target.value as NonNullable<TreeAnalysisDocumentPage["readerMode"]> })}><option value="groups_then_tree">Encadrer les groupes → remplir l’arbre</option><option value="tree_only">Arbres seulement</option><option value="tree_functions">Arbres et fonctions</option><option value="tree_tables">Arbres et tableaux</option></select></label>
               <label>Tolérance de sélection<select value={flow.selectionTolerance} onChange={(event) => setFlow((current) => ({ ...current, selectionTolerance: event.target.value as TreeAnalysisFlow["selectionTolerance"] }))}><option value="strict">Stricte</option><option value="normal">Normale</option><option value="permissive">Permissive</option></select></label>
               <div className="tree-analysis-event-list">
                 {activePageInteractions.length === 0 ? <p>Encadre un passage sur cette page pour créer le premier événement interactif.</p> : activePageInteractions.map((item, index) => <div key={item.id}><span>{index + 1}</span><div><strong>{item.instruction}</strong><small>{item.kind === "function" ? "Fonction" : "Groupe lié à l’arbre"} — {item.label}</small></div><button type="button" onClick={() => setInteractions((current) => current.filter((entry) => entry.id !== item.id))} aria-label="Supprimer l’événement"><X size={14} /></button></div>)}

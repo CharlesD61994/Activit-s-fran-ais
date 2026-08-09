@@ -90,9 +90,15 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const automaticSteps = useMemo(() => documentPages.flatMap((page) => {
     const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
     const pageNodes = nodes.filter((node) => owns(node.pageId)).map((node) => `node:${node.id}`);
+    const pageInteractions = interactions.filter((item) => owns(textBoxes.find((box) => box.id === item.textBoxId)?.pageId));
+    if (page.readerMode === "groups_then_tree") {
+      const groupInteractions = pageInteractions.filter((item) => item.kind === "group");
+      const linkedNodes = new Set(groupInteractions.map((item) => item.linkedNodeId).filter(Boolean));
+      return [...groupInteractions.flatMap((item) => [`interaction:${item.id}`, ...(item.linkedNodeId ? [`node:${item.linkedNodeId}`] : [])]), ...nodes.filter((node) => owns(node.pageId) && !linkedNodes.has(node.id)).map((node) => `node:${node.id}`)];
+    }
     if ((page.readerMode ?? "tree_functions") === "tree_only") return pageNodes;
     if (page.readerMode === "tree_tables") return [...pageNodes, ...tables.filter((table) => owns(table.pageId)).map((table) => `table:${table.id}`)];
-    return [...pageNodes, ...interactions.filter((item) => owns(textBoxes.find((box) => box.id === item.textBoxId)?.pageId)).map((item) => `interaction:${item.id}`)];
+    return [...pageNodes, ...pageInteractions.map((item) => `interaction:${item.id}`)];
   }), [documentPages, interactions, nodes, tables, textBoxes]);
   const steps = automaticSteps;
   const currentStep = steps.find((id) => !completed.includes(id));
@@ -105,7 +111,8 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const visibleNodes = nodes.filter((node) => ownsCurrentPage(node.pageId));
   const visibleTables = tables.filter((table) => ownsCurrentPage(table.pageId));
   const isComplete = steps.length > 0 && completed.length >= steps.length;
-  const freeTreePhase = flow.preset === "tree_functions_tables" && Boolean(currentNode);
+  const currentPage = documentPages.find((page) => page.id === currentPageId);
+  const freeTreePhase = currentPage?.readerMode !== "groups_then_tree" && flow.preset === "tree_functions_tables" && Boolean(currentNode);
   const contentTop = Math.min(...visibleTextBoxes.map((box) => box.y), ...visibleNodes.map((node) => node.y), ...visibleTables.map((table) => table.y), 90);
   const contentBottom = Math.max(...visibleTextBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...visibleNodes.map((node) => node.y + nodeDimensions(node).height), ...visibleTables.map((table) => table.y + estimateTableHeight(table)), 260);
   const topOffset = Math.max(0, contentTop - 4);
