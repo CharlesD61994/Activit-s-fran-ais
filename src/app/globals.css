@@ -7967,6 +7967,13 @@ textarea {
   cursor: pointer;
 }
 
+.tree-reader-table button.selected-correct,
+.tree-reader-table button.selected-correct:disabled {
+  background: #111;
+  color: #fff;
+  opacity: 1;
+}
+
 .tree-reader-modal-backdrop {
   position: fixed;
   z-index: 200;
