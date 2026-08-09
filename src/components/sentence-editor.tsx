@@ -5,11 +5,14 @@ import { ArrowDown, ArrowUp, Pilcrow, Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SentenceRenderer } from "@/components/sentence-renderer";
-import type { ActivityType, ClassGroup, CorrectionCode, SchoolLevel, Sentence, SentenceCorrection, SentenceDifficulty } from "@/types";
+import { GrammarWorkflowPlanner } from "@/components/grammar-workflow-planner";
+import { defaultWorkflowForObjective, grammarObjectiveLabels, objectiveFromActivityType } from "@/lib/grammar-workflow";
+import type { ActivityType, ClassGroup, CorrectionCode, GrammarAnnotation, GrammarAnnotationKind, GrammarObjective, GrammarWorkflowPhase, SchoolLevel, Sentence, SentenceCorrection, SentenceDifficulty } from "@/types";
 
 type Props = {
   initialSentence?: Sentence;
   activityType?: ActivityType;
+  primaryObjective?: GrammarObjective;
   levels: SchoolLevel[];
   groups: ClassGroup[];
   correctionCodes: CorrectionCode[];
@@ -26,6 +29,25 @@ type DraftCorrection = {
   explanation: string;
 };
 
+type DraftAnnotation = Omit<GrammarAnnotation, "id"> & { text: string };
+
+const annotationLabels: Record<Exclude<GrammarAnnotationKind, "error">, string> = {
+  group: "Groupe",
+  word_class: "Classe de mot",
+  nucleus: "Noyau",
+  function: "Fonction",
+  donor: "Donneur",
+  receiver: "Receveur"
+};
+
+const annotationAnswers: Partial<Record<GrammarAnnotationKind, string[]>> = {
+  group: ["GN", "GV", "GAdj", "GAdv", "GPrép"],
+  word_class: ["Nom", "Déterminant", "Verbe", "Adjectif", "Pronom", "Adverbe", "Préposition", "Conjonction"],
+  function: ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut du sujet", "Complément du nom"],
+  donor: ["Donneur d’accord"],
+  receiver: ["Receveur d’accord"]
+};
+
 const emptyDraft: DraftCorrection = {
   start: 0,
   end: 0,
@@ -39,6 +61,7 @@ const emptyDraft: DraftCorrection = {
 export function SentenceEditor({
   initialSentence,
   activityType: requestedActivityType,
+  primaryObjective: requestedPrimaryObjective,
   levels,
   correctionCodes,
   onSave
@@ -51,6 +74,11 @@ export function SentenceEditor({
   const isTextActivity = activityType === "text_correction";
 
   const [title, setTitle] = useState(initialSentence?.title ?? "");
+  const initialObjective = initialSentence?.primaryObjective ?? requestedPrimaryObjective ?? objectiveFromActivityType(activityType);
+  const [primaryObjective, setPrimaryObjective] = useState<GrammarObjective>(initialObjective);
+  const [workflowPhases, setWorkflowPhases] = useState<GrammarWorkflowPhase[]>(
+    initialSentence?.workflowPhases ?? defaultWorkflowForObjective(initialObjective)
+  );
   const [levelId, setLevelId] = useState(initialSentence?.levelId ?? levels[0]?.id ?? "");
   const [difficulty, setDifficulty] = useState<SentenceDifficulty>(initialSentence?.difficulty ?? "easy");
   const [tagsText, setTagsText] = useState(initialSentence?.tags.join(", ") ?? "");
@@ -58,6 +86,8 @@ export function SentenceEditor({
   const [showCorrectionCount, setShowCorrectionCount] = useState(initialSentence?.showCorrectionCount ?? true);
   const [assignedGroupIds, setAssignedGroupIds] = useState<string[]>(initialSentence?.assignedGroupIds ?? []);
   const [corrections, setCorrections] = useState<SentenceCorrection[]>(initialSentence?.corrections ?? []);
+  const [grammarAnnotations, setGrammarAnnotations] = useState<GrammarAnnotation[]>(initialSentence?.grammarAnnotations ?? []);
+  const [annotationDraft, setAnnotationDraft] = useState<DraftAnnotation | null>(null);
   const [draft, setDraft] = useState<DraftCorrection>(emptyDraft);
   const [isInsertionDraft, setIsInsertionDraft] = useState(false);
   const [message, setMessage] = useState("");
@@ -68,6 +98,8 @@ export function SentenceEditor({
     id: initialSentence?.id ?? "preview",
     activityType,
     title,
+    primaryObjective,
+    workflowPhases,
     levelId,
     difficulty,
     tags: tagsText.split(",").map((tag) => tag.trim()).filter(Boolean),
@@ -77,7 +109,7 @@ export function SentenceEditor({
     assignedGroupIds,
     createdAt: initialSentence?.createdAt ?? now,
     updatedAt: now
-  }), [activityType, assignedGroupIds, corrections, difficulty, initialSentence, levelId, now, originalText, showCorrectionCount, tagsText, title]);
+  }), [activityType, assignedGroupIds, corrections, difficulty, initialSentence, levelId, now, originalText, primaryObjective, showCorrectionCount, tagsText, title, workflowPhases]);
 
   function captureSelection() {
     const textarea = textareaRef.current;
@@ -154,6 +186,40 @@ export function SentenceEditor({
     });
   }
 
+  function captureGrammarSelection(kind: Exclude<GrammarAnnotationKind, "error">) {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    let start = textarea.selectionStart;
+    let end = textarea.selectionEnd;
+    while (start < end && /\s/.test(originalText[start] ?? "")) start += 1;
+    while (end > start && /\s/.test(originalText[end - 1] ?? "")) end -= 1;
+    if (start === end) {
+      setMessage("Sélectionne d’abord le mot ou le passage à annoter.");
+      return;
+    }
+    setAnnotationDraft({
+      start,
+      end,
+      text: originalText.slice(start, end),
+      kind,
+      label: annotationAnswers[kind]?.[0] ?? (kind === "nucleus" ? "Noyau" : "")
+    });
+    setMessage("");
+  }
+
+  function addGrammarAnnotation() {
+    if (!annotationDraft) return;
+    setGrammarAnnotations((items) => [...items, {
+      id: crypto.randomUUID(),
+      start: annotationDraft.start,
+      end: annotationDraft.end,
+      kind: annotationDraft.kind,
+      label: annotationDraft.label?.trim() || undefined,
+      linkedAnnotationId: annotationDraft.linkedAnnotationId
+    }]);
+    setAnnotationDraft(null);
+  }
+
   function addCorrection() {
     if (
       (!draft.originalText && !isInsertionDraft) ||
@@ -227,6 +293,9 @@ export function SentenceEditor({
       id: initialSentence?.id ?? crypto.randomUUID(),
       activityType,
       title: title.trim(),
+      primaryObjective,
+      workflowPhases,
+      grammarAnnotations,
       levelId,
       difficulty,
       tags: tagsText.split(",").map((tag) => tag.trim()).filter(Boolean),
@@ -259,6 +328,11 @@ export function SentenceEditor({
                 <option value="easy">Facile</option>
                 <option value="medium">Moyenne</option>
                 <option value="hard">Difficile</option>
+              </select>
+            </label>
+            <label>Objectif principal
+              <select value={primaryObjective} onChange={(event) => setPrimaryObjective(event.target.value as GrammarObjective)}>
+                {(Object.entries(grammarObjectiveLabels) as Array<[GrammarObjective, string]>).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
             <label>Étiquettes
@@ -319,7 +393,39 @@ export function SentenceEditor({
               virgule, un point ou un autre signe devrait être ajouté.
             </span>
           </div>
+          <div className="grammar-annotation-toolbar" aria-label="Annoter la sélection">
+            <span>La sélection est :</span>
+            {(Object.entries(annotationLabels) as Array<[Exclude<GrammarAnnotationKind, "error">, string]>).map(([kind, label]) => (
+              <button type="button" key={kind} onClick={() => captureGrammarSelection(kind)}>{label}</button>
+            ))}
+          </div>
         </Card>
+
+        {annotationDraft && (
+          <Card className="annotation-draft-card">
+            <span className="eyebrow">Réponse grammaticale</span>
+            <h2>« {annotationDraft.text} »</h2>
+            <div className="form-grid">
+              <label>Type<input value={annotationLabels[annotationDraft.kind as Exclude<GrammarAnnotationKind, "error">]} disabled /></label>
+              <label>Réponse attendue
+                {annotationAnswers[annotationDraft.kind]?.length ? (
+                  <select value={annotationDraft.label ?? ""} onChange={(event) => setAnnotationDraft({ ...annotationDraft, label: event.target.value })}>
+                    {annotationAnswers[annotationDraft.kind]?.map((answer) => <option key={answer}>{answer}</option>)}
+                  </select>
+                ) : <input value={annotationDraft.label ?? ""} onChange={(event) => setAnnotationDraft({ ...annotationDraft, label: event.target.value })} />}
+              </label>
+              {annotationDraft.kind === "receiver" && grammarAnnotations.some((annotation) => annotation.kind === "donor") && (
+                <label>Donneur associé
+                  <select value={annotationDraft.linkedAnnotationId ?? ""} onChange={(event) => setAnnotationDraft({ ...annotationDraft, linkedAnnotationId: event.target.value || undefined })}>
+                    <option value="">Aucun lien</option>
+                    {grammarAnnotations.filter((annotation) => annotation.kind === "donor").map((annotation) => <option key={annotation.id} value={annotation.id}>{originalText.slice(annotation.start, annotation.end)}</option>)}
+                  </select>
+                </label>
+              )}
+            </div>
+            <div className="form-actions"><Button type="button" onClick={addGrammarAnnotation}>Ajouter la réponse</Button><Button type="button" variant="secondary" onClick={() => setAnnotationDraft(null)}>Annuler</Button></div>
+          </Card>
+        )}
 
         {(draft.originalText || isInsertionDraft) && (
           <Card className="correction-draft">
@@ -411,6 +517,10 @@ export function SentenceEditor({
       </div>
 
       <aside className="editor-preview">
+        <Card className="workflow-sticky-card">
+          <GrammarWorkflowPlanner phases={workflowPhases} onChange={setWorkflowPhases} />
+        </Card>
+        {grammarAnnotations.length > 0 && <Card><span className="eyebrow">Réponses grammaticales</span><div className="grammar-annotation-list">{grammarAnnotations.map((annotation) => <div key={annotation.id}><span>{annotationLabels[annotation.kind as Exclude<GrammarAnnotationKind, "error">] ?? annotation.kind}</span><strong>{originalText.slice(annotation.start, annotation.end)}</strong><small>{annotation.label}</small><button type="button" onClick={() => setGrammarAnnotations((items) => items.filter((item) => item.id !== annotation.id))}><Trash2 size={15}/></button></div>)}</div></Card>}
         <Card>
           <span className="eyebrow">Aperçu</span>
           <span className="activity-type-badge">

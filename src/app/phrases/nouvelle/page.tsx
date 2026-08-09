@@ -8,7 +8,7 @@ import { WordClassEditor } from "@/components/word-class-editor";
 import { WordGroupEditor } from "@/components/word-group-editor";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
 import { useAppStore } from "@/store/app-store";
-import type { ActivityType } from "@/types";
+import type { ActivityType, GrammarObjective } from "@/types";
 
 export default function NewSentencePage() {
   const router = useRouter();
@@ -26,6 +26,11 @@ export default function NewSentencePage() {
           : requestedType === "tree_analysis"
             ? "tree_analysis"
             : "sentence_correction";
+  const requestedObjective = searchParams.get("objective");
+  const primaryObjective: GrammarObjective | undefined =
+    requestedObjective === "functions" || requestedObjective === "agreements" || requestedObjective === "mixed_grammar"
+      ? requestedObjective
+      : undefined;
 
   const saveAndReturn = (sentence: Parameters<typeof saveSentence>[0]) => {
     saveSentence(sentence);
@@ -86,6 +91,7 @@ export default function NewSentencePage() {
       ) : (
         <SentenceEditor
           activityType={activityType}
+          primaryObjective={primaryObjective}
           levels={data.levels}
           groups={data.groups}
           correctionCodes={data.correctionCodes}

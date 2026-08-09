@@ -71,6 +71,72 @@ export type ActivityType =
   | "word_classes"
   | "word_groups"
   | "tree_analysis";
+
+export type GrammarObjective =
+  | "sentence_correction"
+  | "text_correction"
+  | "word_classes"
+  | "word_groups"
+  | "functions"
+  | "agreements"
+  | "mixed_grammar";
+
+export type GrammarPhaseKind =
+  | "correction"
+  | "groups"
+  | "word_classes"
+  | "nuclei"
+  | "functions"
+  | "agreements"
+  | "table";
+
+export type GrammarActionKind =
+  | "find_errors"
+  | "write_corrections"
+  | "identify_codes"
+  | "frame_groups"
+  | "identify_group_types"
+  | "identify_word_classes"
+  | "find_nuclei"
+  | "frame_functions"
+  | "identify_functions"
+  | "identify_donors"
+  | "identify_receivers"
+  | "link_agreement"
+  | "complete_table";
+
+export type GrammarWorkflowAction = {
+  id: string;
+  kind: GrammarActionKind;
+  enabled: boolean;
+  optional?: boolean;
+};
+
+export type GrammarWorkflowPhase = {
+  id: string;
+  kind: GrammarPhaseKind;
+  title: string;
+  collapsed?: boolean;
+  actions: GrammarWorkflowAction[];
+};
+
+export type GrammarAnnotationKind =
+  | "error"
+  | "group"
+  | "word_class"
+  | "nucleus"
+  | "function"
+  | "donor"
+  | "receiver";
+
+export type GrammarAnnotation = {
+  id: string;
+  start: number;
+  end: number;
+  kind: GrammarAnnotationKind;
+  label?: string;
+  linkedAnnotationId?: string;
+};
 export type AssignmentStatus = "todo" | "in_progress" | "completed" | "archived";
 
 export type WordClass =
@@ -296,6 +362,9 @@ export type Sentence = {
   activityType?: ActivityType;
   levelId: string;
   title: string;
+  primaryObjective?: GrammarObjective;
+  workflowPhases?: GrammarWorkflowPhase[];
+  grammarAnnotations?: GrammarAnnotation[];
   originalText: string;
   difficulty: SentenceDifficulty;
   tags: string[];

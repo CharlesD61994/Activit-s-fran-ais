@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lightbulb, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GrammarExtensionReader } from "@/components/presentation/grammar-extension-reader";
 import type { CorrectionCode, Sentence, SentenceCorrection } from "@/types";
 
 type Props = {
@@ -249,6 +250,9 @@ export function InteractiveSentenceReader({
   const ordered = useMemo(
     () => [...sentence.corrections].sort((a, b) => a.revealOrder - b.revealOrder),
     [sentence.corrections]
+  );
+  const requiresCorrectionCodes = !sentence.workflowPhases?.length || sentence.workflowPhases.some((phase) =>
+    phase.kind === "correction" && phase.actions.some((action) => action.kind === "identify_codes" && action.enabled)
   );
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
@@ -536,6 +540,10 @@ export function InteractiveSentenceReader({
       <div className="interactive-sentence" ref={sentenceRef}>
         {renderedLines}
       </div>
+
+      {ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id))) && (
+        <GrammarExtensionReader sentence={sentence} />
+      )}
 
       {activeCorrection && (
         <div className="reader-dialog-backdrop">

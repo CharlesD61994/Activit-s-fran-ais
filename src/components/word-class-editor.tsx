@@ -4,6 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GrammarWorkflowPlanner } from "@/components/grammar-workflow-planner";
+import { defaultWorkflowForObjective, grammarObjectiveLabels } from "@/lib/grammar-workflow";
 import {
   allWordClasses,
   wordClassLabels
@@ -17,6 +19,7 @@ import type {
   WordClass,
   WordClassTarget
 } from "@/types";
+import type { GrammarObjective, GrammarWorkflowPhase } from "@/types";
 
 type Props = {
   initialSentence?: Sentence;
@@ -85,6 +88,8 @@ export function WordClassEditor({
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [title, setTitle] = useState(initialSentence?.title ?? "");
+  const [primaryObjective, setPrimaryObjective] = useState<GrammarObjective>(initialSentence?.primaryObjective ?? "word_classes");
+  const [workflowPhases, setWorkflowPhases] = useState<GrammarWorkflowPhase[]>(initialSentence?.workflowPhases ?? defaultWorkflowForObjective(initialSentence?.primaryObjective ?? "word_classes"));
   const [levelId, setLevelId] = useState(
     initialSentence?.levelId ?? levels[0]?.id ?? ""
   );
@@ -345,6 +350,9 @@ export function WordClassEditor({
       activityType: "word_classes",
       levelId,
       title: title.trim(),
+      primaryObjective,
+      workflowPhases,
+      grammarAnnotations: initialSentence?.grammarAnnotations ?? [],
       originalText,
       difficulty,
       tags: initialSentence?.tags ?? [],
@@ -409,6 +417,14 @@ export function WordClassEditor({
 
   return (
     <form className="word-class-editor" onSubmit={submit}>
+      <Card className="workflow-dock-card">
+        <label className="workflow-objective">Objectif principal
+          <select value={primaryObjective} onChange={(event) => setPrimaryObjective(event.target.value as GrammarObjective)}>
+            {(Object.entries(grammarObjectiveLabels) as Array<[GrammarObjective, string]>).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+        <GrammarWorkflowPlanner phases={workflowPhases} onChange={setWorkflowPhases} />
+      </Card>
       <Card className="editor-section-card">
         <span className="eyebrow">Étape 1</span>
         <h2>Informations générales</h2>

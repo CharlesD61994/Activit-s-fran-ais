@@ -8,11 +8,11 @@ import { Card } from "@/components/ui/card";
 import { SentenceRenderer } from "@/components/sentence-renderer";
 import { useAppStore } from "@/store/app-store";
 import {
-  getActivityTypeLabel,
   getWordClassActivityPointTotal,
   getWordClassAnalysisTargetCount
 } from "@/lib/activity-types";
 import type { ActivityType, SentenceDifficulty } from "@/types";
+import { getSecondaryObjectives, getSentenceObjective, grammarObjectiveLabels, grammarPhaseLabels } from "@/lib/grammar-workflow";
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -106,6 +106,7 @@ export default function SentencesPage() {
           const targetCount =
             getWordClassAnalysisTargetCount(sentence);
           const wordGroupCount = sentence.wordGroupTargets?.length ?? 0;
+          const secondaryObjectives = getSecondaryObjectives(sentence);
           const maxPoints = isWordClassActivity
             ? getWordClassActivityPointTotal(sentence)
             : isWordGroupActivity
@@ -122,8 +123,15 @@ export default function SentencesPage() {
                     {level?.name ?? "Niveau inconnu"} · {difficultyLabels[sentence.difficulty]}
                   </span>
                   <span className="activity-type-badge">
-                    {getActivityTypeLabel(sentence.activityType)}
+                    {sentence.activityType === "tree_analysis"
+                      ? "Analyse en arbre"
+                      : grammarObjectiveLabels[getSentenceObjective(sentence)]}
                   </span>
+                  {sentence.activityType !== "tree_analysis" && secondaryObjectives.length > 0 && (
+                    <span className="activity-secondary-badges">
+                      {secondaryObjectives.map((objective) => <span key={objective}>{grammarPhaseLabels[objective]}</span>)}
+                    </span>
+                  )}
                   <h2>{sentence.title}</h2>
                 </div>
                 <div className="row-actions">
@@ -271,6 +279,21 @@ export default function SentencesPage() {
                     Délimite les groupes, choisis leur type et identifie leur noyau.
                   </p>
                 </div>
+              </Link>
+
+              <Link href="/phrases/nouvelle?type=sentence_correction&objective=functions" className="activity-type-choice" onClick={() => setShowTypeModal(false)}>
+                <span className="activity-choice-icon"><Tags size={29} /></span>
+                <div><strong>Fonctions</strong><p>Encadre les fonctions, puis ajoute librement groupes, noyaux, accords ou tableaux.</p></div>
+              </Link>
+
+              <Link href="/phrases/nouvelle?type=sentence_correction&objective=agreements" className="activity-type-choice" onClick={() => setShowTypeModal(false)}>
+                <span className="activity-choice-icon"><Tags size={29} /></span>
+                <div><strong>Donneurs et receveurs</strong><p>Construis une activité centrée sur les relations et les accords.</p></div>
+              </Link>
+
+              <Link href="/phrases/nouvelle?type=sentence_correction&objective=mixed_grammar" className="activity-type-choice" onClick={() => setShowTypeModal(false)}>
+                <span className="activity-choice-icon"><Plus size={29} /></span>
+                <div><strong>Activité grammaticale mixte</strong><p>Pars d’une phrase ou d’un texte et compose toi-même toutes les phases.</p></div>
               </Link>
 
               <Link

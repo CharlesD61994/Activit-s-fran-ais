@@ -2865,6 +2865,288 @@ textarea {
   font-weight: 900;
 }
 
+.activity-secondary-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-left: 7px;
+  vertical-align: middle;
+}
+
+.activity-secondary-badges > span {
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: .7rem;
+  font-weight: 800;
+}
+
+.workflow-sticky-card,
+.workflow-dock-card {
+  padding: 16px;
+}
+
+.workflow-dock-card {
+  position: sticky;
+  top: 10px;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(190px, 250px) minmax(0, 1fr);
+  gap: 18px;
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  box-shadow: 0 8px 30px rgb(15 23 42 / 10%);
+}
+
+.workflow-objective {
+  align-self: start;
+}
+
+.workflow-planner-heading,
+.workflow-phase-row {
+  display: flex;
+  align-items: center;
+}
+
+.workflow-planner-heading {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workflow-planner-heading h2 {
+  margin: 2px 0 0;
+  font-size: 1.05rem;
+}
+
+.workflow-count {
+  min-width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  font-size: .76rem;
+  font-weight: 900;
+}
+
+.workflow-help {
+  margin: 6px 0 10px;
+  color: var(--text-muted);
+  font-size: .78rem;
+}
+
+.workflow-phase-list {
+  display: grid;
+  gap: 7px;
+}
+
+.workflow-phase {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-elevated);
+}
+
+.workflow-phase-row {
+  min-height: 37px;
+  gap: 3px;
+}
+
+.workflow-grip,
+.workflow-remove,
+.workflow-phase-toggle {
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.workflow-grip,
+.workflow-remove {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.workflow-phase-toggle {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  text-align: left;
+}
+
+.workflow-phase-toggle strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-remove:hover { color: #b91c1c; }
+
+.workflow-actions {
+  display: grid;
+  gap: 5px;
+  padding: 4px 11px 10px 42px;
+  border-top: 1px solid var(--border);
+}
+
+.workflow-actions label {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: .78rem;
+  line-height: 1.3;
+}
+
+.workflow-add {
+  margin-top: 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workflow-add select {
+  min-width: 0;
+  height: 36px;
+  padding: 4px 9px;
+}
+
+.grammar-annotation-toolbar {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.grammar-annotation-toolbar > span {
+  margin-right: 3px;
+  color: var(--text-muted);
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.grammar-annotation-toolbar button {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font-size: .77rem;
+  font-weight: 800;
+}
+
+.grammar-annotation-toolbar button:hover {
+  border-color: var(--primary);
+  background: var(--secondary);
+}
+
+.grammar-annotation-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.grammar-annotation-list > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.grammar-annotation-list span {
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--secondary);
+  font-size: .7rem;
+  font-weight: 900;
+}
+
+.grammar-annotation-list small { color: var(--text-muted); }
+.grammar-annotation-list button { border: 0; background: transparent; color: #b91c1c; }
+
+.grammar-extension-reader {
+  width: min(1180px, 100%);
+  margin: 18px auto 0;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-elevated);
+}
+
+.grammar-reader-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.grammar-reader-progress span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.grammar-reader-progress span.active { background: var(--primary); color: var(--primary-contrast); }
+.grammar-reader-progress span.done { background: #15803d; color: white; }
+
+.grammar-reader-instruction { display: grid; gap: 2px; margin-bottom: 16px; }
+.grammar-reader-instruction small { color: var(--text-muted); font-weight: 800; }
+.grammar-reader-instruction strong { font-size: 1.15rem; }
+.grammar-reader-instruction span { color: var(--text-muted); }
+
+.grammar-reader-text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35em;
+  font-size: clamp(1.2rem, 2.05vw, 2rem);
+  line-height: 1.75;
+  font-weight: 500;
+}
+
+.grammar-reader-text button {
+  padding: 1px 3px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+
+.grammar-reader-text button:hover,
+.grammar-reader-text button.anchor { border-color: var(--primary); background: var(--secondary); }
+.grammar-reader-text button.solved { border-color: #15803d; background: rgb(21 128 61 / 12%); }
+.grammar-reader-message { margin: 10px 0 0; color: var(--text-muted); font-weight: 800; }
+
+.editor-preview {
+  max-height: calc(100vh - 30px);
+  overflow: auto;
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .workflow-dock-card {
+    position: static;
+    grid-template-columns: 1fr;
+  }
+  .editor-preview { max-height: none; overflow: visible; }
+}
+
 .classroom-session-list {
   display: grid;
   gap: 10px;

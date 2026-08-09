@@ -4,6 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GrammarWorkflowPlanner } from "@/components/grammar-workflow-planner";
+import { defaultWorkflowForObjective, grammarObjectiveLabels } from "@/lib/grammar-workflow";
 import type {
   ClassGroup,
   SchoolLevel,
@@ -12,6 +14,7 @@ import type {
   WordGroupTarget,
   WordGroupType
 } from "@/types";
+import type { GrammarObjective, GrammarWorkflowPhase } from "@/types";
 
 type Props = {
   initialSentence?: Sentence;
@@ -72,6 +75,8 @@ function inferContractedPrepNucleus(text: string): "de" | "à" | null {
 export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [title, setTitle] = useState(initialSentence?.title ?? "");
+  const [primaryObjective, setPrimaryObjective] = useState<GrammarObjective>(initialSentence?.primaryObjective ?? "word_groups");
+  const [workflowPhases, setWorkflowPhases] = useState<GrammarWorkflowPhase[]>(initialSentence?.workflowPhases ?? defaultWorkflowForObjective(initialSentence?.primaryObjective ?? "word_groups"));
   const [levelId, setLevelId] = useState(initialSentence?.levelId ?? levels[0]?.id ?? "");
   const [difficulty, setDifficulty] = useState<SentenceDifficulty>(initialSentence?.difficulty ?? "medium");
   const [originalText, setOriginalText] = useState(initialSentence?.originalText ?? "");
@@ -277,6 +282,8 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
       id: initialSentence?.id ?? crypto.randomUUID(),
       activityType:"word_groups",
       levelId, title:title.trim(), originalText, difficulty,
+      primaryObjective, workflowPhases,
+      grammarAnnotations: initialSentence?.grammarAnnotations ?? [],
       tags:initialSentence?.tags ?? [], corrections:[],
       wordGroupTargets:targets,
       assignedGroupIds,
@@ -290,6 +297,14 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
   const compatibleGroups=groups.filter(g=>g.levelId===levelId);
 
   return <form className="word-group-editor" onSubmit={submit}>
+    <Card className="workflow-dock-card">
+      <label className="workflow-objective">Objectif principal
+        <select value={primaryObjective} onChange={event=>setPrimaryObjective(event.target.value as GrammarObjective)}>
+          {(Object.entries(grammarObjectiveLabels) as Array<[GrammarObjective, string]>).map(([value,label])=><option key={value} value={value}>{label}</option>)}
+        </select>
+      </label>
+      <GrammarWorkflowPlanner phases={workflowPhases} onChange={setWorkflowPhases}/>
+    </Card>
     <Card className="editor-section-card">
       <span className="eyebrow">Étape 1</span><h2>Informations générales</h2>
       <div className="form-grid">
