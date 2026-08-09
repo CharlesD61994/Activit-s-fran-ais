@@ -8074,8 +8074,12 @@ textarea {
 }
 
 .tree-reader-sticky-header.unpinned,
-.tree-reader-controls-unpinned .reader-meta-row {
+.tree-reader-points-unpinned .reader-meta-row {
   position: static;
+}
+
+.tree-reader-sticky-header.pinned.without-pinned-points {
+  top: 58px;
 }
 
 .tree-reader-sticky-header .tree-reader-progress {
@@ -8116,6 +8120,12 @@ textarea {
   color: var(--foreground);
   font-weight: 750;
   cursor: pointer;
+}
+
+.tree-reader-pin-control.active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
 }
 
 .tree-reader-zoom button {
