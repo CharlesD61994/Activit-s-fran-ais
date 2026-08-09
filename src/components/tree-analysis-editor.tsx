@@ -1270,11 +1270,12 @@ export function TreeAnalysisEditor({
                     style={{ left: `${(box.x / PAGE.logicalWidth) * 100}%`, top: `${(box.y / PAGE.logicalHeight) * 100}%`, width: `${(box.width / PAGE.logicalWidth) * 100}%`, minHeight: `${(box.height / PAGE.logicalHeight) * 100}%`, fontSize: `${(box.fontSize / PAGE.logicalWidth) * 100}cqw` }}
                     onClick={() => { setSelectedTextBoxId(box.id); setSelectedTableId(null); setSelectedHeader(null); }}
                     onPointerDown={(event) => {
-                      if (editingTextBoxId !== box.id && !(event.target as HTMLElement).closest("button,.tree-analysis-text-resize,textarea")) startItemDrag(event, "textbox", box);
+                      if (editingTextBoxId !== box.id && !(event.target as HTMLElement).closest("button,.tree-analysis-text-resize,.tree-analysis-text-move-handle,.tree-analysis-text-content,textarea")) startItemDrag(event, "textbox", box);
                     }}
                   >
                     {selectedTextBoxId === box.id && <button type="button" className="tree-analysis-text-delete" onClick={(event) => { event.stopPropagation(); deleteTextBox(box); setSelectedTextBoxId(null); setEditingTextBoxId(null); }} aria-label="Supprimer la boîte"><X size={14} /></button>}
                     {selectedTextBoxId === box.id && <span className="tree-analysis-text-resize" onPointerDown={(event) => startTextBoxResize(event, box)} />}
+                    {selectedTextBoxId === box.id && editingTextBoxId !== box.id && <span className="tree-analysis-text-move-handle" title="Glisser pour déplacer" onPointerDown={(event) => { event.stopPropagation(); startItemDrag(event, "textbox", box); }} />}
                     {editingTextBoxId === box.id ? (
                       <textarea
                         className="tree-analysis-text-editor"
@@ -1299,7 +1300,14 @@ export function TreeAnalysisEditor({
                       <div
                         className="tree-analysis-text-content"
                         data-placeholder="Écris ton texte ici…"
-                        onDoubleClick={() => {
+                        onPointerDown={(event) => {
+                          event.stopPropagation();
+                          setSelectedTextBoxId(box.id);
+                          setSelectedTableId(null);
+                          setSelectedHeader(null);
+                        }}
+                        onClick={(event) => {
+                          event.stopPropagation();
                           setSelectedTextBoxId(box.id);
                           setEditingTextBoxId(box.id);
                         }}
