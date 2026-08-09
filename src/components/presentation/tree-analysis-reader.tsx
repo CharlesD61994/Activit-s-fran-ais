@@ -285,7 +285,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
           const boundaries = Array.from(new Set([0, box.text.length, ...revealed.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
           return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / visibleHeight * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw`, textAlign: box.textAlign ?? "left" }}>{boundaries.slice(0, -1).map((segmentStart, segmentIndex) => {
             const segmentEnd = boundaries[segmentIndex + 1];
-            const answer = revealed.find((item) => item.start <= segmentStart && item.end >= segmentEnd);
+            const answer = [...revealed].reverse().find((item) => item.start <= segmentStart && item.end >= segmentEnd);
             const color = answer?.authorMark === "red" ? "#d93434" : answer?.authorMark === "blue" ? "#2467d1" : answer?.authorMark === "green" ? "#22834b" : undefined;
             let tokenOffset = segmentStart;
             const tokens = box.text.slice(segmentStart, segmentEnd).match(/\S+|\s+/g) ?? [];
