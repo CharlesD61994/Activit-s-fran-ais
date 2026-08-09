@@ -122,16 +122,30 @@ function rebaseTextAnnotations(box: TreeAnalysisTextBox, nextText: string) {
   return box.annotations.map((annotation) => ({ ...annotation, start: mapIndex(annotation.start), end: mapIndex(annotation.end) })).filter((annotation) => annotation.end > annotation.start);
 }
 
-function renderTextBoxContent(box: TreeAnalysisTextBox) {
+function getTextStyleGroups(box: TreeAnalysisTextBox) {
   const boundaries = Array.from(new Set([0, box.text.length, ...box.annotations.flatMap((annotation) => [annotation.start, annotation.end])])).sort((a, b) => a - b);
-  return boundaries.slice(0, -1).map((start, index) => {
+  const segments = boundaries.slice(0, -1).map((start, index) => {
     const end = boundaries[index + 1];
     const annotations = box.annotations.filter((item) => item.start <= start && item.end >= end);
     const color = [...annotations].reverse().find((item) => item.color !== undefined)?.color ?? undefined;
     const framed = [...annotations].reverse().find((item) => item.framed !== undefined)?.framed ?? false;
     const bold = [...annotations].reverse().find((item) => item.bold !== undefined)?.bold ?? false;
-    return <span key={`${start}-${end}`} style={{ color, border: framed ? "2px solid currentColor" : undefined, padding: framed ? "0 .08em" : undefined, fontWeight: bold ? 700 : undefined }}>{box.text.slice(start, end)}</span>;
+    return { start, end, text: box.text.slice(start, end), color, framed, bold };
   });
+  return segments.reduce<Array<{ framed: boolean; segments: typeof segments }>>((groups, segment) => {
+    const group = groups[groups.length - 1];
+    if (group && group.framed === segment.framed) group.segments.push(segment);
+    else groups.push({ framed: segment.framed, segments: [segment] });
+    return groups;
+  }, []);
+}
+
+function renderTextBoxContent(box: TreeAnalysisTextBox) {
+  return getTextStyleGroups(box).map((group, groupIndex) => (
+    <span key={`${groupIndex}-${group.segments[0]?.start ?? 0}`} className={group.framed ? "tree-analysis-framed-text" : undefined}>
+      {group.segments.map((segment) => <span key={`${segment.start}-${segment.end}`} style={{ color: segment.color ?? undefined, fontWeight: segment.bold ? 700 : undefined }}>{segment.text}</span>)}
+    </span>
+  ));
 }
 
 export function TreeAnalysisEditor({
@@ -557,15 +571,8 @@ export function TreeAnalysisEditor({
     }
     const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
     const annotated = (box: TreeAnalysisTextBox) => {
-      const boundaries = Array.from(new Set([0, box.text.length, ...box.annotations.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
-      return boundaries.slice(0, -1).map((start, index) => {
-        const end = boundaries[index + 1];
-        const marks = printMode === "answer" ? box.annotations.filter((item) => item.start <= start && item.end >= end) : [];
-        const color = [...marks].reverse().find((item) => item.color !== undefined)?.color;
-        const framed = [...marks].reverse().find((item) => item.framed !== undefined)?.framed ?? false;
-        const bold = [...marks].reverse().find((item) => item.bold !== undefined)?.bold ?? false;
-        return `<span style="${color ? `color:${color};` : ""}${framed ? "border:2px solid currentColor;padding:0 .08em;" : ""}${bold ? "font-weight:700;" : ""}">${escape(box.text.slice(start, end))}</span>`;
-      }).join("");
+      const printableBox = printMode === "answer" ? box : { ...box, annotations: [] };
+      return getTextStyleGroups(printableBox).map((group) => `<span class="${group.framed ? "framed-text" : ""}">${group.segments.map((segment) => `<span style="${segment.color ? `color:${segment.color};` : ""}${segment.bold ? "font-weight:700;" : ""}">${escape(segment.text)}</span>`).join("")}</span>`).join("");
     };
     const htmlPages = documentPages.map((page) => {
       const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
@@ -584,7 +591,7 @@ export function TreeAnalysisEditor({
       const headerHtml = `<div class="name" style="display:flex;gap:8px;left:${header.nameX * scalePrintX}px;top:${header.nameY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">Nom : <span style="flex:1;border-bottom:1.5px solid #111"></span></div><div class="name" style="display:flex;gap:8px;left:${header.groupX * scalePrintX}px;top:${header.groupY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">Groupe : <span style="flex:1;border-bottom:1.5px solid #111"></span></div>`;
       return `<section class="print-page ${page.orientation}"><div class="print-canvas">${headerHtml}${phraseHtml}${textHtml}<svg viewBox="0 0 ${PAGE.logicalWidth} ${PAGE.logicalHeight}" preserveAspectRatio="none">${lineHtml}</svg>${nodeHtml}${scoreHtml}${tableHtml}</div></section>`;
     }).join("");
-    printWindow.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0}.landscape{width:1056px;height:816px}.portrait{width:816px;height:1056px}.name{position:absolute}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:90px;height:60px;place-items:center;border:2px solid #111;font-size:24px}.score.large{width:180px;height:92px;font-size:36px;font-weight:700}.table{display:grid;width:360px;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:49px;padding:8px;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:17px;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}</body></html>`);
+    printWindow.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0}.landscape{width:1056px;height:816px}.portrait{width:816px;height:1056px}.name{position:absolute}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.framed-text{box-shadow:0 0 0 2px #111;box-decoration-break:clone;-webkit-box-decoration-break:clone}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:90px;height:60px;place-items:center;border:2px solid #111;font-size:24px}.score.large{width:180px;height:92px;font-size:36px;font-weight:700}.table{display:grid;width:360px;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:49px;padding:8px;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:17px;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}</body></html>`);
     printWindow.document.close();
     window.setTimeout(() => {
       printWindow.focus();

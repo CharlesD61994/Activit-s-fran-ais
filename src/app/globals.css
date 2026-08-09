@@ -7374,6 +7374,12 @@ textarea {
   pointer-events: none;
 }
 
+.tree-analysis-framed-text {
+  box-shadow: 0 0 0 2px #111;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 .tree-analysis-selection-box {
   position: absolute;
   z-index: 19;
