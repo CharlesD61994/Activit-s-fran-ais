@@ -7320,6 +7320,8 @@ textarea {
   overflow-wrap: anywhere;
   line-height: 1.25;
   outline: 0;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 .tree-analysis-text-editor {
@@ -7335,9 +7337,10 @@ textarea {
   line-height: 1.25;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  user-select: text;
-  -webkit-user-select: text;
+  user-select: text !important;
+  -webkit-user-select: text !important;
   touch-action: auto;
+  cursor: text;
 }
 
 .tree-analysis-text-content:empty::before {
@@ -7414,6 +7417,78 @@ textarea {
   color: #111;
   font-size: 2.25cqw;
   cursor: grab;
+}
+
+.tree-analysis-score-box.large {
+  width: 17.05cqw;
+  height: 8.71cqw;
+  font-size: 3.4cqw;
+  font-weight: 750;
+}
+
+.tree-analysis-score-box > span {
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tree-analysis-score-modal {
+  width: min(520px, 100%);
+}
+
+.tree-analysis-score-preview {
+  display: flex;
+  min-height: 92px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px solid #202020;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  font-size: 2rem;
+}
+
+.tree-analysis-score-preview.large {
+  min-height: 130px;
+  font-size: 3rem;
+  font-weight: 750;
+}
+
+.tree-analysis-score-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tree-analysis-score-fields input {
+  width: 100%;
+}
+
+.tree-analysis-score-size {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tree-analysis-score-size button {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-analysis-score-size button.active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+}
+
+.tree-analysis-score-size small {
+  color: var(--muted-foreground);
 }
 
 .tree-analysis-score-box > button,

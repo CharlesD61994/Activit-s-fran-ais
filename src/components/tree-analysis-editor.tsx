@@ -113,7 +113,7 @@ function renderTextBoxContent(box: TreeAnalysisTextBox) {
   return boundaries.slice(0, -1).map((start, index) => {
     const end = boundaries[index + 1];
     const annotation = [...box.annotations].reverse().find((item) => item.start <= start && item.end >= end);
-    return <span key={`${start}-${end}`} style={{ color: annotation?.color, border: annotation?.framed ? "2px solid currentColor" : undefined, padding: annotation?.framed ? "0 .08em" : undefined }}>{box.text.slice(start, end)}</span>;
+    return <span key={`${start}-${end}`} style={{ color: annotation?.color, border: annotation?.framed ? "2px solid currentColor" : undefined, padding: annotation?.framed ? "0 .08em" : undefined, fontWeight: annotation?.bold ? 700 : undefined }}>{box.text.slice(start, end)}</span>;
   });
 }
 
@@ -180,6 +180,11 @@ export function TreeAnalysisEditor({
   const [selectedHeader, setSelectedHeader] = useState<"name" | "group" | null>(null);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; x: number; y: number } | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [scoreModalOpen, setScoreModalOpen] = useState(false);
+  const [editingScoreId, setEditingScoreId] = useState<string | null>(null);
+  const [scoreEarnedDraft, setScoreEarnedDraft] = useState("");
+  const [scoreTotalDraft, setScoreTotalDraft] = useState("10");
+  const [scoreSizeDraft, setScoreSizeDraft] = useState<"normal" | "large">("normal");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const [wordCenters, setWordCenters] = useState<number[]>([]);
@@ -400,7 +405,7 @@ export function TreeAnalysisEditor({
     setAddMenuOpen(false);
   }
 
-  function applyTextAnnotation(patch: { color?: string; framed?: boolean }) {
+  function applyTextAnnotation(patch: { color?: string; framed?: boolean; bold?: boolean }) {
     if (!selectedTextBoxId || !textSelection || textSelection.start === textSelection.end) return;
     setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, annotations: [...box.annotations, { id: crypto.randomUUID(), start: textSelection.start, end: textSelection.end, ...patch }] } : box));
   }
@@ -417,12 +422,24 @@ export function TreeAnalysisEditor({
     setActivePhraseId((current) => current === phraseId ? null : current);
   }
 
-  function addScoreBox() {
-    const rawTotal = window.prompt("Total de points", "1");
-    if (rawTotal === null) return;
-    const total = Math.max(1, Math.round(Number(rawTotal) || 1));
-    setScoreBoxes((current) => [...current, { id: crypto.randomUUID(), pageId: activePageId, x: 24, y: 160, total }]);
+  function openScoreModal(box?: TreeAnalysisScoreBox) {
+    setEditingScoreId(box?.id ?? null);
+    setScoreEarnedDraft(box?.earned === undefined ? "" : String(box.earned));
+    setScoreTotalDraft(String(box?.total ?? 10));
+    setScoreSizeDraft(box?.size ?? "normal");
     setAddMenuOpen(false);
+    setScoreModalOpen(true);
+  }
+
+  function saveScoreBox() {
+    const total = Math.max(1, Math.round(Number(scoreTotalDraft) || 1));
+    const earned = scoreEarnedDraft.trim() === "" ? undefined : Math.max(0, Math.round(Number(scoreEarnedDraft) || 0));
+    if (editingScoreId) {
+      setScoreBoxes((current) => current.map((box) => box.id === editingScoreId ? { ...box, total, earned, size: scoreSizeDraft } : box));
+    } else {
+      setScoreBoxes((current) => [...current, { id: crypto.randomUUID(), pageId: activePageId, x: 24, y: 160, total, earned, size: scoreSizeDraft }]);
+    }
+    setScoreModalOpen(false);
   }
 
   function addActivityTable() {
@@ -439,15 +456,15 @@ export function TreeAnalysisEditor({
     setAddMenuOpen(false);
   }
 
-  function startItemDrag(event: React.PointerEvent<HTMLElement>, kind: "score" | "table" | "phrase" | "textbox", item: { id: string; x: number; y: number }) {
+  function startItemDrag(event: React.PointerEvent<HTMLElement>, kind: "score" | "table" | "phrase" | "textbox", item: { id: string; x: number; y: number; size?: "normal" | "large" }) {
     if (kind !== "phrase" && (event.target as HTMLElement).closest("input,textarea,button")) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     dragRef.current = {
       kind, itemId: item.id,
-      width: kind === "score" ? 90 : kind === "table" ? 360 : kind === "phrase" ? 1000 : 760,
-      height: kind === "score" ? 60 : kind === "table" ? 120 : kind === "phrase" ? 60 : 110,
+      width: kind === "score" ? (item.size === "large" ? 180 : 90) : kind === "table" ? 360 : kind === "phrase" ? 1000 : 760,
+      height: kind === "score" ? (item.size === "large" ? 92 : 60) : kind === "table" ? 120 : kind === "phrase" ? 60 : 110,
       offsetX: (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width) - item.x,
       offsetY: (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height) - item.y
     };
@@ -498,7 +515,7 @@ export function TreeAnalysisEditor({
       return boundaries.slice(0, -1).map((start, index) => {
         const end = boundaries[index + 1];
         const mark = printMode === "answer" ? [...box.annotations].reverse().find((item) => item.start <= start && item.end >= end) : undefined;
-        return `<span style="${mark?.color ? `color:${mark.color};` : ""}${mark?.framed ? "border:2px solid currentColor;padding:0 .08em;" : ""}">${escape(box.text.slice(start, end))}</span>`;
+        return `<span style="${mark?.color ? `color:${mark.color};` : ""}${mark?.framed ? "border:2px solid currentColor;padding:0 .08em;" : ""}${mark?.bold ? "font-weight:700;" : ""}">${escape(box.text.slice(start, end))}</span>`;
       }).join("");
     };
     const htmlPages = documentPages.map((page) => {
@@ -511,14 +528,14 @@ export function TreeAnalysisEditor({
       const nodeHtml = pageNodes.map((node) => { const size = getNodeDimensions(node); return `<div class="node" style="left:${node.x / PAGE.logicalWidth * 100}%;top:${node.y / PAGE.logicalHeight * 100}%;width:${size.width / PAGE.logicalWidth * 100}%;height:${size.height / PAGE.logicalHeight * 100}%">${printMode === "answer" ? escape(getNodeLabel(node)) : ""}</div>`; }).join("");
       const lineHtml = relations.map((relation) => { const parent = pageNodes.find((node) => node.id === relation.parentNodeId); const child = pageNodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return ""; const ps = getNodeDimensions(parent); const cs = getNodeDimensions(child); return `<line x1="${parent.x + ps.width / 2}" y1="${parent.y + ps.height}" x2="${child.x + cs.width / 2}" y2="${child.y}"/>`; }).join("");
       const phraseHtml = "";
-      const scoreHtml = scoreBoxes.filter((item) => owns(item.pageId)).map((item) => `<div class="score" style="left:${item.x / PAGE.logicalWidth * 100}%;top:${item.y / PAGE.logicalHeight * 100}%">/${item.total}</div>`).join("");
+      const scoreHtml = scoreBoxes.filter((item) => owns(item.pageId)).map((item) => `<div class="score ${item.size === "large" ? "large" : ""}" style="left:${item.x / PAGE.logicalWidth * 100}%;top:${item.y / PAGE.logicalHeight * 100}%">${item.earned ?? "___"} / ${item.total}</div>`).join("");
       const tableHtml = tables.filter((item) => owns(item.pageId)).map((table) => `<div class="table" style="left:${table.x / PAGE.logicalWidth * 100}%;top:${table.y / PAGE.logicalHeight * 100}%;grid-template-columns:repeat(${table.columns},1fr)">${table.cells.map((cell) => cell.columnSpan === 0 ? "" : `<div class="cell ${cell.isCorrect && printMode === "answer" ? "correct" : ""}" style="${cell.columnSpan && cell.columnSpan > 1 ? `grid-column:span ${cell.columnSpan}` : ""}">${escape(cell.text)}</div>`).join("")}</div>`).join("");
       const textHtml = textBoxes.filter((item) => item.pageId === page.id).map((box) => `<div class="textbox" style="left:${box.x * scalePrintX}px;top:${box.y * scalePrintY}px;width:${box.width * scalePrintX}px;min-height:${box.height * scalePrintY}px;font-size:${box.fontSize * scalePrintX}px">${annotated(box)}</div>`).join("");
       const header = page.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 };
       const headerHtml = `<div class="name" style="display:flex;gap:8px;left:${header.nameX * scalePrintX}px;top:${header.nameY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">Nom : <span style="flex:1;border-bottom:1.5px solid #111"></span></div><div class="name" style="display:flex;gap:8px;left:${header.groupX * scalePrintX}px;top:${header.groupY * scalePrintY}px;width:${header.lineWidth * scalePrintX}px;font-size:${header.fontSize * scalePrintX}px">Groupe : <span style="flex:1;border-bottom:1.5px solid #111"></span></div>`;
       return `<section class="print-page ${page.orientation}"><div class="print-canvas">${headerHtml}${phraseHtml}${textHtml}<svg viewBox="0 0 ${PAGE.logicalWidth} ${PAGE.logicalHeight}" preserveAspectRatio="none">${lineHtml}</svg>${nodeHtml}${scoreHtml}${tableHtml}</div></section>`;
     }).join("");
-    printWindow.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0}.landscape{width:1056px;height:816px}.portrait{width:816px;height:1056px}.name{position:absolute}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:90px;height:60px;place-items:center;border:2px solid #111;font-size:24px}.table{display:grid;width:360px;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:49px;padding:8px;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:17px;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}</body></html>`);
+    printWindow.document.write(`<!doctype html><html><head><title>${escape(title || "Activité")}</title><style>@page{margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif}.print-page{position:relative;overflow:hidden;page-break-after:always;break-after:page}.print-canvas{position:absolute;inset:0}.landscape{width:1056px;height:816px}.portrait{width:816px;height:1056px}.name{position:absolute}.phrase,.textbox,.node,.score,.table{position:absolute}.phrase,.textbox{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.25}.node{display:grid;place-items:center;border:2px solid #111}.score{display:grid;width:90px;height:60px;place-items:center;border:2px solid #111;font-size:24px}.score.large{width:180px;height:92px;font-size:36px;font-weight:700}.table{display:grid;width:360px;border-top:2px solid #111;border-left:2px solid #111}.cell{display:grid;min-height:49px;padding:8px;place-items:center;border-right:2px solid #111;border-bottom:2px solid #111;font-size:17px;text-align:center;white-space:pre-wrap}.cell.correct{background:#111;color:#fff}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}line{stroke:#111;stroke-width:2}</style></head><body>${htmlPages}</body></html>`);
     printWindow.document.close();
     window.setTimeout(() => {
       printWindow.focus();
@@ -653,7 +670,7 @@ export function TreeAnalysisEditor({
     if (drag.kind === "score") {
       setScoreBoxes((current) => current.map((box) =>
         box.id === drag.itemId
-          ? { ...box, x: clamp(snap(logicalX), 0, PAGE.logicalWidth - 90), y: clamp(snap(logicalY), TREE_TOP, TREE_BOTTOM - 60) }
+          ? { ...box, x: clamp(snap(logicalX), 0, PAGE.logicalWidth - drag.width), y: clamp(snap(logicalY), TREE_TOP, TREE_BOTTOM - drag.height) }
           : box
       ));
       return;
@@ -1050,7 +1067,7 @@ export function TreeAnalysisEditor({
               <span>Ajouter à la page</span>
               <Button type="button" onClick={addTextBox}><span className="tree-analysis-add-icon">T</span> Texte</Button>
               <Button type="button" variant="secondary" onClick={addNode}><span className="tree-analysis-add-icon">□</span> Rectangle</Button>
-              <Button type="button" variant="secondary" onClick={addScoreBox}><span className="tree-analysis-add-icon">/x</span> Points</Button>
+              <Button type="button" variant="secondary" onClick={() => openScoreModal()}><span className="tree-analysis-add-icon">/x</span> Points</Button>
               <Button type="button" variant="secondary" onClick={addActivityTable}><Grid3X3 size={17} /> Tableau</Button>
               <Button type="button" variant="secondary" onClick={() => setSelectedNodeIds(nodes.filter((node) => (node.pageId ?? documentPages[0]?.id) === activePageId).map((node) => node.id))}>Sélectionner les rectangles</Button>
             </div>
@@ -1063,6 +1080,7 @@ export function TreeAnalysisEditor({
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#2467d1" })}>Bleu</button>
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#22834b" })}>Vert</button>
                 <button type="button" onClick={() => applyTextAnnotation({ framed: true })}>Encadrer</button>
+                <button type="button" onClick={() => applyTextAnnotation({ bold: true })}>Gras</button>
               </div>
             )}
             {selectedHeader && (
@@ -1196,15 +1214,12 @@ export function TreeAnalysisEditor({
                 {scoreBoxes.filter((box) => (box.pageId ?? documentPages[0]?.id) === activePageId).map((box) => (
                   <div
                     key={box.id}
-                    className="tree-analysis-score-box"
+                    className={`tree-analysis-score-box ${box.size === "large" ? "large" : ""}`}
                     style={{ left: `${(box.x / PAGE.logicalWidth) * 100}%`, top: `${(box.y / PAGE.logicalHeight) * 100}%` }}
                     onPointerDown={(event) => startItemDrag(event, "score", box)}
-                    onDoubleClick={() => {
-                      const value = window.prompt("Total de points", String(box.total));
-                      if (value !== null) setScoreBoxes((current) => current.map((item) => item.id === box.id ? { ...item, total: Math.max(1, Math.round(Number(value) || 1)) } : item));
-                    }}
+                    onDoubleClick={() => openScoreModal(box)}
                   >
-                    /{box.total}
+                    <span>{box.earned ?? "___"} / {box.total}</span>
                     <button type="button" onClick={() => setScoreBoxes((current) => current.filter((item) => item.id !== box.id))} aria-label="Supprimer la boîte"><X size={13} /></button>
                   </div>
                 ))}
@@ -1255,9 +1270,11 @@ export function TreeAnalysisEditor({
                         value={box.text}
                         placeholder="Écris ton texte ici…"
                         autoFocus
+                        onMouseDown={(event) => event.stopPropagation()}
                         onPointerDown={(event) => event.stopPropagation()}
                         onPointerMove={(event) => event.stopPropagation()}
                         onPointerUp={(event) => event.stopPropagation()}
+                        onClick={(event) => event.stopPropagation()}
                         onBlur={() => setEditingTextBoxId(null)}
                         onChange={(event) => setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: event.target.value } : item))}
                         onSelect={(event) => {
@@ -1390,10 +1407,34 @@ export function TreeAnalysisEditor({
                     </div>
                     <div className="tree-analysis-add-options">
                       <button type="button" onClick={addNode}><span className="tree-analysis-add-icon">□</span><strong>Rectangle</strong><small>Groupe ou classe de mots</small></button>
-                      <button type="button" onClick={addScoreBox}><span className="tree-analysis-add-icon">/x</span><strong>Boîte de points</strong><small>Affiche un total comme /12</small></button>
+                      <button type="button" onClick={() => openScoreModal()}><span className="tree-analysis-add-icon">/x</span><strong>Boîte de points</strong><small>Affiche un résultat comme 8 / 10</small></button>
                       <button type="button" onClick={addActivityTable}><Grid3X3 size={25} /><strong>Tableau d’activité</strong><small>Rangées, colonnes et réponses</small></button>
                       <button type="button" onClick={addTextBox}><span className="tree-analysis-add-icon">T</span><strong>Boîte de texte</strong><small>Texte libre, couleurs et encadrements</small></button>
                     </div>
+                  </aside>
+                </div>
+              )}
+              {scoreModalOpen && (
+                <div className="tree-analysis-modal-backdrop" role="presentation" onMouseDown={(event) => {
+                  if (event.target === event.currentTarget) setScoreModalOpen(false);
+                }}>
+                  <aside className="tree-analysis-inspector tree-analysis-modal tree-analysis-score-modal" role="dialog" aria-modal="true" aria-label="Configurer la boîte de points">
+                    <div className="tree-analysis-modal-heading">
+                      <div><span className="eyebrow">Points</span><h3>{editingScoreId ? "Modifier le résultat" : "Ajouter une boîte de points"}</h3></div>
+                      <button type="button" onClick={() => setScoreModalOpen(false)} aria-label="Fermer"><X size={18} /></button>
+                    </div>
+                    <div className={`tree-analysis-score-preview ${scoreSizeDraft === "large" ? "large" : ""}`}>
+                      <span>{scoreEarnedDraft.trim() || "___"}</span><b>/</b><span>{scoreTotalDraft || "10"}</span>
+                    </div>
+                    <div className="tree-analysis-score-fields">
+                      <label>Points obtenus <input type="number" min="0" value={scoreEarnedDraft} onChange={(event) => setScoreEarnedDraft(event.target.value)} placeholder="Laisser vide" /></label>
+                      <label>Total <input type="number" min="1" value={scoreTotalDraft} onChange={(event) => setScoreTotalDraft(event.target.value)} /></label>
+                    </div>
+                    <div className="tree-analysis-score-size" role="group" aria-label="Taille de la boîte">
+                      <button type="button" className={scoreSizeDraft === "normal" ? "active" : ""} onClick={() => setScoreSizeDraft("normal")}><strong>Normale</strong><small>Pour une question ou une section</small></button>
+                      <button type="button" className={scoreSizeDraft === "large" ? "active" : ""} onClick={() => setScoreSizeDraft("large")}><strong>Grande</strong><small>Pour un résultat global</small></button>
+                    </div>
+                    <Button type="button" onClick={saveScoreBox}>{editingScoreId ? "Enregistrer" : "Ajouter à la page"}</Button>
                   </aside>
                 </div>
               )}

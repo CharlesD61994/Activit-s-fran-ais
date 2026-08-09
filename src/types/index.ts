@@ -152,6 +152,8 @@ export type TreeAnalysisScoreBox = {
   x: number;
   y: number;
   total: number;
+  earned?: number;
+  size?: "normal" | "large";
   pageId?: string;
 };
 
@@ -199,6 +201,7 @@ export type TreeAnalysisTextAnnotation = {
   end: number;
   color?: string;
   framed?: boolean;
+  bold?: boolean;
 };
 
 export type TreeAnalysisTextBox = {
