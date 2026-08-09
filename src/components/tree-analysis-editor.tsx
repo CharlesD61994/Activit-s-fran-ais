@@ -177,6 +177,7 @@ export function TreeAnalysisEditor({
   const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
   const [textSelection, setTextSelection] = useState<{ start: number; end: number } | null>(null);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [selectedHeader, setSelectedHeader] = useState<"name" | "group" | null>(null);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; x: number; y: number } | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -544,6 +545,10 @@ export function TreeAnalysisEditor({
     event: React.PointerEvent<HTMLDivElement>,
     node: TreeAnalysisNode
   ) {
+    setSelectedTextBoxId(null);
+    setEditingTextBoxId(null);
+    setSelectedTableId(null);
+    setSelectedHeader(null);
     if (
       (event.target as HTMLElement).closest(
         "select,button,.tree-node-actions"
@@ -706,8 +711,11 @@ export function TreeAnalysisEditor({
     const x = (event.clientX - rect.left) * (PAGE.logicalWidth / rect.width);
     const y = (event.clientY - rect.top) * (PAGE.logicalHeight / rect.height);
     setEditingTextBoxId(null);
+    setSelectedTextBoxId(null);
     setSelectedTableId(null);
+    setSelectedHeader(null);
     setSelectionBox({ startX: x, startY: y, x, y });
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function handleNodeKeyDown(
@@ -1029,8 +1037,6 @@ export function TreeAnalysisEditor({
               <div>{documentPages.map((page, index) => <button type="button" key={page.id} className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addDocumentPage}><Plus size={15} /> Page</button></div>
               <label>Orientation<select value={documentPages.find((page) => page.id === activePageId)?.orientation ?? "landscape"} onChange={(event) => updateActivePage({ orientation: event.target.value as "portrait" | "landscape" })}><option value="landscape">Paysage</option><option value="portrait">Portrait</option></select></label>
               {(["top", "right", "bottom", "left"] as const).map((side) => <label key={side}>Marge {side}<input type="number" min="0" max="120" value={documentPages.find((page) => page.id === activePageId)?.margins[side] ?? 24} onChange={(event) => { const page = documentPages.find((item) => item.id === activePageId); if (page) updateActivePage({ margins: { ...page.margins, [side]: Number(event.target.value) } }); }} /></label>)}
-              <label>Police Nom/Groupe<input type="number" min="12" max="48" value={activePage?.header?.fontSize ?? 20} onChange={(event) => updateActivePage({ header: { ...(activePage?.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), fontSize: Number(event.target.value) } })} /></label>
-              <label>Longueur des lignes<input type="number" min="120" max="500" value={activePage?.header?.lineWidth ?? 260} onChange={(event) => updateActivePage({ header: { ...(activePage?.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), lineWidth: Number(event.target.value) } })} /></label>
             </div>
             <div className="tree-analysis-quick-add" aria-label="Ajouter à la page">
               <span>Ajouter à la page</span>
@@ -1038,6 +1044,7 @@ export function TreeAnalysisEditor({
               <Button type="button" variant="secondary" onClick={addNode}><span className="tree-analysis-add-icon">□</span> Rectangle</Button>
               <Button type="button" variant="secondary" onClick={addScoreBox}><span className="tree-analysis-add-icon">/x</span> Points</Button>
               <Button type="button" variant="secondary" onClick={addActivityTable}><Grid3X3 size={17} /> Tableau</Button>
+              <Button type="button" variant="secondary" onClick={() => setSelectedNodeIds(nodes.filter((node) => (node.pageId ?? documentPages[0]?.id) === activePageId).map((node) => node.id))}>Sélectionner les rectangles</Button>
             </div>
             {selectedTextBoxId && (
               <div className="tree-analysis-text-toolbar">
@@ -1048,6 +1055,13 @@ export function TreeAnalysisEditor({
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#2467d1" })}>Bleu</button>
                 <button type="button" onClick={() => applyTextAnnotation({ color: "#22834b" })}>Vert</button>
                 <button type="button" onClick={() => applyTextAnnotation({ framed: true })}>Encadrer</button>
+              </div>
+            )}
+            {selectedHeader && (
+              <div className="tree-analysis-text-toolbar">
+                <strong>{selectedHeader === "name" ? "Nom" : "Groupe"}</strong>
+                <label>Taille de police<input type="number" min="12" max="64" value={activePage?.header?.fontSize ?? 20} onChange={(event) => updateActivePage({ header: { ...(activePage?.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), fontSize: Number(event.target.value) } })} /></label>
+                <label>Longueur de la ligne<input type="number" min="120" max="600" value={activePage?.header?.lineWidth ?? 260} onChange={(event) => updateActivePage({ header: { ...(activePage?.header ?? { nameX: 12, nameY: 18, groupX: 430, groupY: 18, fontSize: 20, lineWidth: 260 }), lineWidth: Number(event.target.value) } })} /></label>
               </div>
             )}
 
@@ -1088,8 +1102,8 @@ export function TreeAnalysisEditor({
                 <div className="tree-analysis-print-safe-guide" />
                 {selectionBox && <div className="tree-analysis-selection-box" style={{ left: `${(Math.min(selectionBox.startX, selectionBox.x) / PAGE.logicalWidth) * 100}%`, top: `${(Math.min(selectionBox.startY, selectionBox.y) / PAGE.logicalHeight) * 100}%`, width: `${(Math.abs(selectionBox.x - selectionBox.startX) / PAGE.logicalWidth) * 100}%`, height: `${(Math.abs(selectionBox.y - selectionBox.startY) / PAGE.logicalHeight) * 100}%` }} />}
 
-                <div className="tree-analysis-name-line movable" style={{ left: `${((activePage?.header?.nameX ?? 12) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.nameY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => startHeaderDrag(event, "header-name")}>Nom : <span /></div>
-                <div className="tree-analysis-name-line movable" style={{ left: `${((activePage?.header?.groupX ?? 430) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.groupY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => startHeaderDrag(event, "header-group")}>Groupe : <span /></div>
+                <div className={`tree-analysis-name-line movable ${selectedHeader === "name" ? "selected" : ""}`} style={{ left: `${((activePage?.header?.nameX ?? 12) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.nameY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => { setSelectedHeader("name"); setSelectedTextBoxId(null); setSelectedTableId(null); startHeaderDrag(event, "header-name"); }}>Nom : <span /></div>
+                <div className={`tree-analysis-name-line movable ${selectedHeader === "group" ? "selected" : ""}`} style={{ left: `${((activePage?.header?.groupX ?? 430) / PAGE.logicalWidth) * 100}%`, top: `${((activePage?.header?.groupY ?? 18) / PAGE.logicalHeight) * 100}%`, width: `${((activePage?.header?.lineWidth ?? 260) / PAGE.logicalWidth) * 100}%`, fontSize: `${((activePage?.header?.fontSize ?? 20) / PAGE.logicalWidth) * 100}cqw` }} onPointerDown={(event) => { setSelectedHeader("group"); setSelectedTextBoxId(null); setSelectedTableId(null); startHeaderDrag(event, "header-group"); }}>Groupe : <span /></div>
 
                 <svg
                   className="tree-analysis-lines"
@@ -1192,7 +1206,7 @@ export function TreeAnalysisEditor({
                     className={`tree-analysis-activity-table ${selectedTableId === table.id ? "selected" : ""}`}
                     style={{ left: `${(table.x / PAGE.logicalWidth) * 100}%`, top: `${(table.y / PAGE.logicalHeight) * 100}%`, gridTemplateColumns: `repeat(${table.columns}, minmax(0, 1fr))` }}
                     onPointerDown={(event) => startItemDrag(event, "table", table)}
-                    onClick={() => setSelectedTableId(table.id)}
+                    onClick={() => { setSelectedTableId(table.id); setSelectedTextBoxId(null); setEditingTextBoxId(null); setSelectedHeader(null); }}
                   >
                     {selectedTableId === table.id && !(table.cells[0]?.columnSpan && table.cells[0].columnSpan > 1) && <button type="button" className="tree-analysis-merge-row" onClick={() => setTables((current) => current.map((item) => item.id === table.id ? { ...item, cells: item.cells.map((cell, index) => index === 0 ? { ...cell, columnSpan: table.columns } : index < table.columns ? { ...cell, columnSpan: 0 } : cell) } : item))}>Fusionner la 1re rangée</button>}
                     {table.cells.map((cell, cellIndex) => cell.columnSpan === 0 ? null : (
@@ -1220,9 +1234,9 @@ export function TreeAnalysisEditor({
                     key={box.id}
                     className={`tree-analysis-text-box ${selectedTextBoxId === box.id ? "selected" : ""}`}
                     style={{ left: `${(box.x / PAGE.logicalWidth) * 100}%`, top: `${(box.y / PAGE.logicalHeight) * 100}%`, width: `${(box.width / PAGE.logicalWidth) * 100}%`, minHeight: `${(box.height / PAGE.logicalHeight) * 100}%`, fontSize: `${(box.fontSize / PAGE.logicalWidth) * 100}cqw` }}
-                    onClick={() => setSelectedTextBoxId(box.id)}
+                    onClick={() => { setSelectedTextBoxId(box.id); setSelectedTableId(null); setSelectedHeader(null); }}
                     onPointerDown={(event) => {
-                      if (event.target === event.currentTarget) startItemDrag(event, "textbox", box);
+                      if (editingTextBoxId !== box.id && !(event.target as HTMLElement).closest("button,.tree-analysis-text-resize,textarea")) startItemDrag(event, "textbox", box);
                     }}
                   >
                     {selectedTextBoxId === box.id && <button type="button" className="tree-analysis-text-delete" onClick={(event) => { event.stopPropagation(); deleteTextBox(box); setSelectedTextBoxId(null); setEditingTextBoxId(null); }} aria-label="Supprimer la boîte"><X size={14} /></button>}

@@ -7310,6 +7310,11 @@ textarea {
   touch-action: none;
 }
 
+.tree-analysis-name-line.movable.selected {
+  outline: 2px dashed #3976bf;
+  outline-offset: 4px;
+}
+
 .tree-analysis-activity-table.selected {
   outline: 2px solid #3976bf;
   outline-offset: 3px;
@@ -7590,6 +7595,13 @@ textarea {
 
   .tree-analysis-builder-sentence.active {
     outline: 0;
+  }
+
+  .tree-analysis-name-line.movable.selected,
+  .tree-analysis-activity-table.selected,
+  .tree-analysis-text-box.selected {
+    outline: 0;
+    border-color: transparent;
   }
 
   .tree-analysis-page-shell.builder {
