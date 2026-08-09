@@ -112,8 +112,11 @@ function renderTextBoxContent(box: TreeAnalysisTextBox) {
   const boundaries = Array.from(new Set([0, box.text.length, ...box.annotations.flatMap((annotation) => [annotation.start, annotation.end])])).sort((a, b) => a - b);
   return boundaries.slice(0, -1).map((start, index) => {
     const end = boundaries[index + 1];
-    const annotation = [...box.annotations].reverse().find((item) => item.start <= start && item.end >= end);
-    return <span key={`${start}-${end}`} style={{ color: annotation?.color, border: annotation?.framed ? "2px solid currentColor" : undefined, padding: annotation?.framed ? "0 .08em" : undefined, fontWeight: annotation?.bold ? 700 : undefined }}>{box.text.slice(start, end)}</span>;
+    const annotations = box.annotations.filter((item) => item.start <= start && item.end >= end);
+    const color = [...annotations].reverse().find((item) => item.color)?.color;
+    const framed = annotations.some((item) => item.framed);
+    const bold = annotations.some((item) => item.bold);
+    return <span key={`${start}-${end}`} style={{ color, border: framed ? "2px solid currentColor" : undefined, padding: framed ? "0 .08em" : undefined, fontWeight: bold ? 700 : undefined }}>{box.text.slice(start, end)}</span>;
   });
 }
 
@@ -195,6 +198,7 @@ export function TreeAnalysisEditor({
   );
   const [printMode, setPrintMode] = useState<"student" | "answer">("answer");
   const measureRef = useRef<HTMLSpanElement>(null);
+  const textSelectionRef = useRef<{ start: number; end: number } | null>(null);
   const wordRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const builderRef = useRef<HTMLDivElement>(null);
@@ -406,8 +410,10 @@ export function TreeAnalysisEditor({
   }
 
   function applyTextAnnotation(patch: { color?: string; framed?: boolean; bold?: boolean }) {
-    if (!selectedTextBoxId || !textSelection || textSelection.start === textSelection.end) return;
-    setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, annotations: [...box.annotations, { id: crypto.randomUUID(), start: textSelection.start, end: textSelection.end, ...patch }] } : box));
+    const selection = textSelectionRef.current ?? textSelection;
+    if (!selectedTextBoxId || !selection || selection.start === selection.end) return;
+    setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, annotations: [...box.annotations, { id: crypto.randomUUID(), start: selection.start, end: selection.end, ...patch }] } : box));
+    setEditingTextBoxId(null);
   }
 
   function deleteTextBox(box: TreeAnalysisTextBox) {
@@ -514,8 +520,11 @@ export function TreeAnalysisEditor({
       const boundaries = Array.from(new Set([0, box.text.length, ...box.annotations.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
       return boundaries.slice(0, -1).map((start, index) => {
         const end = boundaries[index + 1];
-        const mark = printMode === "answer" ? [...box.annotations].reverse().find((item) => item.start <= start && item.end >= end) : undefined;
-        return `<span style="${mark?.color ? `color:${mark.color};` : ""}${mark?.framed ? "border:2px solid currentColor;padding:0 .08em;" : ""}${mark?.bold ? "font-weight:700;" : ""}">${escape(box.text.slice(start, end))}</span>`;
+        const marks = printMode === "answer" ? box.annotations.filter((item) => item.start <= start && item.end >= end) : [];
+        const color = [...marks].reverse().find((item) => item.color)?.color;
+        const framed = marks.some((item) => item.framed);
+        const bold = marks.some((item) => item.bold);
+        return `<span style="${color ? `color:${color};` : ""}${framed ? "border:2px solid currentColor;padding:0 .08em;" : ""}${bold ? "font-weight:700;" : ""}">${escape(box.text.slice(start, end))}</span>`;
       }).join("");
     };
     const htmlPages = documentPages.map((page) => {
@@ -1072,7 +1081,9 @@ export function TreeAnalysisEditor({
               <Button type="button" variant="secondary" onClick={() => setSelectedNodeIds(nodes.filter((node) => (node.pageId ?? documentPages[0]?.id) === activePageId).map((node) => node.id))}>Sélectionner les rectangles</Button>
             </div>
             {selectedTextBoxId && (
-              <div className="tree-analysis-text-toolbar">
+              <div className="tree-analysis-text-toolbar" onMouseDown={(event) => {
+                if ((event.target as HTMLElement).closest("button")) event.preventDefault();
+              }}>
                 <label>Police <input type="number" min="12" max="96" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.fontSize ?? 32} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, fontSize: Number(event.target.value) } : box))} /></label>
                 <label>Largeur <input type="number" min="120" max="1056" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.width ?? 760} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, width: Number(event.target.value) } : box))} /></label>
                 <label>Hauteur <input type="number" min="50" max="816" value={textBoxes.find((box) => box.id === selectedTextBoxId)?.height ?? 110} onChange={(event) => setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, height: Number(event.target.value) } : box))} /></label>
@@ -1279,7 +1290,9 @@ export function TreeAnalysisEditor({
                         onChange={(event) => setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: event.target.value } : item))}
                         onSelect={(event) => {
                           setSelectedTextBoxId(box.id);
-                          setTextSelection({ start: event.currentTarget.selectionStart, end: event.currentTarget.selectionEnd });
+                          const selection = { start: event.currentTarget.selectionStart, end: event.currentTarget.selectionEnd };
+                          textSelectionRef.current = selection;
+                          setTextSelection(selection);
                         }}
                       />
                     ) : (
