@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { RotateCcw } from "lucide-react";
+import { Minus, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Sentence, TreeAnalysisInteraction, TreeAnalysisNode, WordClass, WordGroupType } from "@/types";
 
@@ -95,6 +95,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
   const [drawingCurrent, setDrawingCurrent] = useState<{ x: number; y: number } | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const automaticSteps = useMemo(() => documentPages.flatMap((page) => {
     const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
@@ -123,7 +124,8 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const currentPage = documentPages.find((page) => page.id === currentPageId);
   const currentPageIndex = Math.max(0, documentPages.findIndex((page) => page.id === currentPageId));
   const showFullPortraitPage = currentPage?.orientation === "portrait";
-  const freeTreePhase = currentPage?.readerMode !== "groups_then_tree" && flow.preset === "tree_functions_tables" && Boolean(currentNode);
+  const linkedNodeIds = new Set(interactions.filter((item) => item.kind === "group" && ownsCurrentPage(textBoxes.find((box) => box.id === item.textBoxId)?.pageId)).map((item) => item.linkedNodeId).filter(Boolean));
+  const freeTreePhase = currentNode ? (currentPage?.readerMode !== "groups_then_tree" ? flow.preset === "tree_functions_tables" : !linkedNodeIds.has(currentNode.id)) : false;
   const contentTop = Math.min(...visibleTextBoxes.map((box) => box.y), ...visibleNodes.map((node) => node.y), ...visibleTables.map((table) => table.y), 90);
   const contentBottom = Math.max(...visibleTextBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...visibleNodes.map((node) => node.y + nodeDimensions(node).height), ...visibleTables.map((table) => table.y + estimateTableHeight(table)), 260);
   const topOffset = showFullPortraitPage ? 0 : Math.max(0, contentTop - 4);
@@ -230,15 +232,18 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
 
   return (
     <div className="tree-reader">
-      <div className="tree-reader-progress"><span style={{ width: `${steps.length ? completed.length / steps.length * 100 : 0}%` }} /></div>
-      <section className="tree-reader-instruction">
-        <span className="eyebrow">Étape {Math.min(completed.length + 1, steps.length || 1)} sur {steps.length || 1}</span>
-        <h2>{currentInteraction?.instruction ?? (currentNode ? (freeTreePhase ? "Identifie tous les groupes et toutes les classes de mots dans les rectangles." : "Identifie le rectangle actif.") : currentTable ? "Choisis la bonne réponse dans le tableau." : "Activité terminée!")}</h2>
-        {currentInteraction && <strong className="tree-reader-draw-help">Clique un premier coin, puis le coin opposé pour tracer ton encadrement.</strong>}
-        {feedback && <p>{feedback}</p>}
-      </section>
+      <div className="tree-reader-sticky-header">
+        <div className="tree-reader-progress"><span style={{ width: `${steps.length ? completed.length / steps.length * 100 : 0}%` }} /></div>
+        <section className="tree-reader-instruction">
+          <span className="eyebrow">Étape {Math.min(completed.length + 1, steps.length || 1)} sur {steps.length || 1}</span>
+          <h2>{currentInteraction?.instruction ?? (currentNode ? (freeTreePhase ? "Identifie tous les groupes et toutes les classes de mots dans les rectangles." : "Identifie le rectangle actif.") : currentTable ? "Choisis la bonne réponse dans le tableau." : "Activité terminée!")}</h2>
+          <div className="tree-reader-zoom"><button type="button" onClick={() => setZoom((value) => Math.max(.6, value - .1))} aria-label="Réduire"><Minus size={16} /></button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)} %</button><button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Agrandir"><Plus size={16} /></button></div>
+          {currentInteraction && <strong className="tree-reader-draw-help">Clique un premier coin, puis le coin opposé pour tracer ton encadrement.</strong>}
+          {feedback && <p>{feedback}</p>}
+        </section>
+      </div>
 
-      <div className={`tree-reader-page ${currentInteraction ? "drawing" : ""} ${showFullPortraitPage ? "portrait document-template" : ""}`} style={{ aspectRatio: showFullPortraitPage ? "8.5 / 11" : `1056 / ${visibleHeight}` }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart) return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: event.clientX - rect.left, y: event.clientY - rect.top }); }}>
+      <div className="tree-reader-page-viewport"><div className={`tree-reader-page ${currentInteraction ? "drawing" : ""} ${showFullPortraitPage ? "portrait document-template" : ""}`} style={{ aspectRatio: showFullPortraitPage ? "8.5 / 11" : `1056 / ${visibleHeight}`, zoom }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart) return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: event.clientX - rect.left, y: event.clientY - rect.top }); }}>
         {showFullPortraitPage && currentPage?.template === "teaching_document" && <>
           <div className="tree-analysis-document-header" style={{ left: `${currentPage.margins.left / 1056 * 100}%`, right: `${currentPage.margins.right / 1056 * 100}%`, top: `${(currentPage.header?.nameY ?? 25) / 816 * 100}%` }}>
             <div className="tree-analysis-document-header-top"><div className="tree-analysis-student-fields"><span>NOM</span><span>GROUPE</span></div><div className="tree-analysis-page-cell"><div className="tree-analysis-page-badge">{currentPageIndex + 1}</div></div></div>
@@ -252,7 +257,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
           const boundaries = Array.from(new Set([0, box.text.length, ...answerRanges.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
           return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / visibleHeight * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw`, textAlign: box.textAlign ?? "left" }}>{boundaries.slice(0, -1).map((segmentStart, segmentIndex) => { const segmentEnd = boundaries[segmentIndex + 1]; const framed = answerRanges.some((item) => item.start <= segmentStart && item.end >= segmentEnd); let tokenOffset = segmentStart; const tokens = box.text.slice(segmentStart, segmentEnd).match(/\S+|\s+/g) ?? []; return <span key={`${segmentStart}-${segmentEnd}`} className={framed ? "tree-reader-framed" : undefined}>{tokens.map((token, tokenIndex) => { const start = tokenOffset; const end = start + token.length; tokenOffset = end; return /^\s+$/u.test(token) ? token : <span key={`${tokenIndex}-${start}`} className="tree-reader-word" data-box-id={box.id} data-start={start} data-end={end}>{token}</span>; })}</span>; })}</div>;
         })}
-        <svg className="tree-reader-lines" viewBox={`0 0 1056 ${visibleHeight}`} preserveAspectRatio="none">{relations.map((relation) => { const parent = visibleNodes.find((node) => node.id === relation.parentNodeId); const child = visibleNodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return null; const parentSize = nodeDimensions(parent); const childSize = nodeDimensions(child); return <line key={relation.id} x1={parent.x + parentSize.width / 2} y1={parent.y + parentSize.height - topOffset} x2={child.x + childSize.width / 2} y2={child.y - topOffset} />; })}</svg>
+        <svg className="tree-reader-lines" viewBox={`0 0 1056 ${visibleHeight}`} preserveAspectRatio="none">{relations.map((relation) => { const parent = visibleNodes.find((node) => node.id === relation.parentNodeId); const child = visibleNodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return null; const parentSize = nodeDimensions(parent); const childSize = nodeDimensions(child); return <line key={relation.id} x1={parent.x + parentSize.width / 2} y1={parent.y + parentSize.height + 1 - topOffset} x2={child.x + childSize.width / 2} y2={child.y - 1 - topOffset} />; })}</svg>
         {visibleNodes.map((node) => {
           const stepId = `node:${node.id}`;
           const done = completed.includes(stepId);
@@ -262,7 +267,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
         })}
         {visibleTables.map((table) => { const tableDone = completed.includes(`table:${table.id}`); return <div key={table.id} className={`tree-reader-table ${currentTable?.id === table.id ? "active" : ""}`} style={{ left: `${table.x / 1056 * 100}%`, top: `${(table.y - topOffset) / visibleHeight * 100}%`, gridTemplateColumns: `repeat(${table.columns},1fr)` }}>{table.cells.map((cell, index) => cell.columnSpan === 0 ? null : <button type="button" key={index} className={tableDone && cell.isCorrect ? "selected-correct" : ""} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined }} disabled={currentTable?.id !== table.id} onClick={(event) => { event.stopPropagation(); if (cell.isCorrect) completeStep(`table:${table.id}`); else setFeedback("Ce n’est pas la bonne cellule."); }}>{cell.text}</button>)}</div>; })}
         {drawingStart && drawingCurrent && <div className="tree-reader-drawing-box" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
-      </div>
+      </div></div>
 
       <div className="interactive-reader-actions"><Button type="button" variant="secondary" onClick={restartActivity}><RotateCcw size={18} /> Recommencer</Button>{isComplete ? finishControl : null}</div>
     </div>
