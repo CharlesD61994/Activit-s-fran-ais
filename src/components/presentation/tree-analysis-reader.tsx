@@ -283,14 +283,16 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
         {visibleTextBoxes.map((box) => {
           const revealed = interactions.filter((item) => item.textBoxId === box.id && completed.includes(`interaction:${item.id}`)).map((item) => ({ ...item, ...trimSelectionWhitespace(box.text, item) }));
           const boundaries = Array.from(new Set([0, box.text.length, ...revealed.flatMap((item) => [item.start, item.end])])).sort((a, b) => a - b);
-          return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / visibleHeight * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw`, textAlign: box.textAlign ?? "left" }}>{boundaries.slice(0, -1).map((segmentStart, segmentIndex) => {
+          const styledSegments = boundaries.slice(0, -1).map((segmentStart, segmentIndex) => {
             const segmentEnd = boundaries[segmentIndex + 1];
-            const answer = [...revealed].reverse().find((item) => item.start <= segmentStart && item.end >= segmentEnd);
-            const color = answer?.authorMark === "red" ? "#d93434" : answer?.authorMark === "blue" ? "#2467d1" : answer?.authorMark === "green" ? "#22834b" : undefined;
-            let tokenOffset = segmentStart;
-            const tokens = box.text.slice(segmentStart, segmentEnd).match(/\S+|\s+/g) ?? [];
-            return <span key={`${segmentStart}-${segmentEnd}`} className={answer && (!answer.authorMark || answer.authorMark === "frame") ? "tree-reader-framed" : undefined} style={{ color }}>{tokens.map((token, tokenIndex) => { const start = tokenOffset; const end = start + token.length; tokenOffset = end; return /^\s+$/u.test(token) ? token : <span key={`${tokenIndex}-${start}`} className="tree-reader-word" data-box-id={box.id} data-start={start} data-end={end} onClick={(event) => handleWordClick(event, box.id, start, end)}>{token}</span>; })}</span>;
-          })}</div>;
+            const segmentAnswers = revealed.filter((item) => item.start <= segmentStart && item.end >= segmentEnd);
+            const framed = segmentAnswers.some((item) => !item.authorMark || item.authorMark === "frame");
+            const colorAnswer = [...segmentAnswers].reverse().find((item) => item.authorMark === "red" || item.authorMark === "blue" || item.authorMark === "green");
+            const color = colorAnswer?.authorMark === "red" ? "#d93434" : colorAnswer?.authorMark === "blue" ? "#2467d1" : colorAnswer?.authorMark === "green" ? "#22834b" : undefined;
+            return { start: segmentStart, end: segmentEnd, framed, color };
+          });
+          const visualGroups = styledSegments.reduce<Array<{ framed: boolean; segments: typeof styledSegments }>>((groups, segment) => { const last = groups[groups.length - 1]; if (last?.framed === segment.framed) last.segments.push(segment); else groups.push({ framed: segment.framed, segments: [segment] }); return groups; }, []);
+          return <div key={box.id} className="tree-reader-text" style={{ left: `${box.x / 1056 * 100}%`, top: `${(box.y - topOffset) / visibleHeight * 100}%`, width: `${box.width / 1056 * 100}%`, fontSize: `${box.fontSize / 1056 * 100}cqw`, textAlign: box.textAlign ?? "left" }}>{visualGroups.map((group, groupIndex) => <span key={`${groupIndex}-${group.segments[0]?.start}`} className={group.framed ? "tree-reader-framed" : undefined}>{group.segments.map((segment) => { let tokenOffset = segment.start; const tokens = box.text.slice(segment.start, segment.end).match(/\S+|\s+/g) ?? []; return <span key={`${segment.start}-${segment.end}`} style={{ color: segment.color }}>{tokens.map((token, tokenIndex) => { const start = tokenOffset; const end = start + token.length; tokenOffset = end; return /^\s+$/u.test(token) ? token : <span key={`${tokenIndex}-${start}`} className="tree-reader-word" data-box-id={box.id} data-start={start} data-end={end} onClick={(event) => handleWordClick(event, box.id, start, end)}>{token}</span>; })}</span>; })}</span>)}</div>;
         })}
         <svg className="tree-reader-lines" viewBox={`0 0 1056 ${visibleHeight}`} preserveAspectRatio="none">{relations.map((relation) => { const parent = visibleNodes.find((node) => node.id === relation.parentNodeId); const child = visibleNodes.find((node) => node.id === relation.childNodeId); if (!parent || !child) return null; const parentSize = nodeDimensions(parent); const childSize = nodeDimensions(child); return <line key={relation.id} x1={parent.x + parentSize.width / 2} y1={parent.y + parentSize.height + 1 - topOffset} x2={child.x + childSize.width / 2} y2={child.y - 1 - topOffset} />; })}</svg>
         {visibleNodes.map((node) => {
