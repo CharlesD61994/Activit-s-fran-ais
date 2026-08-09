@@ -17,6 +17,8 @@ const nodeAliases: Record<WordGroupType | WordClass, string[]> = {
   GN: ["gn", "groupenominal"], GV: ["gv", "groupeverbal"], GAdj: ["gadj", "groupeadjectival"], GAdv: ["gadv", "groupeadverbial"], GPrep: ["gprep", "groupeprepositionnel"],
   noun: ["n", "nom"], determiner: ["det", "determinant"], verb: ["v", "verbe"], preposition: ["prep", "preposition"], adverb: ["adv", "adverbe"], adjective: ["adj", "adjectif"], pronoun: ["pron", "pronom"], conjunction: ["conj", "conjonction"], interjection: ["interj", "interjection"]
 };
+const DEFAULT_PHASE_ORDER = ["groups", "nuclei", "linked_nodes", "functions", "remaining_nodes", "tables"] as const;
+type ReaderPhase = typeof DEFAULT_PHASE_ORDER[number];
 
 type Props = {
   sentence: Sentence;
@@ -104,20 +106,22 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
     return () => document.documentElement.classList.remove("tree-reader-points-unpinned");
   }, [pointsPinned]);
 
-  const automaticSteps = useMemo(() => documentPages.flatMap((page) => {
+  const pagePhaseData = useMemo(() => documentPages.map((page) => {
     const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
-    const pageNodes = nodes.filter((node) => owns(node.pageId)).map((node) => `node:${node.id}`);
     const pageInteractions = interactions.filter((item) => owns(textBoxes.find((box) => box.id === item.textBoxId)?.pageId));
-    if (page.readerMode === "groups_then_tree") {
-      const groupInteractions = pageInteractions.filter((item) => item.kind === "group");
-      const linkedNodes = new Set(groupInteractions.map((item) => item.linkedNodeId).filter(Boolean));
-      return [...groupInteractions.flatMap((item) => [`interaction:${item.id}`, ...(item.linkedNodeId ? [`node:${item.linkedNodeId}`] : [])]), ...nodes.filter((node) => owns(node.pageId) && !linkedNodes.has(node.id)).map((node) => `node:${node.id}`)];
-    }
-    if ((page.readerMode ?? "tree_functions") === "tree_only") return pageNodes;
-    if (page.readerMode === "tree_tables") return [...pageNodes, ...tables.filter((table) => owns(table.pageId)).map((table) => `table:${table.id}`)];
-    return [...pageNodes, ...pageInteractions.map((item) => `interaction:${item.id}`)];
+    const linkedIds = Array.from(new Set(pageInteractions.map((item) => item.linkedNodeId).filter((id): id is string => Boolean(id))));
+    const phases: Record<ReaderPhase, string[]> = {
+      groups: pageInteractions.filter((item) => item.kind === "group").map((item) => `interaction:${item.id}`),
+      nuclei: pageInteractions.filter((item) => item.kind === "nucleus").map((item) => `interaction:${item.id}`),
+      linked_nodes: linkedIds.map((id) => `node:${id}`),
+      functions: pageInteractions.filter((item) => item.kind === "function").map((item) => `interaction:${item.id}`),
+      remaining_nodes: nodes.filter((node) => owns(node.pageId) && !linkedIds.includes(node.id)).map((node) => `node:${node.id}`),
+      tables: tables.filter((table) => owns(table.pageId)).map((table) => `table:${table.id}`)
+    };
+    const order = [...(page.readerPhaseOrder ?? []), ...DEFAULT_PHASE_ORDER.filter((phase) => !page.readerPhaseOrder?.includes(phase))];
+    return { pageId: page.id, phases, order: order.filter((phase) => phases[phase].length) };
   }), [documentPages, interactions, nodes, tables, textBoxes]);
-  const steps = automaticSteps;
+  const steps = pagePhaseData.flatMap((page) => page.order.flatMap((phase) => page.phases[phase]));
   const currentStep = steps.find((id) => !completed.includes(id));
   const currentInteraction = currentStep?.startsWith("interaction:") ? interactions.find((item) => `interaction:${item.id}` === currentStep) : undefined;
   const currentNode = currentStep?.startsWith("node:") ? nodes.find((item) => `node:${item.id}` === currentStep) : undefined;
@@ -131,8 +135,9 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const currentPage = documentPages.find((page) => page.id === currentPageId);
   const currentPageIndex = Math.max(0, documentPages.findIndex((page) => page.id === currentPageId));
   const showFullPortraitPage = currentPage?.orientation === "portrait";
-  const linkedNodeIds = new Set(interactions.filter((item) => item.kind === "group" && ownsCurrentPage(textBoxes.find((box) => box.id === item.textBoxId)?.pageId)).map((item) => item.linkedNodeId).filter(Boolean));
-  const freeTreePhase = currentNode ? (currentPage?.readerMode !== "groups_then_tree" ? flow.preset === "tree_functions_tables" : !linkedNodeIds.has(currentNode.id)) : false;
+  const currentPhase = pagePhaseData.find((page) => page.pageId === currentPageId)?.order.find((phase) => pagePhaseData.find((item) => item.pageId === currentPageId)?.phases[phase].includes(currentStep ?? ""));
+  const currentPhaseNodeIds = currentPhase ? pagePhaseData.find((page) => page.pageId === currentPageId)?.phases[currentPhase].filter((id) => id.startsWith("node:")).map((id) => id.slice(5)) ?? [] : [];
+  const freeTreePhase = currentPhaseNodeIds.length > 0;
   const contentTop = Math.min(...visibleTextBoxes.map((box) => box.y), ...visibleNodes.map((node) => node.y), ...visibleTables.map((table) => table.y), 90);
   const contentBottom = Math.max(...visibleTextBoxes.map((box) => box.y + Math.max(box.height, box.fontSize * 1.5)), ...visibleNodes.map((node) => node.y + nodeDimensions(node).height), ...visibleTables.map((table) => table.y + estimateTableHeight(table)), 260);
   const topOffset = showFullPortraitPage ? 0 : Math.max(0, contentTop - 4);
@@ -268,7 +273,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
         {visibleNodes.map((node) => {
           const stepId = `node:${node.id}`;
           const done = completed.includes(stepId);
-          const active = !done && (freeTreePhase || currentNode?.id === node.id);
+          const active = !done && (freeTreePhase ? currentPhaseNodeIds.includes(node.id) : currentNode?.id === node.id);
           const currentSize = nodeDimensions(node);
           return <div key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${(node.y - topOffset) / visibleHeight * 100}%`, width: `${currentSize.width / 1056 * 100}%`, height: `${currentSize.height / visibleHeight * 100}%` }}>{done ? <strong>{expectedNodeLabel(node)}</strong> : active ? <input aria-label="Réponse du rectangle" value={nodeDrafts[node.id] ?? ""} onClick={(event) => event.stopPropagation()} onChange={(event) => setNodeDrafts((current) => ({ ...current, [node.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); submitNode(node, nodeDrafts[node.id] ?? ""); } }} autoComplete="off" placeholder="?" /> : null}</div>;
         })}

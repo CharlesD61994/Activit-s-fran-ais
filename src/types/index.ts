@@ -205,6 +205,7 @@ export type TreeAnalysisDocumentPage = {
     subtitle?: string;
   };
   readerMode?: "tree_only" | "tree_functions" | "tree_tables" | "groups_then_tree";
+  readerPhaseOrder?: Array<"groups" | "nuclei" | "linked_nodes" | "functions" | "remaining_nodes" | "tables">;
 };
 
 export type TreeAnalysisQuestionBadge = {
@@ -242,11 +243,12 @@ export type TreeAnalysisInteraction = {
   textBoxId: string;
   start: number;
   end: number;
-  kind: "function" | "group";
+  kind: "function" | "group" | "nucleus";
   label: string;
   instruction: string;
   linkedNodeId?: string;
   authorMark?: "frame" | "red" | "blue" | "green";
+  nucleusWordClass?: WordClass;
 };
 
 export type TreeAnalysisFlowPreset =

@@ -11,6 +11,8 @@ import {
   AlignJustify,
   AlignLeft,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
   Check,
   Eye,
   Grid3X3,
@@ -113,6 +115,9 @@ const wordClassLabels: Record<WordClass, string> = {
   conjunction: "Conj",
   interjection: "Interj"
 };
+const DEFAULT_PHASE_ORDER = ["groups", "nuclei", "linked_nodes", "functions", "remaining_nodes", "tables"] as const;
+type ReaderPhase = typeof DEFAULT_PHASE_ORDER[number];
+const phaseLabels: Record<ReaderPhase, string> = { groups: "Encadrer les groupes", nuclei: "Encadrer les noyaux", linked_nodes: "Remplir les rectangles associés", functions: "Identifier les fonctions", remaining_nodes: "Compléter le reste de l’arbre", tables: "Répondre aux tableaux" };
 
 const sentenceFunctionOptions = ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut du sujet", "Complément du nom", "Complément de l’adjectif", "Modificateur"];
 
@@ -258,7 +263,8 @@ export function TreeAnalysisEditor({
   const [interactions, setInteractions] = useState<TreeAnalysisInteraction[]>(initialSentence?.treeAnalysisInteractions ?? []);
   const [flow, setFlow] = useState<TreeAnalysisFlow>(initialSentence?.treeAnalysisFlow ?? { preset: "tree_functions_tables", orderedStepIds: [], selectionTolerance: "normal" });
   const [interactionModalOpen, setInteractionModalOpen] = useState(false);
-  const [interactionKind, setInteractionKind] = useState<"function" | "group">("function");
+  const [interactionKind, setInteractionKind] = useState<"function" | "group" | "nucleus">("function");
+  const [interactionNucleusClass, setInteractionNucleusClass] = useState<WordClass>("noun");
   const [interactionLabel, setInteractionLabel] = useState("Sujet");
   const [interactionInstruction, setInteractionInstruction] = useState("Encadre le sujet de la phrase.");
   const [interactionLinkedNodeId, setInteractionLinkedNodeId] = useState("");
@@ -587,10 +593,14 @@ export function TreeAnalysisEditor({
       kind: interactionKind,
       label: interactionLabel.trim(),
       instruction: interactionInstruction.trim(),
-      linkedNodeId: interactionKind === "group" && interactionLinkedNodeId ? interactionLinkedNodeId : undefined,
+      linkedNodeId: interactionKind !== "function" && interactionLinkedNodeId ? interactionLinkedNodeId : undefined,
+      nucleusWordClass: interactionKind === "nucleus" ? interactionNucleusClass : undefined,
       authorMark: interactionAuthorMark
     };
     setInteractions((current) => [...current, interaction]);
+    if (interactionKind === "nucleus" && interactionLinkedNodeId) {
+      setNodes((current) => current.map((node) => node.id === interactionLinkedNodeId ? { ...node, groupType: undefined, wordClass: interactionNucleusClass } : node));
+    }
     setInteractionModalOpen(false);
     setPickingInteractionNode(false);
   }
@@ -794,8 +804,10 @@ export function TreeAnalysisEditor({
     if (pickingInteractionNode) {
       event.stopPropagation();
       setInteractionLinkedNodeId(node.id);
-      setInteractionLabel(getNodeLabel(node) || "Groupe");
-      setInteractionInstruction("Encadre le groupe lié à ce rectangle.");
+      if (interactionKind === "group") {
+        setInteractionLabel(getNodeLabel(node) || "Groupe");
+        setInteractionInstruction("Encadre le groupe lié à ce rectangle.");
+      }
       setPickingInteractionNode(false);
       setInteractionModalOpen(true);
       return;
@@ -885,6 +897,7 @@ export function TreeAnalysisEditor({
           xCandidates.push(box.x);
           yCandidates.push(box.y);
         });
+        questionBadges.filter((badge) => badge.pageId === activePageId).forEach((badge) => xCandidates.push(badge.x + 16));
       } else {
         questionBadges.filter((badge) => badge.pageId === activePageId && badge.id !== drag.itemId).forEach((badge) => {
           xCandidates.push(badge.x, badge.x + 16);
@@ -1074,23 +1087,27 @@ export function TreeAnalysisEditor({
     );
   }
 
+  function getPagePhaseSteps(page: TreeAnalysisDocumentPage) {
+    const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
+    const pageInteractions = interactions.filter((item) => owns(textBoxes.find((box) => box.id === item.textBoxId)?.pageId));
+    const linkedIds = Array.from(new Set(pageInteractions.map((item) => item.linkedNodeId).filter((id): id is string => Boolean(id))));
+    const phases: Record<ReaderPhase, string[]> = {
+      groups: pageInteractions.filter((item) => item.kind === "group").map((item) => `interaction:${item.id}`),
+      nuclei: pageInteractions.filter((item) => item.kind === "nucleus").map((item) => `interaction:${item.id}`),
+      linked_nodes: linkedIds.map((id) => `node:${id}`),
+      functions: pageInteractions.filter((item) => item.kind === "function").map((item) => `interaction:${item.id}`),
+      remaining_nodes: nodes.filter((node) => owns(node.pageId) && !linkedIds.includes(node.id)).map((node) => `node:${node.id}`),
+      tables: tables.filter((table) => owns(table.pageId)).map((table) => `table:${table.id}`)
+    };
+    const order = [...(page.readerPhaseOrder ?? []), ...DEFAULT_PHASE_ORDER.filter((phase) => !page.readerPhaseOrder?.includes(phase))];
+    return { phases, order: order.filter((phase) => phases[phase].length > 0) };
+  }
+
   function saveActivity() {
     if (!phrases.length || !title.trim() || !levelId) return;
     const now = new Date().toISOString();
 
-    const automaticSteps = documentPages.flatMap((page) => {
-      const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
-      const pageNodes = nodes.filter((node) => owns(node.pageId)).map((node) => `node:${node.id}`);
-      const pageInteractions = interactions.filter((item) => owns(textBoxes.find((box) => box.id === item.textBoxId)?.pageId));
-      if (page.readerMode === "groups_then_tree") {
-        const groupInteractions = pageInteractions.filter((item) => item.kind === "group");
-        const linkedNodes = new Set(groupInteractions.map((item) => item.linkedNodeId).filter(Boolean));
-        return [...groupInteractions.flatMap((item) => [`interaction:${item.id}`, ...(item.linkedNodeId ? [`node:${item.linkedNodeId}`] : [])]), ...nodes.filter((node) => owns(node.pageId) && !linkedNodes.has(node.id)).map((node) => `node:${node.id}`)];
-      }
-      if ((page.readerMode ?? "tree_functions") === "tree_only") return pageNodes;
-      if (page.readerMode === "tree_tables") return [...pageNodes, ...tables.filter((table) => owns(table.pageId)).map((table) => `table:${table.id}`)];
-      return [...pageNodes, ...pageInteractions.map((item) => `interaction:${item.id}`)];
-    });
+    const automaticSteps = documentPages.flatMap((page) => { const detected = getPagePhaseSteps(page); return detected.order.flatMap((phase) => detected.phases[phase]); });
     onSave({
       id: initialSentence?.id ?? crypto.randomUUID(),
       activityType: "tree_analysis",
@@ -1132,6 +1149,16 @@ export function TreeAnalysisEditor({
   const selectedTextBoxPage = documentPages.find((page) => page.id === selectedTextBox?.pageId);
   const activePageInteractions = interactions.filter((item) => textBoxes.find((box) => box.id === item.textBoxId)?.pageId === activePageId);
   const selectedInteractionNode = nodes.find((node) => node.id === interactionLinkedNodeId);
+  const activeDetectedPhases = activePage ? getPagePhaseSteps(activePage) : null;
+  const moveReaderPhase = (phase: ReaderPhase, direction: -1 | 1) => {
+    if (!activePage || !activeDetectedPhases) return;
+    const order = [...activeDetectedPhases.order];
+    const index = order.indexOf(phase);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= order.length) return;
+    [order[index], order[nextIndex]] = [order[nextIndex], order[index]];
+    updateActivePage({ readerPhaseOrder: [...order, ...DEFAULT_PHASE_ORDER.filter((item) => !order.includes(item))] });
+  };
   const selectedTextStyle = getTextStyle(selectedTextBox, textSelectionRef.current ?? textSelection);
 
   return (
@@ -1410,10 +1437,11 @@ export function TreeAnalysisEditor({
 
             <section className="tree-analysis-flow-panel">
               <div><span className="eyebrow">Déroulement du lecteur</span><h3>Ordre de l’activité</h3></div>
-              <label>Contenu de la page<select value={activePage?.readerMode ?? "tree_functions"} onChange={(event) => updateActivePage({ readerMode: event.target.value as NonNullable<TreeAnalysisDocumentPage["readerMode"]> })}><option value="groups_then_tree">Encadrer les groupes → remplir l’arbre</option><option value="tree_only">Arbres seulement</option><option value="tree_functions">Arbres et fonctions</option><option value="tree_tables">Arbres et tableaux</option></select></label>
+              <p>Les phases sont créées automatiquement à partir des événements, rectangles et tableaux présents sur cette page.</p>
               <label>Tolérance de sélection<select value={flow.selectionTolerance} onChange={(event) => setFlow((current) => ({ ...current, selectionTolerance: event.target.value as TreeAnalysisFlow["selectionTolerance"] }))}><option value="strict">Stricte</option><option value="normal">Normale</option><option value="permissive">Permissive</option></select></label>
+              <div className="tree-analysis-custom-order">{activeDetectedPhases?.order.map((phase, index) => <div key={phase}><span>{index + 1}</span><strong>{phaseLabels[phase]} ({activeDetectedPhases.phases[phase].length})</strong><button type="button" onClick={() => moveReaderPhase(phase, -1)} disabled={index === 0} aria-label="Monter"><ChevronUp size={15} /></button><button type="button" onClick={() => moveReaderPhase(phase, 1)} disabled={index === activeDetectedPhases.order.length - 1} aria-label="Descendre"><ChevronDown size={15} /></button></div>)}</div>
               <div className="tree-analysis-event-list">
-                {activePageInteractions.length === 0 ? <p>Encadre un passage sur cette page pour créer le premier événement interactif.</p> : activePageInteractions.map((item, index) => <div key={item.id}><span>{index + 1}</span><div><strong>{item.instruction}</strong><small>{item.kind === "function" ? "Fonction" : "Groupe lié à l’arbre"} — {item.label}</small></div><button type="button" onClick={() => setInteractions((current) => current.filter((entry) => entry.id !== item.id))} aria-label="Supprimer l’événement"><X size={14} /></button></div>)}
+                {activePageInteractions.length === 0 ? <p>Encadre un passage sur cette page pour créer le premier événement interactif.</p> : activePageInteractions.map((item, index) => <div key={item.id}><span>{index + 1}</span><div><strong>{item.instruction}</strong><small>{item.kind === "function" ? "Fonction" : item.kind === "nucleus" ? "Noyau lié à l’arbre" : "Groupe lié à l’arbre"} — {item.label}</small></div><button type="button" onClick={() => setInteractions((current) => current.filter((entry) => entry.id !== item.id))} aria-label="Supprimer l’événement"><X size={14} /></button></div>)}
               </div>
             </section>
 
@@ -1766,12 +1794,13 @@ export function TreeAnalysisEditor({
                       <div><span className="eyebrow">Réponse interactive</span><h3>Que représente ce passage?</h3></div>
                       <button type="button" onClick={cancelInteraction} aria-label="Fermer"><X size={18} /></button>
                     </div>
-                    <label>Type de réponse<select value={interactionKind} onChange={(event) => { const kind = event.target.value as "function" | "group"; setInteractionKind(kind); setInteractionLinkedNodeId(""); if (kind === "function") { setInteractionLabel("Sujet"); setInteractionInstruction("Encadre le sujet de la phrase."); } else { setInteractionLabel("Groupe"); setInteractionInstruction("Encadre le groupe lié à ce rectangle."); } }}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option></select></label>
+                    <label>Type de réponse<select value={interactionKind} onChange={(event) => { const kind = event.target.value as "function" | "group" | "nucleus"; setInteractionKind(kind); setInteractionLinkedNodeId(""); if (kind === "function") { setInteractionLabel("Sujet"); setInteractionInstruction("Encadre le sujet de la phrase."); } else if (kind === "group") { setInteractionLabel("Groupe"); setInteractionInstruction("Encadre le groupe lié à ce rectangle."); } else { setInteractionLabel(wordClassLabels[interactionNucleusClass]); setInteractionInstruction("Encadre le noyau du groupe."); } }}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option><option value="nucleus">Noyau du groupe</option></select></label>
                     {interactionKind === "function" && <label>Fonction<select value={interactionLabel} onChange={(event) => { const label = event.target.value; setInteractionLabel(label); setInteractionInstruction(functionInstruction(label)); }}>{sentenceFunctionOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>}
+                    {interactionKind === "nucleus" && <label>Classe du noyau<select value={interactionNucleusClass} onChange={(event) => { const wordClass = event.target.value as WordClass; setInteractionNucleusClass(wordClass); setInteractionLabel(wordClassLabels[wordClass]); }}>{(Object.keys(wordClassLabels) as WordClass[]).map((wordClass) => <option key={wordClass} value={wordClass}>{wordClassLabels[wordClass]}</option>)}</select></label>}
                     <label>Consigne affichée<input value={interactionInstruction} onChange={(event) => setInteractionInstruction(event.target.value)} placeholder="Ex. Encadre le sujet de la phrase." /></label>
-                    {interactionKind === "group" && <div className="tree-analysis-linked-node-picker"><span>Rectangle déclenché</span><strong>{selectedInteractionNode ? `Rectangle sélectionné — ${getNodeLabel(selectedInteractionNode) || "sans réponse"}` : "Aucun rectangle sélectionné"}</strong><Button type="button" variant="secondary" onClick={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}>Choisir dans l’arbre</Button></div>}
+                    {interactionKind !== "function" && <div className="tree-analysis-linked-node-picker"><span>Rectangle déclenché</span><strong>{selectedInteractionNode ? `Rectangle sélectionné — ${getNodeLabel(selectedInteractionNode) || "sans réponse"}` : "Aucun rectangle sélectionné"}</strong><Button type="button" variant="secondary" onClick={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}>Choisir dans l’arbre</Button></div>}
                     <p>La couleur ou l’encadrement sert à repérer la réponse dans le corrigé. Dans le lecteur, l’élève répondra toujours en encadrant le passage.</p>
-                    <div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={cancelInteraction}>Visuel seulement</Button><Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim() || (interactionKind === "group" && !interactionLinkedNodeId)}>Créer l’événement</Button></div>
+                    <div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={cancelInteraction}>Visuel seulement</Button><Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim() || (interactionKind !== "function" && !interactionLinkedNodeId)}>Créer l’événement</Button></div>
                   </aside>
                 </div>
               )}
