@@ -216,6 +216,28 @@ export type TreeAnalysisTextBox = {
   annotations: TreeAnalysisTextAnnotation[];
 };
 
+export type TreeAnalysisInteraction = {
+  id: string;
+  textBoxId: string;
+  start: number;
+  end: number;
+  kind: "function" | "group";
+  label: string;
+  instruction: string;
+  linkedNodeId?: string;
+};
+
+export type TreeAnalysisFlowPreset =
+  | "tree_functions_tables"
+  | "groups_tree_tables"
+  | "custom";
+
+export type TreeAnalysisFlow = {
+  preset: TreeAnalysisFlowPreset;
+  orderedStepIds: string[];
+  selectionTolerance: "strict" | "normal" | "permissive";
+};
+
 export type TreeAnalysisTable = {
   id: string;
   x: number;
@@ -266,6 +288,8 @@ export type Sentence = {
   treeAnalysisPhrases?: TreeAnalysisPhrase[];
   treeAnalysisDocumentPages?: TreeAnalysisDocumentPage[];
   treeAnalysisTextBoxes?: TreeAnalysisTextBox[];
+  treeAnalysisInteractions?: TreeAnalysisInteraction[];
+  treeAnalysisFlow?: TreeAnalysisFlow;
   assignedGroupIds: string[];
   competitionEnabled?: boolean;
   assignmentStatusByGroup?: Record<string, AssignmentStatus>;

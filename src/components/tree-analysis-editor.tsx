@@ -8,6 +8,8 @@ import {
 } from "react";
 import {
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
   Check,
   Eye,
   Grid3X3,
@@ -35,6 +37,8 @@ import type {
   TreeAnalysisScoreBox,
   TreeAnalysisTable,
   TreeAnalysisTextBox,
+  TreeAnalysisInteraction,
+  TreeAnalysisFlow,
   WordClass,
   WordGroupType
 } from "@/types";
@@ -108,9 +112,8 @@ function snap(value: number) {
   return Math.round(value / GRID) * GRID;
 }
 
-function rebaseTextAnnotations(box: TreeAnalysisTextBox, nextText: string) {
-  const previousText = box.text;
-  if (previousText === nextText) return box.annotations;
+function rebaseTextRange(previousText: string, nextText: string, start: number, end: number) {
+  if (previousText === nextText) return { start, end };
   let prefix = 0;
   while (prefix < previousText.length && prefix < nextText.length && previousText[prefix] === nextText[prefix]) prefix += 1;
   let suffix = 0;
@@ -119,7 +122,11 @@ function rebaseTextAnnotations(box: TreeAnalysisTextBox, nextText: string) {
   const nextChangeEnd = nextText.length - suffix;
   const delta = nextText.length - previousText.length;
   const mapIndex = (index: number) => index <= prefix ? index : index >= previousChangeEnd ? index + delta : nextChangeEnd;
-  return box.annotations.map((annotation) => ({ ...annotation, start: mapIndex(annotation.start), end: mapIndex(annotation.end) })).filter((annotation) => annotation.end > annotation.start);
+  return { start: mapIndex(start), end: mapIndex(end) };
+}
+
+function rebaseTextAnnotations(box: TreeAnalysisTextBox, nextText: string) {
+  return box.annotations.map((annotation) => ({ ...annotation, ...rebaseTextRange(box.text, nextText, annotation.start, annotation.end) })).filter((annotation) => annotation.end > annotation.start);
 }
 
 function getTextStyleGroups(box: TreeAnalysisTextBox) {
@@ -204,6 +211,13 @@ export function TreeAnalysisEditor({
     const converted = (initialSentence?.treeAnalysisPhrases ?? []).filter((phrase) => !existing.some((box) => box.id === `phrase-text-${phrase.id}`)).map((phrase) => ({ id: `phrase-text-${phrase.id}`, pageId: phrase.pageId ?? "page-1", x: phrase.x, y: phrase.y, width: 1000, height: 70, text: phrase.text, fontSize: phrase.fontSize, annotations: [] }));
     return [...existing, ...converted];
   });
+  const [interactions, setInteractions] = useState<TreeAnalysisInteraction[]>(initialSentence?.treeAnalysisInteractions ?? []);
+  const [flow, setFlow] = useState<TreeAnalysisFlow>(initialSentence?.treeAnalysisFlow ?? { preset: "tree_functions_tables", orderedStepIds: [], selectionTolerance: "normal" });
+  const [interactionModalOpen, setInteractionModalOpen] = useState(false);
+  const [interactionKind, setInteractionKind] = useState<"function" | "group">("function");
+  const [interactionLabel, setInteractionLabel] = useState("Sujet");
+  const [interactionInstruction, setInteractionInstruction] = useState("Encadre le sujet de la phrase.");
+  const [interactionLinkedNodeId, setInteractionLinkedNodeId] = useState("");
   const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(null);
   const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
   const [textSelection, setTextSelection] = useState<{ start: number; end: number } | null>(null);
@@ -451,6 +465,44 @@ export function TreeAnalysisEditor({
     const selection = textSelectionRef.current ?? textSelection;
     if (!selectedTextBoxId || !selection || selection.start === selection.end) return;
     setTextBoxes((current) => current.map((box) => box.id === selectedTextBoxId ? { ...box, annotations: [...box.annotations, { id: crypto.randomUUID(), start: selection.start, end: selection.end, ...patch }] } : box));
+  }
+
+  function toggleFraming() {
+    const removing = selectedTextStyle.framed;
+    const selection = textSelectionRef.current ?? textSelection;
+    applyTextAnnotation({ framed: !removing });
+    if (removing && selectedTextBoxId && selection) {
+      setInteractions((current) => current.filter((item) => !(item.textBoxId === selectedTextBoxId && item.start === selection.start && item.end === selection.end)));
+    }
+    if (!removing && selectedTextBoxId && selection) {
+      setInteractionKind("function");
+      setInteractionLabel("Sujet");
+      setInteractionInstruction("Encadre le sujet de la phrase.");
+      setInteractionLinkedNodeId("");
+      setInteractionModalOpen(true);
+    }
+  }
+
+  function saveInteraction() {
+    const selection = textSelectionRef.current ?? textSelection;
+    if (!selectedTextBoxId || !selection || selection.start === selection.end || !interactionLabel.trim() || !interactionInstruction.trim()) return;
+    const interaction: TreeAnalysisInteraction = {
+      id: crypto.randomUUID(),
+      textBoxId: selectedTextBoxId,
+      start: selection.start,
+      end: selection.end,
+      kind: interactionKind,
+      label: interactionLabel.trim(),
+      instruction: interactionInstruction.trim(),
+      linkedNodeId: interactionKind === "group" && interactionLinkedNodeId ? interactionLinkedNodeId : undefined
+    };
+    setInteractions((current) => [...current, interaction]);
+    setInteractionModalOpen(false);
+  }
+
+  function cancelInteraction() {
+    applyTextAnnotation({ framed: false });
+    setInteractionModalOpen(false);
   }
 
   function captureRenderedTextSelection(box: TreeAnalysisTextBox, element: HTMLDivElement) {
@@ -877,6 +929,11 @@ export function TreeAnalysisEditor({
     if (!phrases.length || !title.trim() || !levelId) return;
     const now = new Date().toISOString();
 
+    const automaticSteps = flow.preset === "tree_functions_tables"
+      ? [...nodes.map((node) => `node:${node.id}`), ...interactions.map((item) => `interaction:${item.id}`), ...tables.map((table) => `table:${table.id}`)]
+      : flow.preset === "groups_tree_tables"
+        ? [...interactions.filter((item) => item.kind === "group").map((item) => `interaction:${item.id}`), ...nodes.map((node) => `node:${node.id}`), ...interactions.filter((item) => item.kind === "function").map((item) => `interaction:${item.id}`), ...tables.map((table) => `table:${table.id}`)]
+        : flow.orderedStepIds;
     onSave({
       id: initialSentence?.id ?? crypto.randomUUID(),
       activityType: "tree_analysis",
@@ -899,6 +956,8 @@ export function TreeAnalysisEditor({
       treeAnalysisPhrases: phrases,
       treeAnalysisDocumentPages: documentPages,
       treeAnalysisTextBoxes: textBoxes,
+      treeAnalysisInteractions: interactions,
+      treeAnalysisFlow: { ...flow, orderedStepIds: automaticSteps },
       assignedGroupIds,
       competitionEnabled:
         initialSentence?.competitionEnabled ?? false,
@@ -913,6 +972,21 @@ export function TreeAnalysisEditor({
 
   const selectedTextBox = textBoxes.find((box) => box.id === selectedTextBoxId);
   const selectedTextStyle = getTextStyle(selectedTextBox, textSelectionRef.current ?? textSelection);
+  const allFlowStepIds = [...nodes.map((node) => `node:${node.id}`), ...interactions.map((item) => `interaction:${item.id}`), ...tables.map((table) => `table:${table.id}`)];
+  const customFlowSteps = [...flow.orderedStepIds.filter((id) => allFlowStepIds.includes(id)), ...allFlowStepIds.filter((id) => !flow.orderedStepIds.includes(id))];
+  const flowStepLabel = (id: string) => {
+    const [kind, itemId] = id.split(":");
+    if (kind === "node") return `Identifier le rectangle — ${getNodeLabel(nodes.find((node) => node.id === itemId) ?? { id: "", x: 0, y: 0 })}`;
+    if (kind === "interaction") return interactions.find((item) => item.id === itemId)?.instruction ?? "Encadrement interactif";
+    return "Répondre au tableau";
+  };
+  const moveFlowStep = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= customFlowSteps.length) return;
+    const next = [...customFlowSteps];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    setFlow((current) => ({ ...current, preset: "custom", orderedStepIds: next }));
+  };
 
   return (
     <div className="tree-analysis-editor">
@@ -1140,7 +1214,7 @@ export function TreeAnalysisEditor({
                 <button type="button" className={selectedTextStyle.color === "#d93434" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#d93434"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#d93434" ? null : "#d93434" })}>Rouge</button>
                 <button type="button" className={selectedTextStyle.color === "#2467d1" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#2467d1"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#2467d1" ? null : "#2467d1" })}>Bleu</button>
                 <button type="button" className={selectedTextStyle.color === "#22834b" ? "active" : ""} aria-pressed={selectedTextStyle.color === "#22834b"} onClick={() => applyTextAnnotation({ color: selectedTextStyle.color === "#22834b" ? null : "#22834b" })}>Vert</button>
-                <button type="button" className={selectedTextStyle.framed ? "active" : ""} aria-pressed={selectedTextStyle.framed} onClick={() => applyTextAnnotation({ framed: !selectedTextStyle.framed })}>Encadrer</button>
+                <button type="button" className={selectedTextStyle.framed ? "active" : ""} aria-pressed={selectedTextStyle.framed} onClick={toggleFraming}>Encadrer</button>
                 <button type="button" className={selectedTextStyle.bold ? "active" : ""} aria-pressed={selectedTextStyle.bold} onClick={() => applyTextAnnotation({ bold: !selectedTextStyle.bold })}>Gras</button>
               </div>
             )}
@@ -1162,6 +1236,16 @@ export function TreeAnalysisEditor({
             <div className={`tree-analysis-box-size ${boxesFitOnOneRow ? "success" : "warning"}`}>
               Cases uniformes : {nodeWidth} × {nodeHeight} — calculées pour {wordCount} mot{wordCount > 1 ? "s" : ""}.
             </div>
+
+            <section className="tree-analysis-flow-panel">
+              <div><span className="eyebrow">Déroulement du lecteur</span><h3>Ordre de l’activité</h3></div>
+              <label>Modèle<select value={flow.preset} onChange={(event) => setFlow((current) => ({ ...current, preset: event.target.value as TreeAnalysisFlow["preset"] }))}><option value="tree_functions_tables">Arbre → fonctions → tableaux</option><option value="groups_tree_tables">Groupes encadrés → arbre → tableaux</option><option value="custom">Ordre personnalisé</option></select></label>
+              <label>Tolérance de sélection<select value={flow.selectionTolerance} onChange={(event) => setFlow((current) => ({ ...current, selectionTolerance: event.target.value as TreeAnalysisFlow["selectionTolerance"] }))}><option value="strict">Stricte</option><option value="normal">Normale</option><option value="permissive">Permissive</option></select></label>
+              <div className="tree-analysis-event-list">
+                {interactions.length === 0 ? <p>Encadre un passage pour créer le premier événement interactif.</p> : interactions.map((item, index) => <div key={item.id}><span>{index + 1}</span><div><strong>{item.instruction}</strong><small>{item.kind === "function" ? "Fonction" : "Groupe lié à l’arbre"} — {item.label}</small></div><button type="button" onClick={() => setInteractions((current) => current.filter((entry) => entry.id !== item.id))} aria-label="Supprimer l’événement"><X size={14} /></button></div>)}
+              </div>
+              {flow.preset === "custom" && <div className="tree-analysis-custom-order">{customFlowSteps.map((id, index) => <div key={id}><span>{index + 1}</span><strong>{flowStepLabel(id)}</strong><button type="button" onClick={() => moveFlowStep(index, -1)} disabled={index === 0} aria-label="Monter"><ChevronUp size={15} /></button><button type="button" onClick={() => moveFlowStep(index, 1)} disabled={index === customFlowSteps.length - 1} aria-label="Descendre"><ChevronDown size={15} /></button></div>)}</div>}
+            </section>
 
             <div className={`tree-analysis-workspace tree-print-${printMode}`}>
               <div className="tree-analysis-page-shell builder">
@@ -1341,6 +1425,7 @@ export function TreeAnalysisEditor({
                       onInput={(event) => {
                         const nextText = event.currentTarget.innerText.replace(/\r/g, "");
                         setTextBoxes((current) => current.map((item) => item.id === box.id ? { ...item, text: nextText, annotations: rebaseTextAnnotations(item, nextText) } : item));
+                        setInteractions((current) => current.map((item) => item.textBoxId === box.id ? { ...item, ...rebaseTextRange(box.text, nextText, item.start, item.end) } : item).filter((item) => item.end > item.start));
                       }}
                       onMouseUp={(event) => captureRenderedTextSelection(box, event.currentTarget)}
                       onKeyUp={(event) => captureRenderedTextSelection(box, event.currentTarget)}
@@ -1488,6 +1573,24 @@ export function TreeAnalysisEditor({
                       <button type="button" className={scoreSizeDraft === "large" ? "active" : ""} onClick={() => setScoreSizeDraft("large")}><strong>Grande</strong><small>Pour un résultat global</small></button>
                     </div>
                     <Button type="button" onClick={saveScoreBox}>{editingScoreId ? "Enregistrer" : "Ajouter à la page"}</Button>
+                  </aside>
+                </div>
+              )}
+              {interactionModalOpen && (
+                <div className="tree-analysis-modal-backdrop" role="presentation" onMouseDown={(event) => {
+                  if (event.target === event.currentTarget) cancelInteraction();
+                }}>
+                  <aside className="tree-analysis-inspector tree-analysis-modal" role="dialog" aria-modal="true" aria-label="Créer une réponse interactive">
+                    <div className="tree-analysis-modal-heading">
+                      <div><span className="eyebrow">Encadrement interactif</span><h3>Que doit reconnaître l’élève?</h3></div>
+                      <button type="button" onClick={cancelInteraction} aria-label="Fermer"><X size={18} /></button>
+                    </div>
+                    <label>Type de réponse<select value={interactionKind} onChange={(event) => setInteractionKind(event.target.value as "function" | "group")}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option></select></label>
+                    <label>Réponse attendue<input value={interactionLabel} onChange={(event) => setInteractionLabel(event.target.value)} placeholder="Ex. Sujet" /></label>
+                    <label>Consigne affichée<input value={interactionInstruction} onChange={(event) => setInteractionInstruction(event.target.value)} placeholder="Ex. Encadre le sujet de la phrase." /></label>
+                    {interactionKind === "group" && <label>Rectangle déclenché<select value={interactionLinkedNodeId} onChange={(event) => setInteractionLinkedNodeId(event.target.value)}><option value="">Choisir un rectangle…</option>{nodes.map((node, index) => <option key={node.id} value={node.id}>Rectangle {index + 1} — {getNodeLabel(node)}</option>)}</select></label>}
+                    <p>Les couleurs et le gras restent uniquement visuels. Cet encadrement deviendra une réponse dans le lecteur.</p>
+                    <Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim()}>Créer l’événement</Button>
                   </aside>
                 </div>
               )}

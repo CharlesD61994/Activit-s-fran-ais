@@ -12,6 +12,7 @@ import {
 import { InteractiveSentenceReader } from "@/components/presentation/interactive-sentence-reader";
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
+import { TreeAnalysisReader } from "@/components/presentation/tree-analysis-reader";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/app-store";
 import { getWordClassAnalysisTargetCount } from "@/lib/activity-types";
@@ -85,6 +86,7 @@ export default function PresentationPage({
   const [finished, setFinished] = useState(false);
   const [wordClassComplete, setWordClassComplete] = useState(false);
   const [wordGroupComplete, setWordGroupComplete] = useState(false);
+  const [treeAnalysisComplete, setTreeAnalysisComplete] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
   const competitionTeams = useMemo(
     () => data.teams.filter((team) => team.groupId === groupId),
@@ -137,6 +139,7 @@ export default function PresentationPage({
   const isTextActivity = sentence?.activityType === "text_correction";
   const isWordClassActivity = sentence?.activityType === "word_classes";
   const isWordGroupActivity = sentence?.activityType === "word_groups";
+  const isTreeAnalysisActivity = sentence?.activityType === "tree_analysis";
 
   const restorePendingPoints = useCallback((points: PendingPoint[]) => {
     setPendingPoints(points);
@@ -515,7 +518,7 @@ export default function PresentationPage({
         className={`reader-scene-main ${
           isTextActivity ? "reader-scene-main-text" : ""
         } ${
-          isWordClassActivity || isWordGroupActivity
+          isWordClassActivity || isWordGroupActivity || isTreeAnalysisActivity
             ? "reader-scene-main-word-classes"
             : ""
         }`}
@@ -524,7 +527,7 @@ export default function PresentationPage({
           <h1>{sentence.title}</h1>
           {plannedSession && sequence.length > 1 && (
             <span>
-              {isWordClassActivity || isWordGroupActivity
+              {isWordClassActivity || isWordGroupActivity || isTreeAnalysisActivity
                 ? "Activité"
                 : "Phrase"}{" "}
               {sentenceIndex + 1}/{sequence.length}
@@ -534,7 +537,9 @@ export default function PresentationPage({
 
         <div className="reader-meta-row">
           <span className="reader-live-points">Points : {pendingTotal}</span>
-          {isWordClassActivity ? (
+          {isTreeAnalysisActivity ? (
+            <span>{(sentence.treeAnalysisFlow?.orderedStepIds.length || ((sentence.treeAnalysisNodes?.length ?? 0) + (sentence.treeAnalysisInteractions?.length ?? 0) + (sentence.treeAnalysisTables?.length ?? 0)))} étape(s)</span>
+          ) : isWordClassActivity ? (
             <span>
               {getWordClassAnalysisTargetCount(sentence)} mot
               {getWordClassAnalysisTargetCount(sentence) > 1
@@ -559,7 +564,18 @@ export default function PresentationPage({
           )}
         </div>
 
-        {isWordGroupActivity ? (
+        {isTreeAnalysisActivity ? (
+          <TreeAnalysisReader
+            sentence={sentence}
+            onCompleteChange={setTreeAnalysisComplete}
+            finishControl={
+              <Button className="finish-button" onClick={finishSentence} disabled={finished || !treeAnalysisComplete}>
+                <CheckCircle2 size={20} />
+                {finished ? "Terminé" : "Terminer"}
+              </Button>
+            }
+          />
+        ) : isWordGroupActivity ? (
           <WordGroupReader
             sentence={sentence}
             persistenceKey={readerPersistenceKey}
