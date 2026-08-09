@@ -7915,11 +7915,11 @@ textarea {
 
 .tree-reader-node.active {
   border-color: #3976bf;
-  box-shadow: 0 0 0 4px rgba(57,118,191,.2);
-  animation: tree-reader-pulse 1.3s ease-in-out infinite;
+  box-shadow: 0 0 0 3px rgba(57,118,191,.18);
 }
 
 .tree-reader-node input {
+  min-width: 0;
   width: 100%;
   height: 100%;
   padding: 2px;
@@ -7941,10 +7941,6 @@ textarea {
 .tree-reader-node.done {
   background: #edf7ef;
   border-color: #33804a;
-}
-
-@keyframes tree-reader-pulse {
-  50% { box-shadow: 0 0 0 8px rgba(57,118,191,.08); }
 }
 
 .tree-reader-table {

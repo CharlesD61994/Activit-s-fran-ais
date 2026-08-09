@@ -46,11 +46,11 @@ function selectionMatches(text: string, selected: TextSelection, interaction: Tr
   if (tolerance === "strict") return selected.start === interaction.start && selected.end === interaction.end;
   const expected = wordIndexes(text, interaction.start, interaction.end);
   const actual = wordIndexes(text, selected.start, selected.end);
-  if (tolerance === "normal") return expected.length === actual.length && expected.every((value, index) => value === actual[index]);
   const expectedSet = new Set(expected);
   const actualSet = new Set(actual);
   const difference = [...expectedSet].filter((value) => !actualSet.has(value)).length + [...actualSet].filter((value) => !expectedSet.has(value)).length;
-  return difference <= 1;
+  if (tolerance === "normal") return difference <= 1;
+  return difference <= 2;
 }
 
 export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }: Props) {
@@ -123,18 +123,18 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
       setFeedback("Clique maintenant sur le coin opposé du rectangle.");
       return;
     }
-    const margin = 12;
-    const left = Math.min(drawingStart.x, point.x) - margin;
-    const right = Math.max(drawingStart.x, point.x) + margin;
-    const top = Math.min(drawingStart.y, point.y) - margin;
-    const bottom = Math.max(drawingStart.y, point.y) + margin;
+    const left = Math.min(drawingStart.x, point.x) - 6;
+    const right = Math.max(drawingStart.x, point.x) + 6;
+    const top = Math.min(drawingStart.y, point.y) - 18;
+    const bottom = Math.max(drawingStart.y, point.y) + 18;
     const words = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(`.tree-reader-word[data-box-id="${currentInteraction.textBoxId}"]`)).filter((word) => {
       const wordRect = word.getBoundingClientRect();
       const wordLeft = wordRect.left - rect.left;
       const wordRight = wordRect.right - rect.left;
       const wordTop = wordRect.top - rect.top;
       const wordBottom = wordRect.bottom - rect.top;
-      return wordRight >= left && wordLeft <= right && wordBottom >= top && wordTop <= bottom;
+      const centerX = (wordLeft + wordRight) / 2;
+      return centerX >= left && centerX <= right && wordBottom >= top && wordTop <= bottom;
     });
     const candidate = words.length ? { textBoxId: currentInteraction.textBoxId, start: Math.min(...words.map((word) => Number(word.dataset.start))), end: Math.max(...words.map((word) => Number(word.dataset.end))) } : null;
     setDrawingStart(null);
@@ -174,7 +174,7 @@ export function TreeAnalysisReader({ sentence, onCompleteChange, finishControl }
           const stepId = `node:${node.id}`;
           const done = completed.includes(stepId);
           const active = !done && (freeTreePhase || currentNode?.id === node.id);
-          return <div key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${(node.y - topOffset) / 816 * 100}%`, width: `${nodeWidth / 1056 * 100}%`, height: `${nodeHeight / 816 * 100}%` }}>{done ? <strong>{expectedNodeLabel(node)}</strong> : active ? <input aria-label="Réponse du rectangle" value={nodeDrafts[node.id] ?? ""} onClick={(event) => event.stopPropagation()} onChange={(event) => { const value = event.target.value; setNodeDrafts((current) => ({ ...current, [node.id]: value })); setFeedback(""); const expected = node.groupType ?? node.wordClass; if (expected && nodeAliases[expected].includes(normalizeAnswer(value))) submitNode(node, value); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); submitNode(node, nodeDrafts[node.id] ?? ""); } }} autoComplete="off" placeholder="?" /> : null}</div>;
+          return <div key={node.id} className={`tree-reader-node ${active ? "active" : ""} ${done ? "done" : ""}`} style={{ left: `${node.x / 1056 * 100}%`, top: `${(node.y - topOffset) / 816 * 100}%`, width: `${nodeWidth / 1056 * 100}%`, height: `${nodeHeight / 816 * 100}%` }}>{done ? <strong>{expectedNodeLabel(node)}</strong> : active ? <input aria-label="Réponse du rectangle" value={nodeDrafts[node.id] ?? ""} onClick={(event) => event.stopPropagation()} onChange={(event) => setNodeDrafts((current) => ({ ...current, [node.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); submitNode(node, nodeDrafts[node.id] ?? ""); } }} autoComplete="off" placeholder="?" /> : null}</div>;
         })}
         {tables.map((table) => <div key={table.id} className={`tree-reader-table ${currentTable?.id === table.id ? "active" : ""}`} style={{ left: `${table.x / 1056 * 100}%`, top: `${(table.y - topOffset) / 816 * 100}%`, gridTemplateColumns: `repeat(${table.columns},1fr)` }}>{table.cells.map((cell, index) => cell.columnSpan === 0 ? null : <button type="button" key={index} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined }} disabled={currentTable?.id !== table.id} onClick={(event) => { event.stopPropagation(); if (cell.isCorrect) completeStep(`table:${table.id}`); else setFeedback("Ce n’est pas la bonne cellule."); }}>{cell.text}</button>)}</div>)}
         {drawingStart && drawingCurrent && <div className="tree-reader-drawing-box" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
