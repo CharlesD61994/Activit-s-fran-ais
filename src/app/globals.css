@@ -7101,6 +7101,63 @@ textarea {
   text-transform: uppercase;
 }
 
+.tree-analysis-phase-list {
+  display: grid;
+  gap: 8px;
+}
+
+.tree-analysis-phase {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.tree-analysis-phase-heading,
+.tree-analysis-phase-actions > div {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 9px;
+}
+
+.tree-analysis-phase-heading > button,
+.tree-analysis-phase-actions button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--secondary);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.tree-analysis-phase-actions {
+  display: grid;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--secondary) 55%, var(--surface));
+}
+
+.tree-analysis-phase-actions > div {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  margin-left: 30px;
+  padding: 8px 10px;
+  border-left: 2px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+
+.tree-analysis-phase-actions > div + div {
+  border-top: 1px dashed var(--border);
+}
+
+.tree-analysis-phase-branch {
+  color: var(--primary);
+  font-weight: 900;
+}
+
 .tree-analysis-box-size {
   margin: 10px 0 14px;
   padding: 8px 11px;

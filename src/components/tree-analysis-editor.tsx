@@ -269,6 +269,7 @@ export function TreeAnalysisEditor({
   const [interactionInstruction, setInteractionInstruction] = useState("Encadre le sujet de la phrase.");
   const [interactionLinkedNodeId, setInteractionLinkedNodeId] = useState("");
   const [pickingInteractionNode, setPickingInteractionNode] = useState(false);
+  const [expandedReaderPhases, setExpandedReaderPhases] = useState<Set<ReaderPhase>>(() => new Set(DEFAULT_PHASE_ORDER));
   const [interactionAuthorMark, setInteractionAuthorMark] = useState<"frame" | "red" | "blue" | "green">("frame");
   const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(null);
   const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
@@ -1147,7 +1148,6 @@ export function TreeAnalysisEditor({
 
   const selectedTextBox = textBoxes.find((box) => box.id === selectedTextBoxId);
   const selectedTextBoxPage = documentPages.find((page) => page.id === selectedTextBox?.pageId);
-  const activePageInteractions = interactions.filter((item) => textBoxes.find((box) => box.id === item.textBoxId)?.pageId === activePageId);
   const selectedInteractionNode = nodes.find((node) => node.id === interactionLinkedNodeId);
   const activeDetectedPhases = activePage ? getPagePhaseSteps(activePage) : null;
   const moveReaderPhase = (phase: ReaderPhase, direction: -1 | 1) => {
@@ -1158,6 +1158,15 @@ export function TreeAnalysisEditor({
     if (index < 0 || nextIndex < 0 || nextIndex >= order.length) return;
     [order[index], order[nextIndex]] = [order[nextIndex], order[index]];
     updateActivePage({ readerPhaseOrder: [...order, ...DEFAULT_PHASE_ORDER.filter((item) => !order.includes(item))] });
+  };
+  const readerActionLabel = (stepId: string) => {
+    const [kind, id] = stepId.split(":");
+    if (kind === "interaction") {
+      const item = interactions.find((interaction) => interaction.id === id);
+      return item ? `${item.instruction} — ${item.label}${item.linkedNodeId ? " · rectangle lié" : ""}` : "Événement interactif";
+    }
+    if (kind === "node") return `Remplir le rectangle — ${getNodeLabel(nodes.find((node) => node.id === id) ?? { id: "", x: 0, y: 0 }) || "réponse à définir"}`;
+    return "Répondre au tableau";
   };
   const selectedTextStyle = getTextStyle(selectedTextBox, textSelectionRef.current ?? textSelection);
 
@@ -1439,10 +1448,8 @@ export function TreeAnalysisEditor({
               <div><span className="eyebrow">Déroulement du lecteur</span><h3>Ordre de l’activité</h3></div>
               <p>Les phases sont créées automatiquement à partir des événements, rectangles et tableaux présents sur cette page.</p>
               <label>Tolérance de sélection<select value={flow.selectionTolerance} onChange={(event) => setFlow((current) => ({ ...current, selectionTolerance: event.target.value as TreeAnalysisFlow["selectionTolerance"] }))}><option value="strict">Stricte</option><option value="normal">Normale</option><option value="permissive">Permissive</option></select></label>
-              <div className="tree-analysis-custom-order">{activeDetectedPhases?.order.map((phase, index) => <div key={phase}><span>{index + 1}</span><strong>{phaseLabels[phase]} ({activeDetectedPhases.phases[phase].length})</strong><button type="button" onClick={() => moveReaderPhase(phase, -1)} disabled={index === 0} aria-label="Monter"><ChevronUp size={15} /></button><button type="button" onClick={() => moveReaderPhase(phase, 1)} disabled={index === activeDetectedPhases.order.length - 1} aria-label="Descendre"><ChevronDown size={15} /></button></div>)}</div>
-              <div className="tree-analysis-event-list">
-                {activePageInteractions.length === 0 ? <p>Encadre un passage sur cette page pour créer le premier événement interactif.</p> : activePageInteractions.map((item, index) => <div key={item.id}><span>{index + 1}</span><div><strong>{item.instruction}</strong><small>{item.kind === "function" ? "Fonction" : item.kind === "nucleus" ? "Noyau lié à l’arbre" : "Groupe lié à l’arbre"} — {item.label}</small></div><button type="button" onClick={() => setInteractions((current) => current.filter((entry) => entry.id !== item.id))} aria-label="Supprimer l’événement"><X size={14} /></button></div>)}
-              </div>
+              <div className="tree-analysis-phase-list">{activeDetectedPhases?.order.map((phase, index) => { const expanded = expandedReaderPhases.has(phase); return <div className="tree-analysis-phase" key={phase}><div className="tree-analysis-phase-heading"><button type="button" className="tree-analysis-phase-toggle" onClick={() => setExpandedReaderPhases((current) => { const next = new Set(current); if (next.has(phase)) next.delete(phase); else next.add(phase); return next; })} aria-expanded={expanded}>{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button><span>{index + 1}</span><strong>{phaseLabels[phase]} ({activeDetectedPhases.phases[phase].length})</strong><button type="button" onClick={() => moveReaderPhase(phase, -1)} disabled={index === 0} aria-label="Monter"><ChevronUp size={15} /></button><button type="button" onClick={() => moveReaderPhase(phase, 1)} disabled={index === activeDetectedPhases.order.length - 1} aria-label="Descendre"><ChevronDown size={15} /></button></div>{expanded && <div className="tree-analysis-phase-actions">{activeDetectedPhases.phases[phase].map((stepId) => <div key={stepId}><span className="tree-analysis-phase-branch">↳</span><strong>{readerActionLabel(stepId)}</strong>{stepId.startsWith("interaction:") && <button type="button" onClick={() => setInteractions((current) => current.filter((item) => `interaction:${item.id}` !== stepId))} aria-label="Supprimer l’événement"><X size={14} /></button>}</div>)}</div>}</div>; })}</div>
+              {!activeDetectedPhases?.order.length && <p>Encadre un passage ou ajoute un rectangle ou un tableau pour créer les premières phases.</p>}
             </section>
 
             <div className={`tree-analysis-workspace tree-print-${printMode}`}>
@@ -1798,9 +1805,9 @@ export function TreeAnalysisEditor({
                     {interactionKind === "function" && <label>Fonction<select value={interactionLabel} onChange={(event) => { const label = event.target.value; setInteractionLabel(label); setInteractionInstruction(functionInstruction(label)); }}>{sentenceFunctionOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>}
                     {interactionKind === "nucleus" && <label>Classe du noyau<select value={interactionNucleusClass} onChange={(event) => { const wordClass = event.target.value as WordClass; setInteractionNucleusClass(wordClass); setInteractionLabel(wordClassLabels[wordClass]); }}>{(Object.keys(wordClassLabels) as WordClass[]).map((wordClass) => <option key={wordClass} value={wordClass}>{wordClassLabels[wordClass]}</option>)}</select></label>}
                     <label>Consigne affichée<input value={interactionInstruction} onChange={(event) => setInteractionInstruction(event.target.value)} placeholder="Ex. Encadre le sujet de la phrase." /></label>
-                    {interactionKind !== "function" && <div className="tree-analysis-linked-node-picker"><span>Rectangle déclenché</span><strong>{selectedInteractionNode ? `Rectangle sélectionné — ${getNodeLabel(selectedInteractionNode) || "sans réponse"}` : "Aucun rectangle sélectionné"}</strong><Button type="button" variant="secondary" onClick={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}>Choisir dans l’arbre</Button></div>}
+                    {interactionKind !== "function" && <div className="tree-analysis-linked-node-picker"><span>Rectangle déclenché (facultatif)</span><strong>{selectedInteractionNode ? `Rectangle sélectionné — ${getNodeLabel(selectedInteractionNode) || "sans réponse"}` : "Aucun rectangle sélectionné"}</strong><div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}>Choisir dans l’arbre</Button>{interactionLinkedNodeId && <Button type="button" variant="secondary" onClick={() => setInteractionLinkedNodeId("")}>Ne lier aucun rectangle</Button>}</div></div>}
                     <p>La couleur ou l’encadrement sert à repérer la réponse dans le corrigé. Dans le lecteur, l’élève répondra toujours en encadrant le passage.</p>
-                    <div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={cancelInteraction}>Visuel seulement</Button><Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim() || (interactionKind !== "function" && !interactionLinkedNodeId)}>Créer l’événement</Button></div>
+                    <div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={cancelInteraction}>Visuel seulement</Button><Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim()}>Créer l’événement</Button></div>
                   </aside>
                 </div>
               )}
