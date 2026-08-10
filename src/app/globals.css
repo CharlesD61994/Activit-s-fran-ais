@@ -6321,20 +6321,21 @@ textarea {
   position: relative;
 }
 
-.word-group-bracket.confirmed {
-  display: inline;
-  color: var(--primary);
-  font: inherit;
-  font-weight: 900;
-  line-height: inherit;
+.word-group-range-bracket {
+  position: absolute;
+  z-index: 4;
+  width: 10px;
+  border-top: 3px solid var(--primary);
+  border-bottom: 3px solid var(--primary);
+  pointer-events: none;
 }
 
-.word-group-bracket.confirmed.left {
-  margin-right: .04em;
+.word-group-range-bracket.left {
+  border-left: 3px solid var(--primary);
 }
 
-.word-group-bracket.confirmed.right {
-  margin-left: .04em;
+.word-group-range-bracket.right {
+  border-right: 3px solid var(--primary);
 }
 
 .word-group-confirmed-frame {

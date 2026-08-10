@@ -566,6 +566,15 @@ export function InteractiveSentenceReader({
   }
 
   const tokenMap = new Map(layoutTokens.map((token) => [token.key, token]));
+  const stableLineBreaks = layoutLines.slice(0, -1).reduce<number[]>((breaks, line) => {
+    const previous = breaks[breaks.length - 1] ?? 0;
+    const lineLength = line.reduce((length, key) => {
+      const token = tokenMap.get(key);
+      if (!token) return length;
+      return length + (token.correction ? token.correction.correctedText.length : token.text.length);
+    }, 0);
+    return [...breaks, previous + lineLength];
+  }, []);
 
   const renderedLines =
     layoutLines.length > 0
@@ -611,6 +620,7 @@ export function InteractiveSentenceReader({
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
             finishControl={hybridGroupComplete ? finishControl : undefined}
             embedded
+            forcedLineBreaks={stableLineBreaks}
           />
           {hybridGroupComplete && <GrammarExtensionReader sentence={correctedGrammarSentence} excludedKinds={["group", "nucleus", "function"]} />}
         </>

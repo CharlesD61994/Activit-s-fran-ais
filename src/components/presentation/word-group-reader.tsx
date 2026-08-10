@@ -59,6 +59,7 @@ type Props = {
   boundaryMode?: "brackets" | "frame";
   continuationBoundaryMode?: "brackets" | "frame";
   embedded?: boolean;
+  forcedLineBreaks?: number[];
 };
 
 type Token = {
@@ -150,7 +151,8 @@ export function WordGroupReader({
   finishControl,
   boundaryMode = "brackets",
   continuationBoundaryMode = "frame",
-  embedded = false
+  embedded = false,
+  forcedLineBreaks = []
 }: Props) {
   const targets = useMemo(
     () =>
@@ -1307,6 +1309,17 @@ export function WordGroupReader({
           if (!position || !found) return null;
           return <span key={`frame-${target.id}`} className="word-group-confirmed-frame" style={{ left: position.x - position.width / 2 - 7, top: position.y - 4, width: position.width + 14, height: position.height + 8 }} />;
         })}
+        {[...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")].flatMap((target) => {
+          const position = labelPositions[target.id];
+          if (!position) return [];
+          const allTargets = [...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")];
+          const leftDepth = allTargets.filter((candidate) => candidate.start === target.start).findIndex((candidate) => candidate.id === target.id);
+          const rightDepth = allTargets.filter((candidate) => candidate.end === target.end).findIndex((candidate) => candidate.id === target.id);
+          const result: React.ReactNode[] = [];
+          if (leftFoundIds.includes(target.id) || functionLeftIds.includes(target.id)) result.push(<span key={`left-mark-${target.id}`} className="word-group-range-bracket left" style={{ left: position.x - position.width / 2 - 12 - Math.max(0, leftDepth) * 7, top: position.y - 4, height: position.height + 8 }} />);
+          if (rightFoundIds.includes(target.id) || functionRightIds.includes(target.id)) result.push(<span key={`right-mark-${target.id}`} className="word-group-range-bracket right" style={{ left: position.x + position.width / 2 + 4 + Math.max(0, rightDepth) * 7, top: position.y - 4, height: position.height + 8 }} />);
+          return result;
+        })}
         {targets.map((target) => {
           const position = labelPositions[target.id];
           const classified = classifiedIds.includes(target.id);
@@ -1397,12 +1410,11 @@ export function WordGroupReader({
 
         <div className="word-group-reader-text">
           {tokens.map((token) => {
-            const bracketTargets = [...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")];
-            const leftSymbols = bracketTargets.filter((target) => (leftFoundIds.includes(target.id) || functionLeftIds.includes(target.id)) && target.start >= token.start && target.start < token.end);
-            const rightSymbols = bracketTargets.filter((target) => (rightFoundIds.includes(target.id) || functionRightIds.includes(target.id)) && target.end > token.start && target.end <= token.end);
+            const breakBefore = forcedLineBreaks.some((position) => position >= token.start && position < token.end);
             return (
+              <span key={token.id}>
+              {breakBefore && <br />}
               <span
-                key={token.id}
                 className={
                   token.isWord
                     ? `word-group-reader-token${
@@ -1430,9 +1442,8 @@ export function WordGroupReader({
                     : undefined
                 }
               >
-                {leftSymbols.map((target) => <span className="word-group-bracket confirmed left" key={`left-${target.id}`}>[</span>)}
                 {token.text}
-                {rightSymbols.map((target) => <span className="word-group-bracket confirmed right" key={`right-${target.id}`}>]</span>)}
+              </span>
               </span>
             );
           })}
