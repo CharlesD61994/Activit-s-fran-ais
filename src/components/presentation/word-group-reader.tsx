@@ -9,6 +9,8 @@ import {
 import { CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
+import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
+import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
 type Boundary = "left_bracket" | "right_bracket";
@@ -63,85 +65,8 @@ type Props = {
   forcedLineBreaks?: number[];
 };
 
-type Token = {
-  id: string;
-  text: string;
-  start: number;
-  end: number;
-  isWord: boolean;
-};
-
-type StrokePoint = {
-  x: number;
-  y: number;
-};
-
-function tokenize(text: string): Token[] {
-  return Array.from(
-    text.matchAll(/[\p{L}\p{M}]+|[^\p{L}\p{M}]+/gu)
-  ).map((match, index) => {
-    const value = match[0];
-    const start = match.index ?? 0;
-
-    return {
-      id: `group-token-${index}-${start}`,
-      text: value,
-      start,
-      end: start + value.length,
-      isWord: /[\p{L}\p{M}]/u.test(value)
-    };
-  });
-}
-
-function recognizeBracket(
-  points: StrokePoint[]
-): "[" | "]" | null {
-  if (points.length < 3) return null;
-
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const width = maxX - minX;
-  const height = maxY - minY;
-
-  if (height < 15 || width < 2 || height < width * 0.65) {
-    return null;
-  }
-
-  const sideBand = Math.max(5, width * 0.44);
-  const leftStem = points.filter(
-    (point) => point.x <= minX + sideBand
-  ).length;
-  const rightStem = points.filter(
-    (point) => point.x >= maxX - sideBand
-  ).length;
-
-  if (Math.abs(leftStem - rightStem) < points.length * 0.08) {
-    const top = points.filter(
-      (point) => point.y <= minY + height * 0.25
-    );
-    const bottom = points.filter(
-      (point) => point.y >= maxY - height * 0.25
-    );
-
-    const topAverage =
-      top.reduce((sum, point) => sum + point.x, 0) /
-      Math.max(1, top.length);
-    const bottomAverage =
-      bottom.reduce((sum, point) => sum + point.x, 0) /
-      Math.max(1, bottom.length);
-    const middleX = (minX + maxX) / 2;
-
-    return (topAverage + bottomAverage) / 2 >= middleX
-      ? "["
-      : "]";
-  }
-
-  return leftStem > rightStem ? "[" : "]";
-}
+type Token = GrammarRangeToken;
+type StrokePoint = InteractionPoint;
 
 export function WordGroupReader({
   sentence,
@@ -163,7 +88,7 @@ export function WordGroupReader({
     [sentence.wordGroupTargets]
   );
   const tokens = useMemo(
-    () => tokenize(sentence.originalText),
+    () => tokenizeGrammarText(sentence.originalText, "group-token"),
     [sentence.originalText]
   );
 
@@ -710,18 +635,8 @@ export function WordGroupReader({
     };
   }
 
-  function strokeCenter(points: StrokePoint[]) {
-    const xs = points.map((point) => point.x);
-    const ys = points.map((point) => point.y);
-
-    return {
-      x: (Math.min(...xs) + Math.max(...xs)) / 2,
-      y: (Math.min(...ys) + Math.max(...ys)) / 2
-    };
-  }
-
   function validateStroke(points: StrokePoint[]) {
-    const recognized = recognizeBracket(points);
+    const recognized = recognizeBracketStroke(points);
     if (!recognized) {
       setMessage("Trace un crochet plus clairement.");
       return;
@@ -732,64 +647,11 @@ export function WordGroupReader({
     const boundaryTargets = markingFunctions ? functionTargets : targets;
     const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
     const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
-    const center = strokeCenter(points);
-    const horizontalTolerance = 52;
-
     const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : currentTarget?.id;
-    const candidates = boundaryTargets
-      .filter((target) => !requestedTargetId || target.id === requestedTargetId)
-      .filter((target) => !nucleusFoundIds.includes(target.id))
-      .filter((target) =>
-        boundary === "left_bracket"
-          ? !foundLeftIds.includes(target.id)
-          : !foundRightIds.includes(target.id)
-      )
-      .map((target) => {
-        const index = boundaryTargets.findIndex(
-          (candidateTarget) => candidateTarget.id === target.id
-        );
-        const anchor = expectedAnchor(target, boundary);
-        if (!anchor) return null;
-
-        const verticalTolerance = Math.max(
-          58,
-          anchor.height * 1.12
-        );
-        const dx = Math.abs(center.x - anchor.x);
-        const dy = Math.abs(center.y - anchor.y);
-
-        if (
-          dx > horizontalTolerance ||
-          dy > verticalTolerance
-        ) {
-          return null;
-        }
-
-        const otherFound =
-          boundary === "left_bracket"
-            ? foundRightIds.includes(target.id)
-            : foundLeftIds.includes(target.id);
-
-        return {
-          target,
-          index,
-          anchor,
-          otherFound,
-          score:
-            dx / horizontalTolerance +
-            dy / verticalTolerance -
-            (otherFound ? 0.45 : 0)
-        };
-      })
-      .filter(
-        (
-          candidate
-        ): candidate is NonNullable<typeof candidate> =>
-          Boolean(candidate)
-      )
-      .sort((a, b) => a.score - b.score);
-
-    if (!candidates.length) {
+    const unavailableIds = Array.from(new Set([...nucleusFoundIds, ...(boundary === "left_bracket" ? foundLeftIds : foundRightIds)]));
+    const otherBoundaryIds = boundary === "left_bracket" ? foundRightIds : foundLeftIds;
+    const matched = chooseBracketTarget(points, boundaryTargets, unavailableIds, otherBoundaryIds, requestedTargetId, (target) => expectedAnchor(target, boundary));
+    if (!matched) {
       setMessage(
         recognized === "["
           ? "Le crochet gauche n’est pas au bon endroit."
@@ -797,12 +659,6 @@ export function WordGroupReader({
       );
       return;
     }
-
-    const best = candidates[0];
-
-    // Un tracé valide une seule cible, même lorsque deux groupes
-    // enchâssés partagent exactement la même limite.
-    const matched = best;
 
     if (markingFunctions) {
       if (boundary === "left_bracket") setFunctionLeftIds((current) => current.includes(matched.target.id) ? current : [...current, matched.target.id]);
@@ -897,7 +753,7 @@ export function WordGroupReader({
     const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
     const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
     const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : currentTarget?.id;
-    const match = boundaryTargets.find((target) => (!requestedTargetId || target.id === requestedTargetId) && !foundLeftIds.includes(target.id) && !foundRightIds.includes(target.id) && start <= target.start && end >= target.end && Math.abs(start - target.start) <= 2 && Math.abs(end - target.end) <= 2);
+    const match = matchDrawnRange(start, end, boundaryTargets, Array.from(new Set([...foundLeftIds, ...foundRightIds])), requestedTargetId);
     setFrameStart(null);
     setFrameCurrent(null);
     if (!match) {
