@@ -11,7 +11,7 @@ type Props = {
 
 export function GrammarWorkflowPlanner({ phases, onChange }: Props) {
   const available = (Object.keys(grammarPhaseLabels) as GrammarPhaseKind[])
-    .filter((kind) => !phases.some((phase) => phase.kind === kind));
+    .filter((kind) => kind !== "nuclei" && !phases.some((phase) => phase.kind === kind));
 
   function move(index: number, direction: -1 | 1) {
     const target = index + direction;

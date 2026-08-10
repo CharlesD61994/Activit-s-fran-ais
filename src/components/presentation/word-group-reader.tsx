@@ -62,6 +62,7 @@ type Props = {
   finishControl?: React.ReactNode;
   boundaryMode?: "brackets" | "frame";
   continuationBoundaryMode?: "brackets" | "frame";
+  identifyNuclei?: boolean;
   embedded?: boolean;
   forcedLineBreaks?: number[];
 };
@@ -78,6 +79,7 @@ export function WordGroupReader({
   finishControl,
   boundaryMode = "brackets",
   continuationBoundaryMode = "frame",
+  identifyNuclei = true,
   embedded = false,
   forcedLineBreaks = []
 }: Props) {
@@ -140,7 +142,7 @@ export function WordGroupReader({
   const groupsComplete =
     targets.length === 0 || targets.every(
       (target) =>
-        nucleusFoundIds.includes(target.id) &&
+        (!identifyNuclei ? classifiedIds.includes(target.id) : nucleusFoundIds.includes(target.id)) &&
         (!isContractedNested(target) ||
           gprepNucleusFoundIds.includes(target.id))
     );
@@ -204,7 +206,7 @@ export function WordGroupReader({
                   : "brackets"
       : currentBracketsFound && !currentClassified
         ? "type"
-        : currentClassified && !currentNucleusFound
+        : identifyNuclei && currentClassified && !currentNucleusFound
           ? "nucleus"
           : "brackets";
 
@@ -649,7 +651,8 @@ export function WordGroupReader({
     const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
     const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
     const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : currentTarget?.id;
-    const unavailableIds = Array.from(new Set([...nucleusFoundIds, ...(boundary === "left_bracket" ? foundLeftIds : foundRightIds)]));
+    const completedGroupIds = identifyNuclei ? nucleusFoundIds : classifiedIds;
+    const unavailableIds = Array.from(new Set([...completedGroupIds, ...(boundary === "left_bracket" ? foundLeftIds : foundRightIds)]));
     const otherBoundaryIds = boundary === "left_bracket" ? foundRightIds : foundLeftIds;
     const matched = chooseBracketTarget(points, boundaryTargets, unavailableIds, otherBoundaryIds, requestedTargetId, (target) => expectedAnchor(target, boundary));
     if (!matched) {
@@ -841,7 +844,7 @@ export function WordGroupReader({
     const nextIndex = targets.findIndex(
       (target) =>
         target.id !== completedTargetId &&
-        !nucleusFoundIds.includes(target.id)
+        !(identifyNuclei ? nucleusFoundIds : classifiedIds).includes(target.id)
     );
 
     if (nextIndex >= 0) {
@@ -912,6 +915,9 @@ export function WordGroupReader({
       1,
       `group-type-${currentTarget.id}`
     );
+    if (!identifyNuclei && !isContractedNested(currentTarget)) {
+      window.setTimeout(() => returnToFreeSearch(currentTarget.id), 250);
+    }
   }
 
   function selectNucleus(token: Token) {
@@ -1086,7 +1092,7 @@ export function WordGroupReader({
             <span className="word-group-reader-counter">
               {markingFunctions
                 ? `${functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length}/${functionTargets.length} fonctions encadrées`
-                : `${nucleusFoundIds.length}/${targets.length} groupes complétés`}
+                : `${(identifyNuclei ? nucleusFoundIds : classifiedIds).length}/${targets.length} groupes complétés`}
             </span>
           )}
         </div>

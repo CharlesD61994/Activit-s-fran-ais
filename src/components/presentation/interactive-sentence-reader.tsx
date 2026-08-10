@@ -324,6 +324,7 @@ export function InteractiveSentenceReader({
   const usesNativeGroupPhase = sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0;
   const usesSharedRangeSurface = Boolean(usesNativeGroupPhase || (correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "function") && sentence.workflowPhases?.some((phase) => phase.kind === "functions" && phase.actions.some((action) => action.enabled)));
   const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
+  const identifyGroupNuclei = Boolean(sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) || sentence.workflowPhases?.find((phase) => phase.kind === "nuclei")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled));
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
@@ -626,6 +627,7 @@ export function InteractiveSentenceReader({
             onCompleteChange={setHybridGroupComplete}
             boundaryMode={groupBoundaryMode}
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
+            identifyNuclei={identifyGroupNuclei}
             embedded
             forcedLineBreaks={stableLineBreaks}
           />

@@ -13,8 +13,8 @@ export function RangeMarksLayer({ targets, positions, leftIds, rightIds, mode }:
     const leftDepth = Math.max(0, sameLeft.findIndex((candidate) => candidate.id === target.id));
     const rightDepth = Math.max(0, sameRight.findIndex((candidate) => candidate.id === target.id));
     const marks: React.ReactNode[] = [];
-    if (leftIds.includes(target.id)) marks.push(<span key={`left-mark-${target.id}`} className="word-group-range-bracket left" style={{ left: position.x - position.width / 2 - 10 - leftDepth * 7, top: position.y - 4, height: position.height + 8 }}/>);
-    if (rightIds.includes(target.id)) marks.push(<span key={`right-mark-${target.id}`} className="word-group-range-bracket right" style={{ left: position.x + position.width / 2 - 7 + rightDepth * 7, top: position.y - 4, height: position.height + 8 }}/>);
+    if (leftIds.includes(target.id)) marks.push(<span key={`left-mark-${target.id}`} className="word-group-range-bracket left" style={{ left: position.startX - 10 - leftDepth * 7, top: position.startY - 4, height: position.startHeight + 8 }}/>);
+    if (rightIds.includes(target.id)) marks.push(<span key={`right-mark-${target.id}`} className="word-group-range-bracket right" style={{ left: position.endX - 7 + rightDepth * 7, top: position.endY - 4, height: position.endHeight + 8 }}/>);
     return marks;
   })}</>;
 }

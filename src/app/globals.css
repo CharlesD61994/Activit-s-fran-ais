@@ -6538,6 +6538,12 @@ textarea {
   box-shadow: 0 14px 36px rgba(0,0,0,.18);
 }
 
+/* Le sélecteur de groupe doit passer devant la barre de points fixe, mais rester sous l'entête Quitter. */
+.word-group-reader:has(.word-group-type-menu) {
+  position: relative;
+  z-index: 125;
+}
+
 .word-group-type-menu.open-right {
   left: calc(100% + 12px);
   right: auto;

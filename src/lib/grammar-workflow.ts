@@ -45,7 +45,7 @@ export const grammarActionLabels: Record<GrammarActionKind, string> = {
 
 const actionsByPhase: Record<GrammarPhaseKind, GrammarActionKind[]> = {
   correction: ["find_errors", "write_corrections", "identify_codes"],
-  groups: ["frame_groups", "identify_group_types"],
+  groups: ["frame_groups", "identify_group_types", "find_nuclei"],
   word_classes: ["identify_word_classes"],
   nuclei: ["find_nuclei"],
   functions: ["frame_functions", "identify_functions"],
@@ -67,6 +67,23 @@ export function createWorkflowPhase(kind: GrammarPhaseKind): GrammarWorkflowPhas
   };
 }
 
+export function normalizeGrammarWorkflow(phases: GrammarWorkflowPhase[], includeNuclei = false): GrammarWorkflowPhase[] {
+  const nucleusPhase = phases.find((phase) => phase.kind === "nuclei");
+  const shouldIncludeNuclei = includeNuclei || Boolean(nucleusPhase?.actions.some((action) => action.kind === "find_nuclei" && action.enabled));
+  const withoutLegacyNuclei = phases.filter((phase) => phase.kind !== "nuclei");
+  let groups = withoutLegacyNuclei.find((phase) => phase.kind === "groups");
+  if (!groups && shouldIncludeNuclei) {
+    groups = createWorkflowPhase("groups");
+    withoutLegacyNuclei.push(groups);
+  }
+  return withoutLegacyNuclei.map((phase) => {
+    if (phase.kind !== "groups") return phase;
+    const hasNucleusAction = phase.actions.some((action) => action.kind === "find_nuclei");
+    if (hasNucleusAction) return phase;
+    return { ...phase, actions: [...phase.actions, { id: crypto.randomUUID(), kind: "find_nuclei", enabled: shouldIncludeNuclei }] };
+  });
+}
+
 export function objectiveFromActivityType(type?: ActivityType): GrammarObjective {
   if (type === "text_correction") return "text_correction";
   if (type === "word_classes") return "word_classes";
@@ -76,7 +93,7 @@ export function objectiveFromActivityType(type?: ActivityType): GrammarObjective
 
 export function defaultWorkflowForObjective(objective: GrammarObjective): GrammarWorkflowPhase[] {
   if (objective === "word_classes") return [createWorkflowPhase("word_classes")];
-  if (objective === "word_groups") return [createWorkflowPhase("groups"), createWorkflowPhase("nuclei")];
+  if (objective === "word_groups") return [createWorkflowPhase("groups")];
   if (objective === "functions") return [createWorkflowPhase("functions")];
   if (objective === "agreements") return [createWorkflowPhase("agreements")];
   if (objective === "mixed_grammar") return [];
@@ -88,9 +105,10 @@ export function getSentenceObjective(sentence: Sentence): GrammarObjective {
 }
 
 export function getSentenceWorkflow(sentence: Sentence): GrammarWorkflowPhase[] {
-  return sentence.workflowPhases?.length
+  const phases = sentence.workflowPhases?.length
     ? sentence.workflowPhases
     : defaultWorkflowForObjective(getSentenceObjective(sentence));
+  return normalizeGrammarWorkflow(phases, Boolean(sentence.grammarAnnotations?.some((annotation) => annotation.kind === "nucleus")));
 }
 
 export function getSecondaryObjectives(sentence: Sentence): GrammarPhaseKind[] {
