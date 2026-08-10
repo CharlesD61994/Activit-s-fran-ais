@@ -43,6 +43,7 @@ const annotationLabels: Record<Exclude<GrammarAnnotationKind, "error">, string> 
 const annotationAnswers: Partial<Record<GrammarAnnotationKind, string[]>> = {
   group: ["GN", "GV", "GAdj", "GAdv", "GPrép"],
   word_class: ["Nom", "Déterminant", "Verbe", "Adjectif", "Pronom", "Adverbe", "Préposition", "Conjonction"],
+  nucleus: ["Nom", "Déterminant", "Verbe", "Adjectif", "Pronom", "Adverbe", "Préposition", "Conjonction"],
   function: ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut du sujet", "Complément du nom"],
   donor: ["Donneur d’accord"],
   receiver: ["Receveur d’accord"]

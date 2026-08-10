@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lightbulb, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GrammarExtensionReader } from "@/components/presentation/grammar-extension-reader";
-import type { CorrectionCode, Sentence, SentenceCorrection } from "@/types";
+import { WordGroupReader } from "@/components/presentation/word-group-reader";
+import type { CorrectionCode, Sentence, SentenceCorrection, WordGroupTarget, WordGroupType } from "@/types";
 
 type Props = {
   sentence: Sentence;
@@ -33,6 +34,53 @@ type LayoutToken = {
   text: string;
   correction?: SentenceCorrection;
 };
+
+const hybridGroupTypes = new Set<WordGroupType>(["GN", "GV", "GAdj", "GAdv", "GPrep"]);
+
+function buildCorrectedText(sentence: Sentence) {
+  let cursor = 0;
+  let result = "";
+  [...sentence.corrections].sort((a, b) => a.start - b.start).forEach((correction) => {
+    result += sentence.originalText.slice(cursor, correction.start) + correction.correctedText;
+    cursor = correction.end;
+  });
+  return result + sentence.originalText.slice(cursor);
+}
+
+function mapOriginalPosition(sentence: Sentence, position: number) {
+  let delta = 0;
+  for (const correction of [...sentence.corrections].sort((a, b) => a.start - b.start)) {
+    if (position >= correction.end) {
+      delta += correction.correctedText.length - (correction.end - correction.start);
+      continue;
+    }
+    if (position > correction.start) return correction.start + delta + correction.correctedText.length;
+    break;
+  }
+  return position + delta;
+}
+
+function buildHybridGroupTargets(sentence: Sentence, correctedText: string): WordGroupTarget[] {
+  const annotations = sentence.grammarAnnotations ?? [];
+  const nuclei = annotations.filter((annotation) => annotation.kind === "nucleus");
+  return annotations.filter((annotation) => annotation.kind === "group" && hybridGroupTypes.has(annotation.label as WordGroupType)).map((group) => {
+    const nucleus = nuclei.find((candidate) => candidate.start >= group.start && candidate.end <= group.end);
+    const start = mapOriginalPosition(sentence, group.start);
+    const end = mapOriginalPosition(sentence, group.end);
+    const nucleusStart = nucleus ? mapOriginalPosition(sentence, nucleus.start) : start;
+    const nucleusEnd = nucleus ? mapOriginalPosition(sentence, nucleus.end) : Math.min(end, correctedText.indexOf(" ", start) > start ? correctedText.indexOf(" ", start) : end);
+    return {
+      id: group.id,
+      start,
+      end,
+      text: correctedText.slice(start, end),
+      groupType: group.label as WordGroupType,
+      nucleusStart,
+      nucleusEnd,
+      nucleusText: correctedText.slice(nucleusStart, nucleusEnd)
+    };
+  });
+}
 
 function splitTextPreservingLayout(text: string): Array<{
   type: "text" | "break";
@@ -118,6 +166,7 @@ export function InteractiveSentenceReader({
   const [codePointIds, setCodePointIds] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
+  const [hybridGroupComplete, setHybridGroupComplete] = useState(false);
   const sentenceRef = useRef<HTMLDivElement>(null);
   const restorePointsRef = useRef(onRestorePoints);
 
@@ -254,6 +303,10 @@ export function InteractiveSentenceReader({
   const requiresCorrectionCodes = !sentence.workflowPhases?.length || sentence.workflowPhases.some((phase) =>
     phase.kind === "correction" && phase.actions.some((action) => action.kind === "identify_codes" && action.enabled)
   );
+  const correctedText = useMemo(() => buildCorrectedText(sentence), [sentence]);
+  const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
+  const usesNativeGroupPhase = sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0;
+  const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
 
@@ -392,20 +445,6 @@ export function InteractiveSentenceReader({
 
   function abandonCurrentStep() {
     if (!activeCorrection) return;
-
-    if (dialogMode === "word") {
-      setCorrectedIds((items) =>
-        items.includes(activeCorrection.id) ? items : [...items, activeCorrection.id]
-      );
-      setActiveCorrection(null);
-      setAnswer("");
-      setMessage("");
-      return;
-    }
-
-    setCodedIds((items) =>
-      items.includes(activeCorrection.id) ? items : [...items, activeCorrection.id]
-    );
     setActiveCorrection(null);
     setAnswer("");
     setMessage("");
@@ -534,14 +573,27 @@ export function InteractiveSentenceReader({
         <Button variant="secondary" onClick={restart}>
           Recommencer
         </Button>
-        {finishControl}
+        {!usesNativeGroupPhase && finishControl}
       </div>
 
       <div className="interactive-sentence" ref={sentenceRef}>
         {renderedLines}
       </div>
 
-      {ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id))) && (
+      {correctionComplete && usesNativeGroupPhase && (
+        <>
+          <WordGroupReader
+            sentence={{ ...sentence, originalText: correctedText, corrections: [], wordGroupTargets: hybridGroupTargets }}
+            persistenceKey={persistenceKey ? `${persistenceKey}-groups` : undefined}
+            onPoint={() => undefined}
+            onCompleteChange={setHybridGroupComplete}
+            finishControl={hybridGroupComplete ? finishControl : undefined}
+          />
+          {hybridGroupComplete && <GrammarExtensionReader sentence={sentence} excludedKinds={["group", "nucleus"]} />}
+        </>
+      )}
+
+      {correctionComplete && !usesNativeGroupPhase && (
         <GrammarExtensionReader sentence={sentence} />
       )}
 

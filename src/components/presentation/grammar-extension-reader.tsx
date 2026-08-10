@@ -25,11 +25,11 @@ function words(text: string): WordToken[] {
   }));
 }
 
-export function GrammarExtensionReader({ sentence }: { sentence: Sentence }) {
+export function GrammarExtensionReader({ sentence, excludedKinds = [] }: { sentence: Sentence; excludedKinds?: GrammarAnnotationKind[] }) {
   const annotations = sentence.grammarAnnotations ?? [];
-  const steps = useMemo(() => (sentence.workflowPhases ?? []).flatMap((phase) => phase.actions
-    .filter((action) => action.enabled && actionAnnotationKind[action.kind])
-    .map((action) => ({ phase, action, kind: actionAnnotationKind[action.kind]! }))), [sentence.workflowPhases]);
+  const steps = (sentence.workflowPhases ?? []).flatMap((phase) => phase.actions
+    .filter((action) => action.enabled && actionAnnotationKind[action.kind] && !excludedKinds.includes(actionAnnotationKind[action.kind]!))
+    .map((action) => ({ phase, action, kind: actionAnnotationKind[action.kind]! })));
   const [stepIndex, setStepIndex] = useState(0);
   const [anchor, setAnchor] = useState<WordToken | null>(null);
   const [solvedIds, setSolvedIds] = useState<string[]>([]);
