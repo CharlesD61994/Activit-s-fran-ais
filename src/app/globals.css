@@ -6447,9 +6447,9 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.7em;
-  min-height: .82em;
-  padding: 0 .18em;
+  min-width: 46px;
+  min-height: 42px;
+  padding: 7px 11px;
   border: 2px solid var(--primary);
   border-radius: .18em;
   background: var(--surface);
@@ -6462,6 +6462,8 @@ textarea {
 
 .word-group-code-box.filled {
   min-width: auto;
+  min-height: auto;
+  padding: 0;
   border-color: transparent;
   background: transparent;
   font-size: 1rem;
@@ -6471,10 +6473,9 @@ textarea {
 .word-group-type-menu {
   position: absolute;
   z-index: 200;
-  left: 50%;
-  top: auto;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%);
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
   display: grid;
   gap: 5px;
   width: min(340px, calc(100vw - 42px));
@@ -6483,6 +6484,16 @@ textarea {
   border-radius: 13px;
   background: var(--surface);
   box-shadow: 0 14px 36px rgba(0,0,0,.18);
+}
+
+.word-group-type-menu.open-right {
+  left: calc(100% + 12px);
+  right: auto;
+}
+
+.word-group-type-menu.open-left {
+  right: calc(100% + 12px);
+  left: auto;
 }
 
 .word-group-type-menu button {
@@ -6520,6 +6531,11 @@ textarea {
 @media (max-width:760px) {
   .word-group-type-menu {
     width: min(300px, calc(100vw - 28px));
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .word-group-code-box,

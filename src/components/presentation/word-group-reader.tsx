@@ -176,6 +176,7 @@ export function WordGroupReader({
   const [nestedPresenceFoundIds, setNestedPresenceFoundIds] = useState<string[]>([]);
   const [nestedTypeFoundIds, setNestedTypeFoundIds] = useState<string[]>([]);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const [typeMenuSide, setTypeMenuSide] = useState<"left" | "right">("right");
   const [contractedAnswer, setContractedAnswer] = useState("");
   const [stroke, setStroke] = useState<StrokePoint[]>([]);
   const [drawing, setDrawing] = useState(false);
@@ -888,6 +889,8 @@ export function WordGroupReader({
 
     if (!markingFunctions) setCurrentIndex(matched.index);
     if (newlyCompleted && !markingFunctions) {
+      const surfaceWidth = surfaceRef.current?.clientWidth ?? 0;
+      setTypeMenuSide((labelPositions[matched.target.id]?.x ?? 0) > surfaceWidth * .58 ? "left" : "right");
       setTypeMenuOpen(true);
     }
 
@@ -970,6 +973,8 @@ export function WordGroupReader({
       setLeftFoundIds((current) => [...current, match.id]);
       setRightFoundIds((current) => [...current, match.id]);
       setCurrentIndex(index);
+      const surfaceWidth = surfaceRef.current?.clientWidth ?? 0;
+      setTypeMenuSide((labelPositions[match.id]?.x ?? 0) > surfaceWidth * .58 ? "left" : "right");
       setTypeMenuOpen(true);
       onPoint(match, "left_bracket", 1, `group-left-${match.id}`);
       onPoint(match, "right_bracket", 1, `group-right-${match.id}`);
@@ -1332,14 +1337,18 @@ export function WordGroupReader({
                   <button
                     type="button"
                     className="word-group-code-box"
-                    onClick={() => setTypeMenuOpen((open) => !open)}
+                    onClick={() => {
+                      const surfaceWidth = surfaceRef.current?.clientWidth ?? 0;
+                      setTypeMenuSide((position?.x ?? 0) > surfaceWidth * .58 ? "left" : "right");
+                      setTypeMenuOpen((open) => !open);
+                    }}
                     aria-expanded={typeMenuOpen}
                     aria-label="Choisir le type de groupe"
                   >
                     <span aria-hidden="true">&nbsp;</span>
                   </button>
                   {typeMenuOpen && (
-                    <div className="word-group-type-menu">
+                    <div className={`word-group-type-menu open-${typeMenuSide}`}>
                       {(Object.keys(groupLabels) as WordGroupType[]).map(
                         (groupType) => (
                           <button
