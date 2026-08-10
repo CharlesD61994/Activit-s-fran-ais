@@ -6298,17 +6298,18 @@ textarea {
   position: relative;
 }
 
-.word-group-bracket.confirmed {
+.word-group-overlay-bracket {
   position: absolute;
-  z-index: 3;
-  top: 0;
-  bottom: 0;
-  display: inline-flex;
+  z-index: 4;
+  display: flex;
   align-items: center;
+  justify-content: center;
   color: var(--primary);
-  font: inherit;
+  font-family: Arial, sans-serif;
+  font-size: clamp(2rem, 4vw, 4.2rem);
   font-weight: 900;
-  line-height: inherit;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .word-group-confirmed-frame {
@@ -6317,14 +6318,6 @@ textarea {
   border: 3px solid var(--primary);
   border-radius: 6px;
   pointer-events: none;
-}
-
-.word-group-bracket.confirmed.left {
-  right: calc(100% + .02em);
-}
-
-.word-group-bracket.confirmed.right {
-  left: calc(100% + .02em);
 }
 
 .word-group-drawing-canvas {
@@ -6429,9 +6422,9 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.7em;
-  min-height: .82em;
-  padding: 0 .18em;
+  min-width: 44px;
+  min-height: 38px;
+  padding: 6px 10px;
   border: 2px solid var(--primary);
   border-radius: .18em;
   background: var(--surface);
@@ -6473,6 +6466,7 @@ textarea {
   align-items: center;
   gap: 7px;
   width: 100%;
+  min-height: 44px;
   padding: 9px 10px;
   border: 0;
   border-radius: 9px;
