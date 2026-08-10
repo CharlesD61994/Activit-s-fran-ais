@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
+import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
 type Boundary = "left_bracket" | "right_bracket";
@@ -1095,24 +1096,8 @@ export function WordGroupReader({
         className={`word-group-drawing-surface phase-${phase}`}
         ref={surfaceRef}
       >
-        {[...targets.filter(() => boundaryMode === "frame"), ...functionTargets.filter(() => continuationBoundaryMode === "frame")].map((target) => {
-          const position = labelPositions[target.id];
-          const isFunction = functionTargets.some((candidate) => candidate.id === target.id);
-          const found = isFunction ? functionLeftIds.includes(target.id) && functionRightIds.includes(target.id) : leftFoundIds.includes(target.id) && rightFoundIds.includes(target.id);
-          if (!position || !found) return null;
-          return <span key={`frame-${target.id}`} className="word-group-confirmed-frame" style={{ left: position.x - position.width / 2 - 7, top: position.y - 4, width: position.width + 14, height: position.height + 8 }} />;
-        })}
-        {[...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")].flatMap((target) => {
-          const position = labelPositions[target.id];
-          if (!position) return [];
-          const allTargets = [...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")];
-          const leftDepth = allTargets.filter((candidate) => candidate.start === target.start).findIndex((candidate) => candidate.id === target.id);
-          const rightDepth = allTargets.filter((candidate) => candidate.end === target.end).findIndex((candidate) => candidate.id === target.id);
-          const result: React.ReactNode[] = [];
-          if (leftFoundIds.includes(target.id) || functionLeftIds.includes(target.id)) result.push(<span key={`left-mark-${target.id}`} className="word-group-range-bracket left" style={{ left: position.x - position.width / 2 - 12 - Math.max(0, leftDepth) * 7, top: position.y - 4, height: position.height + 8 }} />);
-          if (rightFoundIds.includes(target.id) || functionRightIds.includes(target.id)) result.push(<span key={`right-mark-${target.id}`} className="word-group-range-bracket right" style={{ left: position.x + position.width / 2 + 4 + Math.max(0, rightDepth) * 7, top: position.y - 4, height: position.height + 8 }} />);
-          return result;
-        })}
+        <RangeMarksLayer targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>
+        <RangeMarksLayer targets={functionTargets} positions={labelPositions} leftIds={functionLeftIds} rightIds={functionRightIds} mode={continuationBoundaryMode}/>
         {targets.map((target) => {
           const position = labelPositions[target.id];
           const classified = classifiedIds.includes(target.id);
