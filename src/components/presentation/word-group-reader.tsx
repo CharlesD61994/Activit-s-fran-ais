@@ -29,6 +29,14 @@ function isContractedNested(target?: WordGroupTarget | null) {
   );
 }
 
+function functionInstructionLabel(label?: string) {
+  const value = label?.trim().toLocaleLowerCase("fr-CA");
+  if (!value) return "la fonction demandée";
+  if (value.startsWith("attribut")) return `l’${value}`;
+  if (value.startsWith("sujet") || value.startsWith("prédicat") || value.startsWith("complément")) return `le ${value}`;
+  return `la fonction « ${value} »`;
+}
+
 type RestoredPoint = {
   target: WordGroupTarget;
   stage: WordGroupStage;
@@ -211,6 +219,8 @@ export function WordGroupReader({
   const functionsComplete = functionTargets.every((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id));
   const complete = groupsComplete && functionsComplete;
   const markingFunctions = groupsComplete && !functionsComplete;
+  const currentFunctionTarget = functionTargets.find((target) => !functionLeftIds.includes(target.id) || !functionRightIds.includes(target.id));
+  const currentFunctionLabel = currentFunctionTarget ? functionAnnotations.find((annotation) => annotation.id === currentFunctionTarget.id)?.label : undefined;
 
   const currentLeftFound = currentTarget
     ? leftFoundIds.includes(currentTarget.id)
@@ -785,7 +795,9 @@ export function WordGroupReader({
     const center = strokeCenter(points);
     const horizontalTolerance = 52;
 
+    const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : currentTarget?.id;
     const candidates = boundaryTargets
+      .filter((target) => !requestedTargetId || target.id === requestedTargetId)
       .filter((target) => !nucleusFoundIds.includes(target.id))
       .filter((target) =>
         boundary === "left_bracket"
@@ -942,7 +954,8 @@ export function WordGroupReader({
     const boundaryTargets = markingFunctions ? functionTargets : targets;
     const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
     const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
-    const match = boundaryTargets.find((target) => !foundLeftIds.includes(target.id) && !foundRightIds.includes(target.id) && start <= target.start && end >= target.end && Math.abs(start - target.start) <= 2 && Math.abs(end - target.end) <= 2);
+    const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : currentTarget?.id;
+    const match = boundaryTargets.find((target) => (!requestedTargetId || target.id === requestedTargetId) && !foundLeftIds.includes(target.id) && !foundRightIds.includes(target.id) && start <= target.start && end >= target.end && Math.abs(start - target.start) <= 2 && Math.abs(end - target.end) <= 2);
     setFrameStart(null);
     setFrameCurrent(null);
     if (!match) {
@@ -1250,12 +1263,15 @@ export function WordGroupReader({
     if (phase === "nested_type") {
       return "Quel est le groupe enchâssé?";
     }
-    if (markingFunctions) return continuationBoundaryMode === "frame"
-      ? "Encadre la fonction : clique sur un premier coin, puis sur le coin opposé."
-      : "Trace les crochets [ ] pour encadrer la fonction.";
+    if (markingFunctions) {
+      const functionName = functionInstructionLabel(currentFunctionLabel);
+      return continuationBoundaryMode === "frame"
+        ? `Encadre ${functionName} avec un rectangle.`
+        : `Mets ${functionName} entre crochets.`;
+    }
     return boundaryMode === "frame"
-      ? "Clique sur un premier coin, puis sur le coin opposé pour encadrer le groupe."
-      : "Trace les crochets [ ] pour délimiter le groupe.";
+      ? `Encadre le ${groupLabels[currentTarget?.groupType ?? "GN"]} avec un rectangle.`
+      : `Mets le ${groupLabels[currentTarget?.groupType ?? "GN"]} entre crochets.`;
   }
 
   return (
