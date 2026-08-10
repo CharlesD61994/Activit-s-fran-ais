@@ -1828,8 +1828,8 @@ textarea {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(15, 23, 42, .58);
-  backdrop-filter: blur(5px);
+  background: var(--background);
+  backdrop-filter: none;
 }
 
 .reader-dialog {
