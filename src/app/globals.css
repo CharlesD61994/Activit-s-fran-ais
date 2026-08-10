@@ -6299,16 +6299,13 @@ textarea {
 }
 
 .word-group-bracket.confirmed {
-  display: inline;
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
   color: var(--primary);
-  font: inherit;
-  font-weight: 900;
-  line-height: inherit;
-}
-
-.word-group-bracket.reserved {
-  display: inline;
-  visibility: hidden;
   font: inherit;
   font-weight: 900;
   line-height: inherit;
@@ -6323,11 +6320,11 @@ textarea {
 }
 
 .word-group-bracket.confirmed.left {
-  margin-right: .04em;
+  right: calc(100% + .02em);
 }
 
 .word-group-bracket.confirmed.right {
-  margin-left: .04em;
+  left: calc(100% + .02em);
 }
 
 .word-group-drawing-canvas {

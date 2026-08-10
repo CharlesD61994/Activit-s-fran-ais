@@ -47,14 +47,16 @@ function buildCorrectedText(sentence: Sentence) {
   return result + sentence.originalText.slice(cursor);
 }
 
-function mapOriginalPosition(sentence: Sentence, position: number) {
+function mapOriginalPosition(sentence: Sentence, position: number, affinity: "start" | "end" = "start") {
   let delta = 0;
   for (const correction of [...sentence.corrections].sort((a, b) => a.start - b.start)) {
     if (position >= correction.end) {
       delta += correction.correctedText.length - (correction.end - correction.start);
       continue;
     }
-    if (position > correction.start) return correction.start + delta + correction.correctedText.length;
+    if (position > correction.start) {
+      return correction.start + delta + (affinity === "end" ? correction.correctedText.length : 0);
+    }
     break;
   }
   return position + delta;
@@ -65,10 +67,10 @@ function buildHybridGroupTargets(sentence: Sentence, correctedText: string): Wor
   const nuclei = annotations.filter((annotation) => annotation.kind === "nucleus");
   return annotations.filter((annotation) => annotation.kind === "group" && hybridGroupTypes.has(annotation.label as WordGroupType)).map((group) => {
     const nucleus = nuclei.find((candidate) => candidate.start >= group.start && candidate.end <= group.end);
-    const start = mapOriginalPosition(sentence, group.start);
-    const end = mapOriginalPosition(sentence, group.end);
-    const nucleusStart = nucleus ? mapOriginalPosition(sentence, nucleus.start) : start;
-    const nucleusEnd = nucleus ? mapOriginalPosition(sentence, nucleus.end) : Math.min(end, correctedText.indexOf(" ", start) > start ? correctedText.indexOf(" ", start) : end);
+    const start = mapOriginalPosition(sentence, group.start, "start");
+    const end = mapOriginalPosition(sentence, group.end, "end");
+    const nucleusStart = nucleus ? mapOriginalPosition(sentence, nucleus.start, "start") : start;
+    const nucleusEnd = nucleus ? mapOriginalPosition(sentence, nucleus.end, "end") : Math.min(end, correctedText.indexOf(" ", start) > start ? correctedText.indexOf(" ", start) : end);
     return {
       id: group.id,
       start,
@@ -89,8 +91,8 @@ function buildCorrectedGrammarSentence(sentence: Sentence, correctedText: string
     corrections: [],
     grammarAnnotations: (sentence.grammarAnnotations ?? []).map((annotation) => ({
       ...annotation,
-      start: mapOriginalPosition(sentence, annotation.start),
-      end: mapOriginalPosition(sentence, annotation.end)
+      start: mapOriginalPosition(sentence, annotation.start, "start"),
+      end: mapOriginalPosition(sentence, annotation.end, "end")
     }))
   };
 }

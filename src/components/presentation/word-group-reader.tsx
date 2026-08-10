@@ -1371,8 +1371,8 @@ export function WordGroupReader({
         <div className="word-group-reader-text">
           {tokens.map((token) => {
             const bracketTargets = [...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")];
-            const leftSymbols = bracketTargets.filter((target) => target.start >= token.start && target.start < token.end);
-            const rightSymbols = bracketTargets.filter((target) => target.end > token.start && target.end <= token.end);
+            const leftSymbols = bracketTargets.filter((target) => (leftFoundIds.includes(target.id) || functionLeftIds.includes(target.id)) && target.start >= token.start && target.start < token.end);
+            const rightSymbols = bracketTargets.filter((target) => (rightFoundIds.includes(target.id) || functionRightIds.includes(target.id)) && target.end > token.start && target.end <= token.end);
 
             return (
               <span
@@ -1404,19 +1404,21 @@ export function WordGroupReader({
                     : undefined
                 }
               >
-                {leftSymbols.map((target) => (
+                {leftSymbols.map((target, bracketIndex) => (
                   <span
-                    className={`word-group-bracket left ${(leftFoundIds.includes(target.id) || functionLeftIds.includes(target.id)) ? "confirmed" : "reserved"}`}
+                    className="word-group-bracket confirmed left"
                     key={`left-${target.id}`}
+                    style={{ transform: `translateX(-${bracketIndex * .2}em)` }}
                   >
                     [
                   </span>
                 ))}
                 {token.text}
-                {rightSymbols.map((target) => (
+                {rightSymbols.map((target, bracketIndex) => (
                   <span
-                    className={`word-group-bracket right ${(rightFoundIds.includes(target.id) || functionRightIds.includes(target.id)) ? "confirmed" : "reserved"}`}
+                    className="word-group-bracket confirmed right"
                     key={`right-${target.id}`}
+                    style={{ transform: `translateX(${bracketIndex * .2}em)` }}
                   >
                     ]
                   </span>
