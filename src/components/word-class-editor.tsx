@@ -5,6 +5,7 @@ import { Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GrammarWorkflowPlanner } from "@/components/grammar-workflow-planner";
+import { rangesOverlap, readTextareaSelection } from "@/components/grammar/shared-textarea-selection";
 import { defaultWorkflowForObjective, grammarObjectiveLabels } from "@/lib/grammar-workflow";
 import {
   allWordClasses,
@@ -140,28 +141,19 @@ export function WordClassEditor({
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const rawStart = textarea.selectionStart;
-    const rawEnd = textarea.selectionEnd;
-    const rawText = originalText.slice(rawStart, rawEnd);
-    const leadingWhitespace = rawText.match(/^\s*/)?.[0].length ?? 0;
-    const trailingWhitespace = rawText.match(/\s*$/)?.[0].length ?? 0;
-    const start = rawStart + leadingWhitespace;
-    const end = rawEnd - trailingWhitespace;
-    const text = originalText.slice(start, end);
-
-    if (!text) {
+    const selection = readTextareaSelection(textarea, originalText);
+    if (!selection) {
       setMessage("Sélectionne précisément un mot dans le texte.");
       return;
     }
+    const { start, end, text } = selection;
 
     if (/\s/.test(text)) {
       setMessage("Sélectionne un seul mot à la fois.");
       return;
     }
 
-    const overlaps = targets.some(
-      (target) => start < target.end && end > target.start
-    );
+    const overlaps = rangesOverlap(start, end, targets);
 
     if (overlaps) {
       setMessage("Ce mot chevauche déjà un mot identifié.");

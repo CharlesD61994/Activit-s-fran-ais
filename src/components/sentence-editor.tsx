@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SentenceRenderer } from "@/components/sentence-renderer";
 import { GrammarWorkflowPlanner } from "@/components/grammar-workflow-planner";
+import { rangesOverlap, readTextareaSelection } from "@/components/grammar/shared-textarea-selection";
 import { defaultWorkflowForObjective, grammarObjectiveLabels, objectiveFromActivityType } from "@/lib/grammar-workflow";
+import { grammarAnnotationAnswers, grammarAnnotationLabels } from "@/lib/grammar-definitions";
 import type { ActivityType, ClassGroup, CorrectionCode, GrammarAnnotation, GrammarAnnotationKind, GrammarObjective, GrammarWorkflowPhase, SchoolLevel, Sentence, SentenceCorrection, SentenceDifficulty } from "@/types";
 
 type Props = {
@@ -31,23 +33,8 @@ type DraftCorrection = {
 
 type DraftAnnotation = Omit<GrammarAnnotation, "id"> & { text: string };
 
-const annotationLabels: Record<Exclude<GrammarAnnotationKind, "error">, string> = {
-  group: "Groupe",
-  word_class: "Classe de mot",
-  nucleus: "Noyau",
-  function: "Fonction",
-  donor: "Donneur",
-  receiver: "Receveur"
-};
-
-const annotationAnswers: Partial<Record<GrammarAnnotationKind, string[]>> = {
-  group: ["GN", "GV", "GAdj", "GAdv", "GPrép"],
-  word_class: ["Nom", "Déterminant", "Verbe", "Adjectif", "Pronom", "Adverbe", "Préposition", "Conjonction"],
-  nucleus: ["Nom", "Déterminant", "Verbe", "Adjectif", "Pronom", "Adverbe", "Préposition", "Conjonction"],
-  function: ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut du sujet", "Complément du nom"],
-  donor: ["Donneur d’accord"],
-  receiver: ["Receveur d’accord"]
-};
+const annotationLabels = grammarAnnotationLabels;
+const annotationAnswers = grammarAnnotationAnswers;
 
 const emptyDraft: DraftCorrection = {
   start: 0,
@@ -115,30 +102,13 @@ export function SentenceEditor({
   function captureSelection() {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    let start = textarea.selectionStart;
-    let end = textarea.selectionEnd;
-
-    if (start === end) {
+    const selection = readTextareaSelection(textarea, originalText);
+    if (!selection) {
       setMessage("Sélectionne d’abord un mot ou un segment dans la phrase.");
       return;
     }
-
-    while (start < end && /\s/.test(originalText[start] ?? "")) {
-      start += 1;
-    }
-
-    while (end > start && /\s/.test(originalText[end - 1] ?? "")) {
-      end -= 1;
-    }
-
-    if (start === end) {
-      setMessage("La sélection contient seulement des espaces.");
-      return;
-    }
-
-    const overlaps = corrections.some(
-      (correction) => start < correction.end && end > correction.start
-    );
+    const { start, end } = selection;
+    const overlaps = rangesOverlap(start, end, corrections);
 
     if (overlaps) {
       setMessage("Cette sélection chevauche une correction existante.");
@@ -151,7 +121,7 @@ export function SentenceEditor({
       ...emptyDraft,
       start,
       end,
-      originalText: originalText.slice(start, end),
+      originalText: selection.text,
       correctionCodeId: activeCodes[0]?.id ?? ""
     });
   }
@@ -190,18 +160,15 @@ export function SentenceEditor({
   function captureGrammarSelection(kind: Exclude<GrammarAnnotationKind, "error">) {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    let start = textarea.selectionStart;
-    let end = textarea.selectionEnd;
-    while (start < end && /\s/.test(originalText[start] ?? "")) start += 1;
-    while (end > start && /\s/.test(originalText[end - 1] ?? "")) end -= 1;
-    if (start === end) {
+    const selection = readTextareaSelection(textarea, originalText);
+    if (!selection) {
       setMessage("Sélectionne d’abord le mot ou le passage à annoter.");
       return;
     }
     setAnnotationDraft({
-      start,
-      end,
-      text: originalText.slice(start, end),
+      start: selection.start,
+      end: selection.end,
+      text: selection.text,
       kind,
       label: annotationAnswers[kind]?.[0] ?? (kind === "nucleus" ? "Noyau" : "")
     });

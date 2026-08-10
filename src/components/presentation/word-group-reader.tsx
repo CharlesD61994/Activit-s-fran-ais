@@ -8,6 +8,7 @@ import {
 } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
 type Boundary = "left_bracket" | "right_bracket";
@@ -186,9 +187,6 @@ export function WordGroupReader({
   const [frameCurrent, setFrameCurrent] = useState<StrokePoint | null>(null);
   const [message, setMessage] = useState("");
   const [hydrated, setHydrated] = useState(false);
-  const [labelPositions, setLabelPositions] = useState<
-    Record<string, { x: number; y: number; width: number; height: number }>
-  >({});
   const [labelOffsets, setLabelOffsets] = useState<
     Record<string, { x: number; y: number }>
   >({});
@@ -209,6 +207,7 @@ export function WordGroupReader({
   const functionAnnotations = useMemo(() => (sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "function"), [sentence.grammarAnnotations]);
   const functionTargets = useMemo<WordGroupTarget[]>(() => functionAnnotations.map((annotation) => ({ id: annotation.id, start: annotation.start, end: annotation.end, text: sentence.originalText.slice(annotation.start, annotation.end), groupType: "GN", nucleusStart: annotation.start, nucleusEnd: annotation.end, nucleusText: sentence.originalText.slice(annotation.start, annotation.end) })), [functionAnnotations, sentence.originalText]);
   const layoutTargets = useMemo(() => [...targets, ...functionTargets], [functionTargets, targets]);
+  const labelPositions = useRangeTargetPositions(surfaceRef, layoutTargets, tokens, "data-group-token-id");
   const currentTarget = targets[currentIndex];
   const currentIsContracted =
     isContractedNested(currentTarget);
@@ -594,68 +593,6 @@ export function WordGroupReader({
       window.removeEventListener("resize", resize);
     };
   }, []);
-
-  useEffect(() => {
-    const surface = surfaceRef.current;
-    if (!surface) return;
-
-    const updateLabelPositions = () => {
-      const surfaceRect = surface.getBoundingClientRect();
-      const next: Record<string, { x: number; y: number; width: number; height: number }> = {};
-
-      layoutTargets.forEach((target) => {
-        const elements = tokens
-          .filter(
-            (token) =>
-              token.isWord &&
-              token.start < target.end &&
-              token.end > target.start
-          )
-          .map((token) =>
-            surface.querySelector<HTMLElement>(
-              `[data-group-token-id="${token.id}"]`
-            )
-          )
-          .filter((element): element is HTMLElement => Boolean(element));
-
-        if (elements.length === 0) return;
-
-        const rects = elements.map((element) => element.getBoundingClientRect());
-        const minLeft = Math.min(...rects.map((rect) => rect.left));
-        const maxRight = Math.max(...rects.map((rect) => rect.right));
-        const minTop = Math.min(...rects.map((rect) => rect.top));
-        const maxBottom = Math.max(...rects.map((rect) => rect.bottom));
-
-        next[target.id] = {
-          x: (minLeft + maxRight) / 2 - surfaceRect.left,
-          y: minTop - surfaceRect.top,
-          width: maxRight - minLeft,
-          height: maxBottom - minTop
-        };
-      });
-
-      setLabelPositions(next);
-    };
-
-    const frame = window.requestAnimationFrame(updateLabelPositions);
-    const observer = new ResizeObserver(updateLabelPositions);
-    observer.observe(surface);
-    window.addEventListener("resize", updateLabelPositions);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
-      window.removeEventListener("resize", updateLabelPositions);
-    };
-  }, [
-    classifiedIds,
-    currentIndex,
-    leftFoundIds,
-    nucleusFoundIds,
-    rightFoundIds,
-    layoutTargets,
-    tokens
-  ]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

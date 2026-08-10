@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { captureSharedTextSelection, groupSharedTextMarks, rebaseSharedTextRange, renderSharedAnnotatedText } from "@/components/grammar/shared-annotated-text";
 import { GrammarInteractionModal } from "@/components/grammar/grammar-interaction-modal";
+import { sentenceFunctionOptions } from "@/lib/grammar-definitions";
 import { Card } from "@/components/ui/card";
 import type {
   ClassGroup,
@@ -120,8 +121,6 @@ const wordClassLabels: Record<WordClass, string> = {
 const DEFAULT_PHASE_ORDER = ["groups", "nuclei", "linked_nodes", "functions", "remaining_nodes", "tables"] as const;
 type ReaderPhase = typeof DEFAULT_PHASE_ORDER[number];
 const phaseLabels: Record<ReaderPhase, string> = { groups: "Encadrer les groupes", nuclei: "Encadrer les noyaux", linked_nodes: "Remplir les rectangles associés", functions: "Identifier les fonctions", remaining_nodes: "Compléter le reste de l’arbre", tables: "Répondre aux tableaux" };
-
-const sentenceFunctionOptions = ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut du sujet", "Complément du nom", "Complément de l’adjectif", "Modificateur"];
 
 function getNodeLabel(node: TreeAnalysisNode) {
   if (node.wordClass) return wordClassLabels[node.wordClass];

@@ -5,7 +5,9 @@ import { Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GrammarWorkflowPlanner } from "@/components/grammar-workflow-planner";
+import { readTextareaSelection } from "@/components/grammar/shared-textarea-selection";
 import { defaultWorkflowForObjective, grammarObjectiveLabels } from "@/lib/grammar-workflow";
+import { wordGroupAnswerLabels } from "@/lib/grammar-definitions";
 import type {
   ClassGroup,
   SchoolLevel,
@@ -36,13 +38,7 @@ type GroupDraft = {
   contractedPrepNucleus?: "de" | "à";
 };
 
-const groupLabels: Record<WordGroupType, string> = {
-  GN: "Groupe nominal — GN",
-  GV: "Groupe verbal — GV",
-  GAdj: "Groupe adjectival — GAdj",
-  GAdv: "Groupe adverbial — GAdv",
-  GPrep: "Groupe prépositionnel — GPrép"
-};
+const groupLabels = wordGroupAnswerLabels;
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -111,18 +107,12 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
   function captureGroup() {
     const el = textareaRef.current;
     if (!el) return;
-    const rawStart = el.selectionStart;
-    const rawEnd = el.selectionEnd;
-    const raw = originalText.slice(rawStart, rawEnd);
-    const lead = raw.match(/^\s*/)?.[0].length ?? 0;
-    const trail = raw.match(/\s*$/)?.[0].length ?? 0;
-    const start = rawStart + lead;
-    const end = rawEnd - trail;
-    const text = originalText.slice(start,end);
-    if (!text) {
+    const selection = readTextareaSelection(el, originalText);
+    if (!selection) {
       setMessage("Sélectionne le groupe directement dans la phrase.");
       return;
     }
+    const { start, end, text } = selection;
     const inferredContractedGn = inferContractedGn(text);
     setDraft({
       start,
