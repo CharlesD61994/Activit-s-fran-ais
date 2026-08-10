@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { captureSharedTextSelection, groupSharedTextMarks, rebaseSharedTextRange, renderSharedAnnotatedText } from "@/components/grammar/shared-annotated-text";
+import { GrammarInteractionModal } from "@/components/grammar/grammar-interaction-modal";
 import { Card } from "@/components/ui/card";
 import type {
   ClassGroup,
@@ -121,11 +122,6 @@ type ReaderPhase = typeof DEFAULT_PHASE_ORDER[number];
 const phaseLabels: Record<ReaderPhase, string> = { groups: "Encadrer les groupes", nuclei: "Encadrer les noyaux", linked_nodes: "Remplir les rectangles associés", functions: "Identifier les fonctions", remaining_nodes: "Compléter le reste de l’arbre", tables: "Répondre aux tableaux" };
 
 const sentenceFunctionOptions = ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut du sujet", "Complément du nom", "Complément de l’adjectif", "Modificateur"];
-
-function functionInstruction(label: string) {
-  const lower = label.toLocaleLowerCase("fr-CA");
-  return `Encadre ${lower.startsWith("attribut") ? "l’" : "le "}${lower} de la phrase.`;
-}
 
 function getNodeLabel(node: TreeAnalysisNode) {
   if (node.wordClass) return wordClassLabels[node.wordClass];
@@ -1755,26 +1751,18 @@ export function TreeAnalysisEditor({
                   </aside>
                 </div>
               )}
-              {interactionModalOpen && (
-                <div className="tree-analysis-modal-backdrop" role="presentation" onMouseDown={(event) => {
-                  if (event.target === event.currentTarget) cancelInteraction();
-                }}>
-                  <aside className="tree-analysis-inspector tree-analysis-modal" role="dialog" aria-modal="true" aria-label="Créer une réponse interactive">
-                    <div className="tree-analysis-modal-heading">
-                      <div><span className="eyebrow">Réponse interactive</span><h3>Que représente ce passage?</h3></div>
-                      <button type="button" onClick={cancelInteraction} aria-label="Fermer"><X size={18} /></button>
-                    </div>
-                    <label>Type de réponse<select value={interactionKind} onChange={(event) => { const kind = event.target.value as "function" | "group" | "nucleus"; setInteractionKind(kind); setInteractionLinkedNodeId(""); if (kind === "function") { setInteractionLabel("Sujet"); setInteractionInstruction("Encadre le sujet de la phrase."); setInteractionResponseMode("frame"); } else if (kind === "group") { setInteractionLabel("Groupe"); setInteractionInstruction("Encadre le groupe lié à ce rectangle."); setInteractionResponseMode("frame"); } else { setInteractionLabel(wordClassLabels[interactionNucleusClass]); setInteractionInstruction("Clique sur le noyau du groupe."); setInteractionResponseMode("click"); } }}><option value="function">Fonction de la phrase</option><option value="group">Groupe lié à l’arbre</option><option value="nucleus">Noyau du groupe</option></select></label>
-                    {interactionKind === "function" && <label>Fonction<select value={interactionLabel} onChange={(event) => { const label = event.target.value; setInteractionLabel(label); setInteractionInstruction(functionInstruction(label)); }}>{sentenceFunctionOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>}
-                    {interactionKind === "nucleus" && <label>Classe du noyau<select value={interactionNucleusClass} onChange={(event) => { const wordClass = event.target.value as WordClass; setInteractionNucleusClass(wordClass); setInteractionLabel(wordClassLabels[wordClass]); }}>{(Object.keys(wordClassLabels) as WordClass[]).map((wordClass) => <option key={wordClass} value={wordClass}>{wordClassLabels[wordClass]}</option>)}</select></label>}
-                    <label>Action de l’élève<select value={interactionResponseMode} onChange={(event) => { const mode = event.target.value as "click" | "frame"; setInteractionResponseMode(mode); setInteractionInstruction(mode === "click" ? `Clique sur ${interactionKind === "nucleus" ? "le noyau du groupe" : interactionLabel.toLowerCase()}.` : `Encadre ${interactionKind === "nucleus" ? "le noyau du groupe" : interactionLabel.toLowerCase()}.`); }}><option value="click">Cliquer sur le mot</option><option value="frame">Tracer un encadrement</option></select></label>
-                    <label>Consigne affichée<input value={interactionInstruction} onChange={(event) => setInteractionInstruction(event.target.value)} placeholder="Ex. Encadre le sujet de la phrase." /></label>
-                    {interactionKind !== "function" && <div className="tree-analysis-linked-node-picker"><span>Rectangle déclenché (facultatif)</span><strong>{selectedInteractionNode ? `Rectangle sélectionné — ${getNodeLabel(selectedInteractionNode) || "sans réponse"}` : "Aucun rectangle sélectionné"}</strong><div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}>Choisir dans l’arbre</Button>{interactionLinkedNodeId && <Button type="button" variant="secondary" onClick={() => setInteractionLinkedNodeId("")}>Ne lier aucun rectangle</Button>}</div></div>}
-                    <p>La couleur ou l’encadrement sert à repérer la réponse dans le corrigé. Dans le lecteur, l’élève répondra toujours en encadrant le passage.</p>
-                    <div className="tree-analysis-modal-actions"><Button type="button" variant="secondary" onClick={cancelInteraction}>Visuel seulement</Button><Button type="button" onClick={saveInteraction} disabled={!interactionLabel.trim() || !interactionInstruction.trim()}>Créer l’événement</Button></div>
-                  </aside>
-                </div>
-              )}
+              <GrammarInteractionModal
+                open={interactionModalOpen}
+                draft={{ kind: interactionKind, label: interactionLabel, instruction: interactionInstruction, responseMode: interactionResponseMode, nucleusWordClass: interactionNucleusClass, linkedTargetId: interactionLinkedNodeId }}
+                functionOptions={sentenceFunctionOptions}
+                wordClassLabels={wordClassLabels}
+                linkedTargetLabel={selectedInteractionNode ? getNodeLabel(selectedInteractionNode) || "sans réponse" : undefined}
+                onChange={(draft) => { setInteractionKind(draft.kind); setInteractionLabel(draft.label); setInteractionInstruction(draft.instruction); setInteractionResponseMode(draft.responseMode); setInteractionNucleusClass(draft.nucleusWordClass); setInteractionLinkedNodeId(draft.linkedTargetId); }}
+                onCancel={cancelInteraction}
+                onSave={saveInteraction}
+                onPickLinkedTarget={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}
+                onClearLinkedTarget={() => setInteractionLinkedNodeId("")}
+              />
               {phraseModalOpen && (
                 <div className="tree-analysis-modal-backdrop" role="presentation" onMouseDown={(event) => {
                   if (event.target === event.currentTarget) setPhraseModalOpen(false);
