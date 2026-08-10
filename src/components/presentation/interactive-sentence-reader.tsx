@@ -613,9 +613,7 @@ export function InteractiveSentenceReader({
         {!usesSharedRangeSurface && !usesMixedOrchestrator && finishControl}
       </div>
 
-      {correctionComplete && usesMixedOrchestrator ? (
-        <MixedGrammarReader sentence={hasCorrectionPhase ? { ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets } : sentence} phases={mixedContinuationPhases} persistenceKey={persistenceKey} finishControl={finishControl}/>
-      ) : correctionComplete && usesSharedRangeSurface ? (
+      {correctionComplete && usesSharedRangeSurface ? (
         <>
           <WordGroupReader
             sentence={{ ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets }}
@@ -630,6 +628,8 @@ export function InteractiveSentenceReader({
           />
           {hybridGroupComplete && <GrammarExtensionReader sentence={correctedGrammarSentence} excludedKinds={["group", "nucleus", "function"]} />}
         </>
+      ) : correctionComplete && usesMixedOrchestrator ? (
+        <MixedGrammarReader sentence={hasCorrectionPhase ? { ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets } : sentence} phases={mixedContinuationPhases} persistenceKey={persistenceKey} finishControl={finishControl}/>
       ) : (
         <div className="interactive-sentence" ref={sentenceRef}>
           {renderedLines}
