@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 export type SharedTextRange = { start: number; end: number };
-export type SharedTextMark = SharedTextRange & { id?: string; color?: string | null; framed?: boolean; bold?: boolean };
+export type SharedTextMark = SharedTextRange & { id?: string; color?: string | null; backgroundColor?: string; underlineColor?: string; framed?: boolean; bold?: boolean };
 
 export function rebaseSharedTextRange(previousText: string, nextText: string, start: number, end: number): SharedTextRange {
   if (previousText === nextText) return { start, end };
@@ -42,6 +42,8 @@ export function groupSharedTextMarks(text: string, marks: SharedTextMark[]) {
       end,
       text: text.slice(start, end),
       color: [...active].reverse().find((mark) => mark.color !== undefined)?.color ?? undefined,
+      backgroundColor: [...active].reverse().find((mark) => mark.backgroundColor !== undefined)?.backgroundColor,
+      underlineColor: [...active].reverse().find((mark) => mark.underlineColor !== undefined)?.underlineColor,
       framed: [...active].reverse().find((mark) => mark.framed !== undefined)?.framed ?? false,
       bold: [...active].reverse().find((mark) => mark.bold !== undefined)?.bold ?? false
     };
@@ -58,7 +60,7 @@ export function renderSharedAnnotatedText(text: string, marks: SharedTextMark[],
   const groups = groupSharedTextMarks(text, marks);
   return groups.map((group, groupIndex) => (
     <span key={`${groupIndex}-${group.segments[0]?.start ?? 0}`} className={group.framed ? framedClassName : undefined}>
-      {group.segments.map((segment) => <span key={`${segment.start}-${segment.end}`} style={{ color: segment.color ?? undefined, fontWeight: segment.bold ? 700 : undefined }}>{segment.text}</span>)}
+      {group.segments.map((segment) => <span key={`${segment.start}-${segment.end}`} style={{ color: segment.color ?? undefined, backgroundColor: segment.backgroundColor, fontWeight: segment.bold ? 700 : undefined, textDecoration: segment.underlineColor ? "underline" : undefined, textDecorationColor: segment.underlineColor }}>{segment.text}</span>)}
     </span>
   ));
 }

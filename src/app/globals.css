@@ -6356,11 +6356,17 @@ textarea {
 .mixed-workspace-toolbar button:hover { border-color: var(--primary); background: var(--secondary); }
 .mixed-workspace-surface, .mixed-workspace-answers, .mixed-workspace-test { padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .mixed-workspace-surface { display: grid; gap: 10px; }
-.mixed-workspace-surface textarea { width: 100%; min-height: 170px; resize: vertical; padding: 18px; border: 1px solid var(--border); border-radius: 13px; font: 700 clamp(1.25rem, 2.4vw, 2rem)/1.45 Arial, sans-serif; }
+.mixed-workspace-editable { width: 100%; min-height: 230px; padding: 24px; border: 1px solid var(--border); border-radius: 13px; background: #fff; white-space: pre-wrap; overflow-wrap: break-word; font: 700 clamp(1.25rem, 2.4vw, 2rem)/1.55 Arial, sans-serif; cursor: text; }
+.mixed-workspace-editable:focus { outline: 3px solid color-mix(in srgb, var(--primary) 22%, transparent); border-color: var(--primary); }
+.mixed-workspace-editable:empty::before { content: attr(data-placeholder); color: var(--muted-foreground); pointer-events: none; }
 .mixed-workspace-preview { min-height: 90px; padding: 18px; border-radius: 13px; background: var(--secondary); white-space: pre-wrap; font: 700 clamp(1.2rem, 2.2vw, 1.8rem)/1.45 Arial, sans-serif; }
 .mixed-workspace-phases { position: sticky; top: 86px; }
 .mixed-workspace-answers { display: grid; gap: 8px; }
 .mixed-workspace-answers > div { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px; border: 1px solid var(--border); border-radius: 10px; }
+.mixed-workspace-answers > div.is-child { margin-left: 28px; border-left: 4px solid color-mix(in srgb, var(--primary) 45%, var(--border)); background: color-mix(in srgb, var(--secondary) 55%, transparent); }
+.mixed-workspace-answers strong { display: grid; gap: 3px; }
+.mixed-workspace-answers strong small { color: var(--muted-foreground); font-weight: 700; }
+.mixed-answer-actions { display: flex; align-items: center; gap: 4px; }
 .mixed-workspace-answers button { border: 0; background: transparent; cursor: pointer; }
 .mixed-workspace-test { display: grid; gap: 16px; }
 @media (max-width: 980px) { .mixed-workspace-meta { grid-template-columns: 1fr 1fr; position: static; } .mixed-workspace-grid { grid-template-columns: 1fr; } .mixed-workspace-toolbar, .mixed-workspace-phases { position: static; } }
