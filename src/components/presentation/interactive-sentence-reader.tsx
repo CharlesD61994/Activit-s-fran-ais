@@ -463,6 +463,11 @@ export function InteractiveSentenceReader({
 
   function abandonCurrentStep() {
     if (!activeCorrection) return;
+    if (dialogMode === "word") {
+      setCorrectedIds((items) => items.includes(activeCorrection.id) ? items : [...items, activeCorrection.id]);
+    } else {
+      setCodedIds((items) => items.includes(activeCorrection.id) ? items : [...items, activeCorrection.id]);
+    }
     setActiveCorrection(null);
     setAnswer("");
     setMessage("");
