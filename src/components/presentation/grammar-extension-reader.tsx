@@ -36,7 +36,7 @@ function rangeMatches(annotation: GrammarAnnotation, start: number, end: number)
   return overlap / expectedLength >= .72 && overlap / selectedLength >= .62;
 }
 
-export function GrammarExtensionReader({ sentence, excludedKinds = [] }: { sentence: Sentence; excludedKinds?: GrammarAnnotationKind[] }) {
+export function GrammarExtensionReader({ sentence, excludedKinds = [], persistenceKey, onCompleteChange, finishControl }: { sentence: Sentence; excludedKinds?: GrammarAnnotationKind[]; persistenceKey?: string; onCompleteChange?: (complete: boolean) => void; finishControl?: React.ReactNode }) {
   const annotations = useMemo(() => sentence.grammarAnnotations ?? [], [sentence.grammarAnnotations]);
   const steps = (sentence.workflowPhases ?? []).flatMap((phase) => phase.actions
     .filter((action) => {
@@ -57,6 +57,22 @@ export function GrammarExtensionReader({ sentence, excludedKinds = [] }: { sente
   const step = steps[stepIndex];
   const expected = step ? annotations.filter((annotation) => annotation.kind === step.kind && !solvedIds.includes(annotation.id)) : [];
   const responseMode = step?.action.responseMode ?? (step?.kind === "function" || step?.kind === "group" ? "frame" : "click");
+
+  useEffect(() => {
+    if (!persistenceKey || typeof window === "undefined") return;
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(persistenceKey) ?? "{}") as { stepIndex?: number; solvedIds?: string[] };
+      setStepIndex(saved.stepIndex ?? 0);
+      setSolvedIds(saved.solvedIds ?? []);
+    } catch {
+      window.sessionStorage.removeItem(persistenceKey);
+    }
+  }, [persistenceKey, sentence.id]);
+
+  useEffect(() => {
+    if (persistenceKey && typeof window !== "undefined") window.sessionStorage.setItem(persistenceKey, JSON.stringify({ stepIndex, solvedIds }));
+    onCompleteChange?.(steps.length > 0 && stepIndex >= steps.length);
+  }, [onCompleteChange, persistenceKey, solvedIds, stepIndex, steps.length]);
 
   useEffect(() => {
     const surface = surfaceRef.current;
@@ -92,7 +108,7 @@ export function GrammarExtensionReader({ sentence, excludedKinds = [] }: { sente
     return () => observer.disconnect();
   }, [annotations, solvedIds, sentence.originalText]);
 
-  if (!annotations.length || !step) return null;
+  if (!annotations.length || !step) return <>{finishControl}</>;
 
   function complete(annotation: GrammarAnnotation) {
     const next = solvedIds.includes(annotation.id) ? solvedIds : [...solvedIds, annotation.id];
@@ -163,6 +179,7 @@ export function GrammarExtensionReader({ sentence, excludedKinds = [] }: { sente
         {tokens.map((token) => token.isWord ? <button type="button" data-grammar-start={token.start} data-grammar-end={token.end} key={`${token.start}-${token.end}`} onClick={(event) => { if (responseMode === "click") { event.stopPropagation(); chooseWord(token); } }}>{token.text}</button> : <span key={`${token.start}-${token.end}`}>{token.text}</span>)}
       </div>
       {message && <p className="grammar-reader-message">{message}</p>}
+      {stepIndex >= steps.length ? finishControl : null}
     </section>
   );
 }
