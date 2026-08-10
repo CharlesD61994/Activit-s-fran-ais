@@ -372,7 +372,7 @@ export function SentenceEditor({
             </label>
             <label>Objectif principal
               <select value={primaryObjective} onChange={(event) => setPrimaryObjective(event.target.value as GrammarObjective)}>
-                {(Object.entries(grammarObjectiveLabels) as Array<[GrammarObjective, string]>).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                {(Object.entries(grammarObjectiveLabels) as Array<[GrammarObjective, string]>).filter(([value]) => value !== "mixed_grammar").map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
             <label>Étiquettes

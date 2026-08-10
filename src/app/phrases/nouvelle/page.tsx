@@ -7,6 +7,7 @@ import { SentenceEditor } from "@/components/sentence-editor";
 import { WordClassEditor } from "@/components/word-class-editor";
 import { WordGroupEditor } from "@/components/word-group-editor";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
+import { MixedGrammarEditor } from "@/components/mixed-grammar-editor";
 import { useAppStore } from "@/store/app-store";
 import type { ActivityType, GrammarObjective } from "@/types";
 
@@ -74,7 +75,14 @@ export default function NewSentencePage() {
         </p>
       </div>
 
-      {activityType === "tree_analysis" ? (
+      {primaryObjective === "mixed_grammar" ? (
+        <MixedGrammarEditor
+          levels={data.levels}
+          groups={data.groups}
+          correctionCodes={data.correctionCodes}
+          onSave={saveAndReturn}
+        />
+      ) : activityType === "tree_analysis" ? (
         <TreeAnalysisEditor
           levels={data.levels}
           groups={data.groups}
