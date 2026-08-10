@@ -3007,6 +3007,42 @@ textarea {
   gap: 5px;
 }
 
+.mixed-workflow-planner .workflow-phase-row {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+}
+
+.workflow-phase-number {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.workflow-action-card {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+
+.workflow-action-card.nested { margin-left: 20px; border-left: 3px solid var(--primary); }
+.workflow-action-card .workflow-action-row { display: flex; align-items: center; }
+.workflow-action-card .workflow-action-row > label { flex: 1; }
+.workflow-action-card button { width: 27px; height: 27px; display: grid; place-items: center; border: 0; background: transparent; color: var(--text-muted); }
+.workflow-action-branch { color: var(--primary); font-weight: 900; }
+.workflow-action-options { display: grid; gap: 6px; padding-left: 22px; }
+.workflow-action-options label { display: grid; gap: 3px; }
+.workflow-action-options select { width: 100%; }
+
 .workflow-action-row select {
   height: 32px;
   min-width: 0;
@@ -3148,6 +3184,7 @@ textarea {
 .grammar-reader-text.clicking button { cursor: pointer; }
 
 .grammar-reader-answer-frame,
+.grammar-reader-answer-brackets,
 .grammar-reader-drawing-frame {
   position: absolute;
   z-index: 1;
@@ -3158,6 +3195,49 @@ textarea {
 .grammar-reader-answer-frame {
   border: 3px solid var(--primary);
 }
+
+.grammar-reader-answer-brackets {
+  border-left: 3px solid var(--primary);
+  border-right: 3px solid var(--primary);
+  border-radius: 0;
+}
+
+.grammar-reader-answer-brackets::before,
+.grammar-reader-answer-brackets::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-top: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  clip-path: polygon(0 0, 9px 0, 9px 3px, calc(100% - 9px) 3px, calc(100% - 9px) 0, 100% 0, 100% 100%, calc(100% - 9px) 100%, calc(100% - 9px) calc(100% - 3px), 9px calc(100% - 3px), 9px 100%, 0 100%);
+}
+
+.mixed-grammar-editor {
+  grid-template-columns: minmax(0, 1.65fr) minmax(350px, .85fr);
+  align-items: start;
+}
+
+.mixed-grammar-editor .editor-preview { position: sticky; top: 14px; }
+.mixed-grammar-editor .activity-textarea { min-height: 190px; font-size: 1.25rem; line-height: 1.65; }
+.mixed-author-text-surface {
+  min-height: 190px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 1.3rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  outline: none;
+}
+.mixed-author-text-surface:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent); }
+.mixed-author-text-surface .author-frame-part { border-top: 2px solid currentColor; border-bottom: 2px solid currentColor; }
+.mixed-author-text-surface .author-frame-part.mark-start { border-left: 2px solid currentColor; border-radius: 3px 0 0 3px; padding-left: 3px; }
+.mixed-author-text-surface .author-frame-part.mark-end { border-right: 2px solid currentColor; border-radius: 0 3px 3px 0; padding-right: 3px; }
+.mixed-author-text-surface .author-bracket-part.mark-start { border-left: 2px solid currentColor; padding-left: 3px; }
+.mixed-author-text-surface .author-bracket-part.mark-end { border-right: 2px solid currentColor; padding-right: 3px; }
+.mixed-grammar-editor .grammar-annotation-toolbar { position: sticky; top: 8px; z-index: 20; padding: 9px; border: 1px solid var(--border); border-radius: 12px; background: color-mix(in srgb, var(--surface-elevated) 94%, transparent); box-shadow: var(--shadow-sm); }
+.grammar-annotation-list > div.nested { margin-left: 22px; border-left: 3px solid var(--primary); }
 
 .grammar-reader-drawing-frame {
   border: 2px dashed color-mix(in srgb, var(--primary) 72%, transparent);

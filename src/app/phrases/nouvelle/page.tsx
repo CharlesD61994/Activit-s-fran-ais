@@ -47,7 +47,9 @@ export default function NewSentencePage() {
       <div className="page-header">
         <span className="eyebrow">Création</span>
         <h1>
-          {activityType === "tree_analysis"
+          {primaryObjective === "mixed_grammar"
+            ? "Nouvelle activité grammaticale mixte"
+            : activityType === "tree_analysis"
             ? "Nouvelle analyse en arbre"
             : activityType === "word_groups"
             ? "Nouvelle activité sur les groupes de mots"
@@ -58,7 +60,9 @@ export default function NewSentencePage() {
               : "Nouvelle phrase à corriger"}
         </h1>
         <p>
-          {activityType === "tree_analysis"
+          {primaryObjective === "mixed_grammar"
+            ? "Écris une phrase, annote ses réponses visuellement, puis organise librement les phases et leurs sous-actions."
+            : activityType === "tree_analysis"
             ? "Écris une phrase compatible avec une feuille Lettre en paysage, puis construis son arbre."
             : activityType === "word_groups"
             ? "Écris la phrase, délimite chaque groupe, choisis son type et identifie son noyau."
