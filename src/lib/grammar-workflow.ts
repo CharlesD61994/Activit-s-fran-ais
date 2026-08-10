@@ -62,7 +62,7 @@ export function createWorkflowPhase(kind: GrammarPhaseKind): GrammarWorkflowPhas
       id: crypto.randomUUID(),
       kind: actionKind,
       enabled: true,
-      responseMode: actionKind === "frame_groups" ? "brackets" : undefined
+      responseMode: actionKind === "frame_groups" ? "brackets" : actionKind === "frame_functions" ? "frame" : undefined
     }))
   };
 }

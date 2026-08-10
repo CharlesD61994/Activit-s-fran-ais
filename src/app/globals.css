@@ -3121,22 +3121,47 @@ textarea {
 .grammar-reader-instruction span { color: var(--text-muted); }
 
 .grammar-reader-text {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .35em;
+  position: relative;
+  display: block;
+  padding: 8px;
   font-size: clamp(1.2rem, 2.05vw, 2rem);
   line-height: 1.75;
   font-weight: 500;
+  white-space: pre-wrap;
+  user-select: none;
 }
 
 .grammar-reader-text button {
-  padding: 1px 3px;
+  position: relative;
+  z-index: 2;
+  padding: 1px 0;
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
   color: inherit;
   font: inherit;
   line-height: inherit;
+}
+
+.grammar-reader-text.framing { cursor: crosshair; }
+.grammar-reader-text.framing button { pointer-events: none; }
+.grammar-reader-text.clicking button { cursor: pointer; }
+
+.grammar-reader-answer-frame,
+.grammar-reader-drawing-frame {
+  position: absolute;
+  z-index: 1;
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.grammar-reader-answer-frame {
+  border: 3px solid var(--primary);
+}
+
+.grammar-reader-drawing-frame {
+  border: 2px dashed color-mix(in srgb, var(--primary) 72%, transparent);
+  background: color-mix(in srgb, var(--secondary) 28%, transparent);
 }
 
 .grammar-reader-text button:hover,

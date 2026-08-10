@@ -82,6 +82,19 @@ function buildHybridGroupTargets(sentence: Sentence, correctedText: string): Wor
   });
 }
 
+function buildCorrectedGrammarSentence(sentence: Sentence, correctedText: string): Sentence {
+  return {
+    ...sentence,
+    originalText: correctedText,
+    corrections: [],
+    grammarAnnotations: (sentence.grammarAnnotations ?? []).map((annotation) => ({
+      ...annotation,
+      start: mapOriginalPosition(sentence, annotation.start),
+      end: mapOriginalPosition(sentence, annotation.end)
+    }))
+  };
+}
+
 function splitTextPreservingLayout(text: string): Array<{
   type: "text" | "break";
   text: string;
@@ -305,8 +318,9 @@ export function InteractiveSentenceReader({
   );
   const correctedText = useMemo(() => buildCorrectedText(sentence), [sentence]);
   const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
+  const correctedGrammarSentence = useMemo(() => buildCorrectedGrammarSentence(sentence, correctedText), [correctedText, sentence]);
   const usesNativeGroupPhase = sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0;
-  const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode ?? "brackets";
+  const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
@@ -591,12 +605,12 @@ export function InteractiveSentenceReader({
             boundaryMode={groupBoundaryMode}
             finishControl={hybridGroupComplete ? finishControl : undefined}
           />
-          {hybridGroupComplete && <GrammarExtensionReader sentence={sentence} excludedKinds={["group", "nucleus"]} />}
+          {hybridGroupComplete && <GrammarExtensionReader sentence={correctedGrammarSentence} excludedKinds={["group", "nucleus"]} />}
         </>
       )}
 
       {correctionComplete && !usesNativeGroupPhase && (
-        <GrammarExtensionReader sentence={sentence} />
+        <GrammarExtensionReader sentence={correctedGrammarSentence} />
       )}
 
       {activeCorrection && (
