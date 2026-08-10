@@ -44,8 +44,8 @@ export function groupSharedTextMarks(text: string, marks: SharedTextMark[]) {
       color: [...active].reverse().find((mark) => mark.color !== undefined)?.color ?? undefined,
       backgroundColor: [...active].reverse().find((mark) => mark.backgroundColor !== undefined)?.backgroundColor,
       underlineColor: [...active].reverse().find((mark) => mark.underlineColor !== undefined)?.underlineColor,
-      framed: [...active].reverse().find((mark) => mark.framed !== undefined)?.framed ?? false,
-      bold: [...active].reverse().find((mark) => mark.bold !== undefined)?.bold ?? false
+      framed: active.some((mark) => mark.framed === true),
+      bold: active.some((mark) => mark.bold === true)
     };
   });
   return segments.reduce<Array<{ framed: boolean; segments: typeof segments }>>((result, segment) => {
