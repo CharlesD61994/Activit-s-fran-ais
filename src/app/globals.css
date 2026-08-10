@@ -3284,6 +3284,10 @@ textarea {
 .grammar-reader-text button.anchor { border-color: var(--primary); background: var(--secondary); }
 .grammar-reader-text button.solved { border-color: #15803d; background: rgb(21 128 61 / 12%); }
 .grammar-reader-message { margin: 10px 0 0; color: var(--text-muted); font-weight: 800; }
+.grammar-reader-answer-panel { margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); display: grid; gap: 10px; }
+.grammar-reader-answer-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.grammar-reader-answer-choices button { min-height: 40px; padding: 8px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated, #fff); color: var(--text); font-weight: 800; cursor: pointer; }
+.grammar-reader-answer-choices button:hover { border-color: var(--primary); background: var(--secondary); }
 
 .editor-preview {
   max-height: calc(100vh - 30px);
