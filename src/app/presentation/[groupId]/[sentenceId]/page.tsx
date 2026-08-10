@@ -579,6 +579,7 @@ export default function PresentationPage({
         ) : isWordGroupActivity ? (
           <WordGroupReader
             sentence={sentence}
+            boundaryMode={sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode ?? "brackets"}
             persistenceKey={readerPersistenceKey}
             onPoint={queueWordGroupPoint}
             onRestorePoints={restoreWordGroupPoints}

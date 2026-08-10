@@ -42,10 +42,18 @@ export function GrammarWorkflowPlanner({ phases, onChange }: Props) {
             {!phase.collapsed && (
               <div className="workflow-actions">
                 {phase.actions.map((action) => (
-                  <label key={action.id}>
-                    <input type="checkbox" checked={action.enabled} onChange={(event) => onChange(phases.map((item) => item.id === phase.id ? { ...item, actions: item.actions.map((candidate) => candidate.id === action.id ? { ...candidate, enabled: event.target.checked } : candidate) } : item))} />
-                    <span>{grammarActionLabels[action.kind]}</span>
-                  </label>
+                  <div className="workflow-action-row" key={action.id}>
+                    <label>
+                      <input type="checkbox" checked={action.enabled} onChange={(event) => onChange(phases.map((item) => item.id === phase.id ? { ...item, actions: item.actions.map((candidate) => candidate.id === action.id ? { ...candidate, enabled: event.target.checked } : candidate) } : item))} />
+                      <span>{grammarActionLabels[action.kind]}</span>
+                    </label>
+                    {action.kind === "frame_groups" && action.enabled && (
+                      <select aria-label="Méthode pour délimiter les groupes" value={action.responseMode ?? "brackets"} onChange={(event) => onChange(phases.map((item) => item.id === phase.id ? { ...item, actions: item.actions.map((candidate) => candidate.id === action.id ? { ...candidate, responseMode: event.target.value as "brackets" | "frame" } : candidate) } : item))}>
+                        <option value="brackets">Tracer les crochets [ ]</option>
+                        <option value="frame">Tracer un rectangle</option>
+                      </select>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

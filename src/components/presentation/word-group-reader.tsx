@@ -48,6 +48,7 @@ type Props = {
   onRestorePoints?: (points: RestoredPoint[]) => void;
   onCompleteChange?: (complete: boolean) => void;
   finishControl?: React.ReactNode;
+  boundaryMode?: "brackets" | "frame";
 };
 
 type Token = {
@@ -136,7 +137,8 @@ export function WordGroupReader({
   onPoint,
   onRestorePoints,
   onCompleteChange,
-  finishControl
+  finishControl,
+  boundaryMode = "brackets"
 }: Props) {
   const targets = useMemo(
     () =>
@@ -163,10 +165,12 @@ export function WordGroupReader({
   const [contractedAnswer, setContractedAnswer] = useState("");
   const [stroke, setStroke] = useState<StrokePoint[]>([]);
   const [drawing, setDrawing] = useState(false);
+  const [frameStart, setFrameStart] = useState<StrokePoint | null>(null);
+  const [frameCurrent, setFrameCurrent] = useState<StrokePoint | null>(null);
   const [message, setMessage] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [labelPositions, setLabelPositions] = useState<
-    Record<string, { x: number; y: number }>
+    Record<string, { x: number; y: number; width: number; height: number }>
   >({});
   const [labelOffsets, setLabelOffsets] = useState<
     Record<string, { x: number; y: number }>
@@ -562,7 +566,7 @@ export function WordGroupReader({
 
     const updateLabelPositions = () => {
       const surfaceRect = surface.getBoundingClientRect();
-      const next: Record<string, { x: number; y: number }> = {};
+      const next: Record<string, { x: number; y: number; width: number; height: number }> = {};
 
       targets.forEach((target) => {
         const elements = tokens
@@ -585,10 +589,13 @@ export function WordGroupReader({
         const minLeft = Math.min(...rects.map((rect) => rect.left));
         const maxRight = Math.max(...rects.map((rect) => rect.right));
         const minTop = Math.min(...rects.map((rect) => rect.top));
+        const maxBottom = Math.max(...rects.map((rect) => rect.bottom));
 
         next[target.id] = {
           x: (minLeft + maxRight) / 2 - surfaceRect.left,
-          y: minTop - surfaceRect.top
+          y: minTop - surfaceRect.top,
+          width: maxRight - minLeft,
+          height: maxBottom - minTop
         };
       });
 
@@ -629,6 +636,21 @@ export function WordGroupReader({
       canvas.height / ratio
     );
 
+    if (boundaryMode === "frame" && frameStart && frameCurrent) {
+      context.save();
+      context.setLineDash([7, 5]);
+      context.lineWidth = 2;
+      context.strokeStyle = "currentColor";
+      context.strokeRect(
+        Math.min(frameStart.x, frameCurrent.x),
+        Math.min(frameStart.y, frameCurrent.y),
+        Math.abs(frameCurrent.x - frameStart.x),
+        Math.abs(frameCurrent.y - frameStart.y)
+      );
+      context.restore();
+      return;
+    }
+
     if (stroke.length < 2) return;
 
     context.beginPath();
@@ -643,7 +665,7 @@ export function WordGroupReader({
     });
 
     context.stroke();
-  }, [stroke]);
+  }, [boundaryMode, frameCurrent, frameStart, stroke]);
 
   function findTokenElement(
     position: number,
@@ -855,7 +877,7 @@ export function WordGroupReader({
   function beginDrawing(
     event: React.PointerEvent<HTMLCanvasElement>
   ) {
-    if (phase !== "brackets") return;
+    if (phase !== "brackets" || boundaryMode === "frame") return;
 
     const position = pointerPosition(event.clientX, event.clientY);
     if (!position) return;
@@ -863,6 +885,52 @@ export function WordGroupReader({
     event.currentTarget.setPointerCapture(event.pointerId);
     setDrawing(true);
     setStroke([position]);
+    setMessage("");
+  }
+
+  function handleFrameClick(event: React.MouseEvent<HTMLCanvasElement>) {
+    if (phase !== "brackets" || boundaryMode !== "frame") return;
+    const point = pointerPosition(event.clientX, event.clientY);
+    if (!point) return;
+    if (!frameStart) {
+      setFrameStart(point);
+      setFrameCurrent(point);
+      setMessage("Clique maintenant sur le coin opposé du rectangle.");
+      return;
+    }
+    const canvas = canvasRef.current;
+    const surface = surfaceRef.current;
+    if (!canvas || !surface) return;
+    const canvasRect = canvas.getBoundingClientRect();
+    const left = Math.min(frameStart.x, point.x) - 8;
+    const right = Math.max(frameStart.x, point.x) + 8;
+    const top = Math.min(frameStart.y, point.y) - 12;
+    const bottom = Math.max(frameStart.y, point.y) + 12;
+    const selected = tokens.filter((token) => {
+      if (!token.isWord) return false;
+      const element = surface.querySelector<HTMLElement>(`[data-group-token-id="${token.id}"]`);
+      if (!element) return false;
+      const rect = element.getBoundingClientRect();
+      const centerX = (rect.left + rect.right) / 2 - canvasRect.left;
+      const centerY = (rect.top + rect.bottom) / 2 - canvasRect.top;
+      return centerX >= left && centerX <= right && centerY >= top && centerY <= bottom;
+    });
+    const start = selected.length ? Math.min(...selected.map((token) => token.start)) : -1;
+    const end = selected.length ? Math.max(...selected.map((token) => token.end)) : -1;
+    const match = targets.find((target) => !nucleusFoundIds.includes(target.id) && !leftFoundIds.includes(target.id) && !rightFoundIds.includes(target.id) && start <= target.start && end >= target.end && Math.abs(start - target.start) <= 2 && Math.abs(end - target.end) <= 2);
+    setFrameStart(null);
+    setFrameCurrent(null);
+    if (!match) {
+      setMessage("Le rectangle ne correspond pas au groupe demandé. Réessaie.");
+      return;
+    }
+    const index = targets.findIndex((target) => target.id === match.id);
+    setLeftFoundIds((current) => [...current, match.id]);
+    setRightFoundIds((current) => [...current, match.id]);
+    setCurrentIndex(index);
+    setTypeMenuOpen(true);
+    onPoint(match, "left_bracket", 1, `group-left-${match.id}`);
+    onPoint(match, "right_bracket", 1, `group-right-${match.id}`);
     setMessage("");
   }
 
@@ -1148,7 +1216,9 @@ export function WordGroupReader({
     if (phase === "nested_type") {
       return "Quel est le groupe enchâssé?";
     }
-    return "Trace les crochets [ ] pour délimiter le groupe.";
+    return boundaryMode === "frame"
+      ? "Clique sur un premier coin, puis sur le coin opposé pour encadrer le groupe."
+      : "Trace les crochets [ ] pour délimiter le groupe.";
   }
 
   return (
@@ -1170,6 +1240,11 @@ export function WordGroupReader({
         className={`word-group-drawing-surface phase-${phase}`}
         ref={surfaceRef}
       >
+        {boundaryMode === "frame" && targets.map((target) => {
+          const position = labelPositions[target.id];
+          if (!position || !leftFoundIds.includes(target.id) || !rightFoundIds.includes(target.id)) return null;
+          return <span key={`frame-${target.id}`} className="word-group-confirmed-frame" style={{ left: position.x - position.width / 2 - 7, top: position.y - 4, width: position.width + 14, height: position.height + 8 }} />;
+        })}
         {targets.map((target) => {
           const position = labelPositions[target.id];
           const classified = classifiedIds.includes(target.id);
@@ -1256,18 +1331,8 @@ export function WordGroupReader({
 
         <div className="word-group-reader-text">
           {tokens.map((token) => {
-            const leftSymbols = targets.filter(
-              (target) =>
-                leftFoundIds.includes(target.id) &&
-                target.start >= token.start &&
-                target.start < token.end
-            );
-            const rightSymbols = targets.filter(
-              (target) =>
-                rightFoundIds.includes(target.id) &&
-                target.end > token.start &&
-                target.end <= token.end
-            );
+            const leftSymbols = boundaryMode === "brackets" ? targets.filter((target) => target.start >= token.start && target.start < token.end) : [];
+            const rightSymbols = boundaryMode === "brackets" ? targets.filter((target) => target.end > token.start && target.end <= token.end) : [];
 
             return (
               <span
@@ -1301,7 +1366,7 @@ export function WordGroupReader({
               >
                 {leftSymbols.map((target) => (
                   <span
-                    className="word-group-bracket confirmed left"
+                    className={`word-group-bracket left ${leftFoundIds.includes(target.id) ? "confirmed" : "reserved"}`}
                     key={`left-${target.id}`}
                   >
                     [
@@ -1310,7 +1375,7 @@ export function WordGroupReader({
                 {token.text}
                 {rightSymbols.map((target) => (
                   <span
-                    className="word-group-bracket confirmed right"
+                    className={`word-group-bracket right ${rightFoundIds.includes(target.id) ? "confirmed" : "reserved"}`}
                     key={`right-${target.id}`}
                   >
                     ]
@@ -1327,8 +1392,16 @@ export function WordGroupReader({
             phase === "brackets" ? "" : " inactive"
           }`}
           onPointerDown={beginDrawing}
-          onPointerMove={continueDrawing}
+          onPointerMove={(event) => {
+            if (boundaryMode === "frame" && frameStart) {
+              const position = pointerPosition(event.clientX, event.clientY);
+              if (position) setFrameCurrent(position);
+              return;
+            }
+            continueDrawing(event);
+          }}
           onPointerUp={endDrawing}
+          onClick={handleFrameClick}
           onPointerCancel={() => {
             setDrawing(false);
             setStroke([]);

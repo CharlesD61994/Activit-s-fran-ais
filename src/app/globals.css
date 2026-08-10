@@ -3002,6 +3002,18 @@ textarea {
   line-height: 1.3;
 }
 
+.workflow-action-row {
+  display: grid;
+  gap: 5px;
+}
+
+.workflow-action-row select {
+  height: 32px;
+  min-width: 0;
+  padding: 3px 8px;
+  font-size: .75rem;
+}
+
 .workflow-add {
   margin-top: 9px;
   display: flex;
@@ -6269,6 +6281,22 @@ textarea {
   line-height: inherit;
 }
 
+.word-group-bracket.reserved {
+  display: inline;
+  visibility: hidden;
+  font: inherit;
+  font-weight: 900;
+  line-height: inherit;
+}
+
+.word-group-confirmed-frame {
+  position: absolute;
+  z-index: 2;
+  border: 3px solid var(--primary);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
 .word-group-bracket.confirmed.left {
   margin-right: .04em;
 }
@@ -6404,7 +6432,8 @@ textarea {
   position: absolute;
   z-index: 30;
   left: 50%;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
+  bottom: auto;
   transform: translateX(-50%);
   display: grid;
   gap: 5px;

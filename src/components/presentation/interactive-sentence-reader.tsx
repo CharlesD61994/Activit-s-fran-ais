@@ -306,6 +306,7 @@ export function InteractiveSentenceReader({
   const correctedText = useMemo(() => buildCorrectedText(sentence), [sentence]);
   const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
   const usesNativeGroupPhase = sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0;
+  const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode ?? "brackets";
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
@@ -587,6 +588,7 @@ export function InteractiveSentenceReader({
             persistenceKey={persistenceKey ? `${persistenceKey}-groups` : undefined}
             onPoint={() => undefined}
             onCompleteChange={setHybridGroupComplete}
+            boundaryMode={groupBoundaryMode}
             finishControl={hybridGroupComplete ? finishControl : undefined}
           />
           {hybridGroupComplete && <GrammarExtensionReader sentence={sentence} excludedKinds={["group", "nucleus"]} />}

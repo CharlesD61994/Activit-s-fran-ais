@@ -110,6 +110,7 @@ export type GrammarWorkflowAction = {
   kind: GrammarActionKind;
   enabled: boolean;
   optional?: boolean;
+  responseMode?: "brackets" | "frame";
 };
 
 export type GrammarWorkflowPhase = {

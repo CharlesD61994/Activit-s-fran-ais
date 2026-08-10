@@ -61,7 +61,8 @@ export function createWorkflowPhase(kind: GrammarPhaseKind): GrammarWorkflowPhas
     actions: actionsByPhase[kind].map((actionKind) => ({
       id: crypto.randomUUID(),
       kind: actionKind,
-      enabled: true
+      enabled: true,
+      responseMode: actionKind === "frame_groups" ? "brackets" : undefined
     }))
   };
 }
