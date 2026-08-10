@@ -513,7 +513,8 @@ export function InteractiveSentenceReader({
     }
 
     const correction = token.correction!;
-    const corrected = correctedIds.includes(correction.id);
+    const isBeingCorrected = activeCorrection?.id === correction.id && dialogMode === "word";
+    const corrected = correctedIds.includes(correction.id) && !isBeingCorrected;
     const coded = codedIds.includes(correction.id);
     const hinted = hintedIds.includes(correction.id);
     const code = correctionCodes.find(
