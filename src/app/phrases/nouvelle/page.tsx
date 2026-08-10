@@ -7,7 +7,6 @@ import { SentenceEditor } from "@/components/sentence-editor";
 import { WordClassEditor } from "@/components/word-class-editor";
 import { WordGroupEditor } from "@/components/word-group-editor";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
-import { MixedGrammarEditor } from "@/components/mixed-grammar-editor";
 import { useAppStore } from "@/store/app-store";
 import type { ActivityType, GrammarObjective } from "@/types";
 
@@ -48,9 +47,7 @@ export default function NewSentencePage() {
       <div className="page-header">
         <span className="eyebrow">Création</span>
         <h1>
-          {primaryObjective === "mixed_grammar"
-            ? "Nouvelle activité grammaticale mixte"
-            : activityType === "tree_analysis"
+          {activityType === "tree_analysis"
             ? "Nouvelle analyse en arbre"
             : activityType === "word_groups"
             ? "Nouvelle activité sur les groupes de mots"
@@ -61,9 +58,7 @@ export default function NewSentencePage() {
               : "Nouvelle phrase à corriger"}
         </h1>
         <p>
-          {primaryObjective === "mixed_grammar"
-            ? "Écris une phrase, annote ses réponses visuellement, puis organise librement les phases et leurs sous-actions."
-            : activityType === "tree_analysis"
+          {activityType === "tree_analysis"
             ? "Écris une phrase compatible avec une feuille Lettre en paysage, puis construis son arbre."
             : activityType === "word_groups"
             ? "Écris la phrase, délimite chaque groupe, choisis son type et identifie son noyau."
@@ -75,14 +70,7 @@ export default function NewSentencePage() {
         </p>
       </div>
 
-      {primaryObjective === "mixed_grammar" ? (
-        <MixedGrammarEditor
-          levels={data.levels}
-          groups={data.groups}
-          correctionCodes={data.correctionCodes}
-          onSave={saveAndReturn}
-        />
-      ) : activityType === "tree_analysis" ? (
+      {activityType === "tree_analysis" ? (
         <TreeAnalysisEditor
           levels={data.levels}
           groups={data.groups}

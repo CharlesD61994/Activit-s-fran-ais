@@ -111,9 +111,6 @@ export type GrammarWorkflowAction = {
   enabled: boolean;
   optional?: boolean;
   responseMode?: "brackets" | "frame" | "click";
-  parentActionId?: string;
-  progressionMode?: "batch" | "linked";
-  targetOrder?: "free" | "fixed";
 };
 
 export type GrammarWorkflowPhase = {
@@ -140,14 +137,6 @@ export type GrammarAnnotation = {
   kind: GrammarAnnotationKind;
   label?: string;
   linkedAnnotationId?: string;
-  parentAnnotationId?: string;
-  visualEffect?: GrammarVisualEffect;
-  responseMode?: "click" | "frame" | "brackets";
-};
-
-export type GrammarVisualEffect = {
-  kind: "none" | "color" | "frame" | "brackets" | "bold" | "highlight" | "underline";
-  color?: string;
 };
 export type AssignmentStatus = "todo" | "in_progress" | "completed" | "archived";
 

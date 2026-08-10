@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lightbulb, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GrammarExtensionReader } from "@/components/presentation/grammar-extension-reader";
-import { MixedGrammarReader } from "@/components/presentation/mixed-grammar-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
 import type { CorrectionCode, Sentence, SentenceCorrection, WordGroupTarget, WordGroupType } from "@/types";
 
@@ -66,7 +65,7 @@ function mapOriginalPosition(sentence: Sentence, position: number, affinity: "st
 function buildHybridGroupTargets(sentence: Sentence, correctedText: string): WordGroupTarget[] {
   const annotations = sentence.grammarAnnotations ?? [];
   const nuclei = annotations.filter((annotation) => annotation.kind === "nucleus");
-  return annotations.filter((annotation) => annotation.kind === "group" && hybridGroupTypes.has((annotation.label === "GPrép" ? "GPrep" : annotation.label) as WordGroupType)).map((group) => {
+  return annotations.filter((annotation) => annotation.kind === "group" && hybridGroupTypes.has(annotation.label as WordGroupType)).map((group) => {
     const nucleus = nuclei.find((candidate) => candidate.start >= group.start && candidate.end <= group.end);
     const start = mapOriginalPosition(sentence, group.start, "start");
     const end = mapOriginalPosition(sentence, group.end, "end");
@@ -77,7 +76,7 @@ function buildHybridGroupTargets(sentence: Sentence, correctedText: string): Wor
       start,
       end,
       text: correctedText.slice(start, end),
-      groupType: (group.label === "GPrép" ? "GPrep" : group.label) as WordGroupType,
+      groupType: group.label as WordGroupType,
       nucleusStart,
       nucleusEnd,
       nucleusText: correctedText.slice(nucleusStart, nucleusEnd)
@@ -322,13 +321,10 @@ export function InteractiveSentenceReader({
   const correctedText = useMemo(() => buildCorrectedText(sentence), [sentence]);
   const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
   const correctedGrammarSentence = useMemo(() => buildCorrectedGrammarSentence(sentence, correctedText), [correctedText, sentence]);
-  const hasCorrectionPhase = sentence.primaryObjective !== "mixed_grammar" || (sentence.workflowPhases ?? []).some((phase) => phase.kind === "correction" && phase.actions.some((action) => action.enabled));
   const usesNativeGroupPhase = sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0;
   const usesSharedRangeSurface = Boolean(usesNativeGroupPhase || (correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "function") && sentence.workflowPhases?.some((phase) => phase.kind === "functions" && phase.actions.some((action) => action.enabled)));
-  const mixedContinuationPhases = sentence.primaryObjective === "mixed_grammar" ? (sentence.workflowPhases ?? []).filter((phase) => phase.kind !== "correction") : [];
-  const usesMixedOrchestrator = mixedContinuationPhases.some((phase) => phase.actions.some((action) => action.enabled));
   const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
-  const correctionComplete = !hasCorrectionPhase || ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
+  const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
 
@@ -600,17 +596,17 @@ export function InteractiveSentenceReader({
   return (
     <div className={`interactive-reader interactive-reader-${displayMode}`}>
       <div className="interactive-reader-actions">
-        {hasCorrectionPhase && <Button variant="secondary" onClick={useHint}>
+        <Button variant="secondary" onClick={useHint}>
           <Lightbulb size={18} />
           Indice
-        </Button>}
-        {hasCorrectionPhase && <Button variant="secondary" onClick={revealAll}>
+        </Button>
+        <Button variant="secondary" onClick={revealAll}>
           Tout dévoiler
-        </Button>}
-        {hasCorrectionPhase && <Button variant="secondary" onClick={restart}>
+        </Button>
+        <Button variant="secondary" onClick={restart}>
           Recommencer
-        </Button>}
-        {!usesSharedRangeSurface && !usesMixedOrchestrator && finishControl}
+        </Button>
+        {!usesSharedRangeSurface && finishControl}
       </div>
 
       {correctionComplete && usesSharedRangeSurface ? (
@@ -628,15 +624,13 @@ export function InteractiveSentenceReader({
           />
           {hybridGroupComplete && <GrammarExtensionReader sentence={correctedGrammarSentence} excludedKinds={["group", "nucleus", "function"]} />}
         </>
-      ) : correctionComplete && usesMixedOrchestrator ? (
-        <MixedGrammarReader sentence={hasCorrectionPhase ? { ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets } : sentence} phases={mixedContinuationPhases} persistenceKey={persistenceKey} finishControl={finishControl}/>
       ) : (
         <div className="interactive-sentence" ref={sentenceRef}>
           {renderedLines}
         </div>
       )}
 
-      {correctionComplete && !usesSharedRangeSurface && !usesMixedOrchestrator && (
+      {correctionComplete && !usesSharedRangeSurface && (
         <GrammarExtensionReader sentence={correctedGrammarSentence} />
       )}
 
