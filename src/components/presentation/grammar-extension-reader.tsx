@@ -9,12 +9,6 @@ type Token = { text: string; start: number; end: number; isWord: boolean };
 type Point = { x: number; y: number };
 type MarkBox = { id: string; left: number; top: number; width: number; height: number; kind: "frame" | "brackets"; color?: string };
 const actionKinds: Partial<Record<string, GrammarAnnotationKind>> = { frame_groups: "group", identify_group_types: "group", identify_word_classes: "word_class", find_nuclei: "nucleus", frame_functions: "function", identify_functions: "function", identify_donors: "donor", identify_receivers: "receiver" };
-const actionsWithAnswerChoice = new Set(["identify_group_types", "identify_word_classes", "identify_functions"]);
-const defaultChoices: Partial<Record<GrammarAnnotationKind, string[]>> = {
-  group: ["GN", "GV", "GAdj", "GAdv", "GPrép"],
-  word_class: ["Nom", "Déterminant", "Adjectif", "Pronom", "Verbe", "Adverbe", "Préposition", "Conjonction"],
-  function: ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut"],
-};
 const tokenize = (text: string): Token[] => Array.from(text.matchAll(/\S+|\s+/g)).map((match) => ({ text: match[0], start: match.index ?? 0, end: (match.index ?? 0) + match[0].length, isWord: /\S/.test(match[0]) }));
 function rangeMatches(annotation: GrammarAnnotation, start: number, end: number) { const overlap = Math.max(0, Math.min(annotation.end, end) - Math.max(annotation.start, start)); return overlap / Math.max(1, annotation.end - annotation.start) >= .72 && overlap / Math.max(1, end - start) >= .62; }
 
@@ -33,7 +27,6 @@ export function GrammarExtensionReader({ sentence, excludedKinds = [], persisten
   const [drawingCurrent, setDrawingCurrent] = useState<Point | null>(null);
   const [markBoxes, setMarkBoxes] = useState<MarkBox[]>([]);
   const [message, setMessage] = useState("");
-  const [pendingAnswer, setPendingAnswer] = useState<GrammarAnnotation | null>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const linkedContext = linkedQueue[0];
   const step = linkedContext ? allSteps.find((item) => item.action.id === linkedContext.actionId) : steps[stepIndex];
@@ -70,11 +63,7 @@ export function GrammarExtensionReader({ sentence, excludedKinds = [], persisten
     if (!linkedContext && actionDone) setStepIndex((index) => index + 1);
     if (actionDone) { setDrawingStart(null); setDrawingCurrent(null); }
   };
-  const acceptSelection = (annotation: GrammarAnnotation) => {
-    if (actionsWithAnswerChoice.has(step.action.kind) && annotation.label) { setPendingAnswer(annotation); setMessage(""); return; }
-    complete(annotation);
-  };
-  const selectRange = (start: number, end: number) => { const match = expected.find((item) => rangeMatches(item, start, end)); if (match) acceptSelection(match); else setMessage("Ce n’est pas tout à fait la bonne partie. Réessaie."); };
+  const selectRange = (start: number, end: number) => { const match = expected.find((item) => rangeMatches(item, start, end)); if (match) complete(match); else setMessage("Ce n’est pas tout à fait la bonne partie. Réessaie."); };
   const handleSurfaceClick = (event: ReactMouseEvent<HTMLDivElement>) => { if (responseMode === "click") return; const surface = surfaceRef.current; if (!surface) return; const rect = surface.getBoundingClientRect(); const point = { x: event.clientX - rect.left, y: event.clientY - rect.top }; if (!drawingStart) { setDrawingStart(point); setDrawingCurrent(point); setMessage(responseMode === "brackets" ? "Clique maintenant sur l’autre limite du passage." : "Clique maintenant sur le coin opposé."); return; } const left = Math.min(drawingStart.x, point.x) - 7, right = Math.max(drawingStart.x, point.x) + 7, top = Math.min(drawingStart.y, point.y) - 10, bottom = Math.max(drawingStart.y, point.y) + 10; const selected = Array.from(surface.querySelectorAll<HTMLElement>("[data-grammar-start]")).filter((element) => { const box = element.getBoundingClientRect(); const x = (box.left + box.right) / 2 - rect.left, y = (box.top + box.bottom) / 2 - rect.top; return x >= left && x <= right && y >= top && y <= bottom; }); setDrawingStart(null); setDrawingCurrent(null); selectRange(selected.length ? Math.min(...selected.map((element) => Number(element.dataset.grammarStart))) : -1, selected.length ? Math.max(...selected.map((element) => Number(element.dataset.grammarEnd))) : -1); };
   const tokenStyle = (token: Token): CSSProperties => { const marks = annotations.filter((item) => solvedIds.includes(item.id) && token.start < item.end && token.end > item.start); const color = [...marks].reverse().find((item) => item.visualEffect?.kind === "color")?.visualEffect?.color; const backgroundColor = [...marks].reverse().find((item) => item.visualEffect?.kind === "highlight")?.visualEffect?.color; const underline = [...marks].reverse().find((item) => item.visualEffect?.kind === "underline")?.visualEffect?.color; return { color, backgroundColor, fontWeight: marks.some((item) => item.visualEffect?.kind === "bold") ? 800 : undefined, textDecoration: underline ? "underline" : undefined, textDecorationColor: underline }; };
 
@@ -86,14 +75,8 @@ export function GrammarExtensionReader({ sentence, excludedKinds = [], persisten
       {drawingStart && drawingCurrent && (
         <span className="grammar-reader-drawing-frame" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }}/>
       )}
-      {tokens.map((token) => token.isWord ? <button type="button" style={tokenStyle(token)} data-grammar-start={token.start} data-grammar-end={token.end} key={`${token.start}-${token.end}`} onClick={(event) => { if (responseMode !== "click") return; event.stopPropagation(); const match = expected.find((item) => token.start < item.end && token.end > item.start); if (match) acceptSelection(match); else setMessage("Ce n’est pas le bon passage. Réessaie."); }}>{token.text}</button> : <span style={tokenStyle(token)} key={`${token.start}-${token.end}`}>{token.text}</span>)}
+      {tokens.map((token) => token.isWord ? <button type="button" style={tokenStyle(token)} data-grammar-start={token.start} data-grammar-end={token.end} key={`${token.start}-${token.end}`} onClick={(event) => { if (responseMode !== "click") return; event.stopPropagation(); const match = expected.find((item) => token.start < item.end && token.end > item.start); if (match) complete(match); else setMessage("Ce n’est pas le bon passage. Réessaie."); }}>{token.text}</button> : <span style={tokenStyle(token)} key={`${token.start}-${token.end}`}>{token.text}</span>)}
     </div>
-    {pendingAnswer && <div className="grammar-reader-answer-panel">
-      <strong>Choisis la réponse pour « {sentence.originalText.slice(pendingAnswer.start, pendingAnswer.end)} ».</strong>
-      <div className="grammar-reader-answer-choices">
-        {Array.from(new Set([...annotations.filter((item) => item.kind === pendingAnswer.kind).map((item) => item.label).filter((label): label is string => Boolean(label)), ...(defaultChoices[pendingAnswer.kind] ?? [])])).map((choice) => <button type="button" key={choice} onClick={() => { if (choice.toLocaleLowerCase("fr-CA") === pendingAnswer.label?.toLocaleLowerCase("fr-CA")) { const answer = pendingAnswer; setPendingAnswer(null); complete(answer); } else setMessage("Ce n’est pas la bonne réponse. Réessaie."); }}>{choice}</button>)}
-      </div>
-    </div>}
     {message && <p className="grammar-reader-message">{message}</p>}
   </section>;
 }
