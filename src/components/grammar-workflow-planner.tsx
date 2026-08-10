@@ -54,9 +54,9 @@ export function GrammarWorkflowPlanner({ phases, onChange }: Props) {
                       </select>
                     )}
                     {action.kind === "frame_functions" && action.enabled && (
-                      <select aria-label="Méthode pour identifier les fonctions" value={action.responseMode ?? "frame"} onChange={(event) => onChange(phases.map((item) => item.id === phase.id ? { ...item, actions: item.actions.map((candidate) => candidate.id === action.id ? { ...candidate, responseMode: event.target.value as "frame" | "click" } : candidate) } : item))}>
+                      <select aria-label="Méthode pour identifier les fonctions" value={action.responseMode === "brackets" ? "brackets" : "frame"} onChange={(event) => onChange(phases.map((item) => item.id === phase.id ? { ...item, actions: item.actions.map((candidate) => candidate.id === action.id ? { ...candidate, responseMode: event.target.value as "frame" | "brackets" } : candidate) } : item))}>
                         <option value="frame">Tracer un rectangle</option>
-                        <option value="click">Cliquer sur le passage</option>
+                        <option value="brackets">Tracer les crochets [ ]</option>
                       </select>
                     )}
                   </div>

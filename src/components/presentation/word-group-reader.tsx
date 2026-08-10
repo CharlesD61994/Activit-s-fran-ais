@@ -49,6 +49,7 @@ type Props = {
   onCompleteChange?: (complete: boolean) => void;
   finishControl?: React.ReactNode;
   boundaryMode?: "brackets" | "frame";
+  continuationBoundaryMode?: "brackets" | "frame";
 };
 
 type Token = {
@@ -138,7 +139,8 @@ export function WordGroupReader({
   onRestorePoints,
   onCompleteChange,
   finishControl,
-  boundaryMode = "brackets"
+  boundaryMode = "brackets",
+  continuationBoundaryMode = "frame"
 }: Props) {
   const targets = useMemo(
     () =>
@@ -154,6 +156,8 @@ export function WordGroupReader({
 
   const [leftFoundIds, setLeftFoundIds] = useState<string[]>([]);
   const [rightFoundIds, setRightFoundIds] = useState<string[]>([]);
+  const [functionLeftIds, setFunctionLeftIds] = useState<string[]>([]);
+  const [functionRightIds, setFunctionRightIds] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [classifiedIds, setClassifiedIds] = useState<string[]>([]);
   const [nucleusFoundIds, setNucleusFoundIds] = useState<string[]>([]);
@@ -189,17 +193,22 @@ export function WordGroupReader({
     completeRef.current = onCompleteChange;
   }, [onCompleteChange]);
 
+  const functionAnnotations = useMemo(() => (sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "function"), [sentence.grammarAnnotations]);
+  const functionTargets = useMemo<WordGroupTarget[]>(() => functionAnnotations.map((annotation) => ({ id: annotation.id, start: annotation.start, end: annotation.end, text: sentence.originalText.slice(annotation.start, annotation.end), groupType: "GN", nucleusStart: annotation.start, nucleusEnd: annotation.end, nucleusText: sentence.originalText.slice(annotation.start, annotation.end) })), [functionAnnotations, sentence.originalText]);
+  const layoutTargets = useMemo(() => [...targets, ...functionTargets], [functionTargets, targets]);
   const currentTarget = targets[currentIndex];
   const currentIsContracted =
     isContractedNested(currentTarget);
-  const complete =
-    targets.length > 0 &&
-    targets.every(
+  const groupsComplete =
+    targets.length === 0 || targets.every(
       (target) =>
         nucleusFoundIds.includes(target.id) &&
         (!isContractedNested(target) ||
           gprepNucleusFoundIds.includes(target.id))
     );
+  const functionsComplete = functionTargets.every((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id));
+  const complete = groupsComplete && functionsComplete;
+  const markingFunctions = groupsComplete && !functionsComplete;
 
   const currentLeftFound = currentTarget
     ? leftFoundIds.includes(currentTarget.id)
@@ -234,7 +243,10 @@ export function WordGroupReader({
     | "gprep_nucleus"
     | "nested_presence"
     | "nested_type"
-    | "complete" = complete
+    | "function_brackets"
+    | "complete" = markingFunctions
+    ? "function_brackets"
+    : complete
     ? "complete"
     : currentIsContracted
       ? currentBracketsFound && !currentClassified
@@ -279,6 +291,8 @@ export function WordGroupReader({
           gprepNucleusFoundIds?: string[];
           nestedPresenceFoundIds?: string[];
           nestedTypeFoundIds?: string[];
+          functionLeftIds?: string[];
+          functionRightIds?: string[];
           currentIndex?: number;
         };
         const left = saved.leftFoundIds ?? [];
@@ -297,6 +311,8 @@ export function WordGroupReader({
         setGprepNucleusFoundIds(gprepNuclei);
         setNestedPresenceFoundIds(nestedPresence);
         setNestedTypeFoundIds(nestedTypes);
+        setFunctionLeftIds(saved.functionLeftIds ?? []);
+        setFunctionRightIds(saved.functionRightIds ?? []);
         setCurrentIndex(
           Math.min(
             saved.currentIndex ?? 0,
@@ -412,6 +428,8 @@ export function WordGroupReader({
         gprepNucleusFoundIds,
         nestedPresenceFoundIds,
         nestedTypeFoundIds,
+        functionLeftIds,
+        functionRightIds,
         currentIndex
       })
     );
@@ -421,6 +439,8 @@ export function WordGroupReader({
     gprepNucleusFoundIds,
     nestedPresenceFoundIds,
     nestedTypeFoundIds,
+    functionLeftIds,
+    functionRightIds,
     currentIndex,
     hydrated,
     leftFoundIds,
@@ -568,7 +588,7 @@ export function WordGroupReader({
       const surfaceRect = surface.getBoundingClientRect();
       const next: Record<string, { x: number; y: number; width: number; height: number }> = {};
 
-      targets.forEach((target) => {
+      layoutTargets.forEach((target) => {
         const elements = tokens
           .filter(
             (token) =>
@@ -618,7 +638,7 @@ export function WordGroupReader({
     leftFoundIds,
     nucleusFoundIds,
     rightFoundIds,
-    targets,
+    layoutTargets,
     tokens
   ]);
 
@@ -636,7 +656,8 @@ export function WordGroupReader({
       canvas.height / ratio
     );
 
-    if (boundaryMode === "frame" && frameStart && frameCurrent) {
+    const activeBoundaryMode = markingFunctions ? continuationBoundaryMode : boundaryMode;
+    if (activeBoundaryMode === "frame" && frameStart && frameCurrent) {
       context.save();
       context.setLineDash([7, 5]);
       context.lineWidth = 2;
@@ -665,7 +686,7 @@ export function WordGroupReader({
     });
 
     context.stroke();
-  }, [boundaryMode, frameCurrent, frameStart, stroke]);
+  }, [boundaryMode, continuationBoundaryMode, frameCurrent, frameStart, markingFunctions, stroke]);
 
   function findTokenElement(
     position: number,
@@ -756,18 +777,21 @@ export function WordGroupReader({
 
     const boundary: Boundary =
       recognized === "[" ? "left_bracket" : "right_bracket";
+    const boundaryTargets = markingFunctions ? functionTargets : targets;
+    const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
+    const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
     const center = strokeCenter(points);
     const horizontalTolerance = 52;
 
-    const candidates = targets
+    const candidates = boundaryTargets
       .filter((target) => !nucleusFoundIds.includes(target.id))
       .filter((target) =>
         boundary === "left_bracket"
-          ? !leftFoundIds.includes(target.id)
-          : !rightFoundIds.includes(target.id)
+          ? !foundLeftIds.includes(target.id)
+          : !foundRightIds.includes(target.id)
       )
       .map((target) => {
-        const index = targets.findIndex(
+        const index = boundaryTargets.findIndex(
           (candidateTarget) => candidateTarget.id === target.id
         );
         const anchor = expectedAnchor(target, boundary);
@@ -789,8 +813,8 @@ export function WordGroupReader({
 
         const otherFound =
           boundary === "left_bracket"
-            ? rightFoundIds.includes(target.id)
-            : leftFoundIds.includes(target.id);
+            ? foundRightIds.includes(target.id)
+            : foundLeftIds.includes(target.id);
 
         return {
           target,
@@ -826,7 +850,10 @@ export function WordGroupReader({
     // enchâssés partagent exactement la même limite.
     const matched = best;
 
-    if (boundary === "left_bracket") {
+    if (markingFunctions) {
+      if (boundary === "left_bracket") setFunctionLeftIds((current) => current.includes(matched.target.id) ? current : [...current, matched.target.id]);
+      else setFunctionRightIds((current) => current.includes(matched.target.id) ? current : [...current, matched.target.id]);
+    } else if (boundary === "left_bracket") {
       setLeftFoundIds((current) =>
         current.includes(matched.target.id)
           ? current
@@ -840,22 +867,13 @@ export function WordGroupReader({
       );
     }
 
-    onPoint(
-      matched.target,
-      boundary,
-      1,
-      boundary === "left_bracket"
-        ? `group-left-${matched.target.id}`
-        : `group-right-${matched.target.id}`
-    );
+    if (!markingFunctions) onPoint(matched.target, boundary, 1, boundary === "left_bracket" ? `group-left-${matched.target.id}` : `group-right-${matched.target.id}`);
 
     const newlyCompleted =
-      boundary === "left_bracket"
-        ? rightFoundIds.includes(matched.target.id)
-        : leftFoundIds.includes(matched.target.id);
+      boundary === "left_bracket" ? foundRightIds.includes(matched.target.id) : foundLeftIds.includes(matched.target.id);
 
-    setCurrentIndex(matched.index);
-    if (newlyCompleted) {
+    if (!markingFunctions) setCurrentIndex(matched.index);
+    if (newlyCompleted && !markingFunctions) {
       setTypeMenuOpen(true);
     }
 
@@ -877,7 +895,8 @@ export function WordGroupReader({
   function beginDrawing(
     event: React.PointerEvent<HTMLCanvasElement>
   ) {
-    if (phase !== "brackets" || boundaryMode === "frame") return;
+    const activeBoundaryMode = markingFunctions ? continuationBoundaryMode : boundaryMode;
+    if ((phase !== "brackets" && phase !== "function_brackets") || activeBoundaryMode === "frame") return;
 
     const position = pointerPosition(event.clientX, event.clientY);
     if (!position) return;
@@ -889,7 +908,8 @@ export function WordGroupReader({
   }
 
   function handleFrameClick(event: React.MouseEvent<HTMLCanvasElement>) {
-    if (phase !== "brackets" || boundaryMode !== "frame") return;
+    const activeBoundaryMode = markingFunctions ? continuationBoundaryMode : boundaryMode;
+    if ((phase !== "brackets" && phase !== "function_brackets") || activeBoundaryMode !== "frame") return;
     const point = pointerPosition(event.clientX, event.clientY);
     if (!point) return;
     if (!frameStart) {
@@ -917,20 +937,28 @@ export function WordGroupReader({
     });
     const start = selected.length ? Math.min(...selected.map((token) => token.start)) : -1;
     const end = selected.length ? Math.max(...selected.map((token) => token.end)) : -1;
-    const match = targets.find((target) => !nucleusFoundIds.includes(target.id) && !leftFoundIds.includes(target.id) && !rightFoundIds.includes(target.id) && start <= target.start && end >= target.end && Math.abs(start - target.start) <= 2 && Math.abs(end - target.end) <= 2);
+    const boundaryTargets = markingFunctions ? functionTargets : targets;
+    const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
+    const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
+    const match = boundaryTargets.find((target) => !foundLeftIds.includes(target.id) && !foundRightIds.includes(target.id) && start <= target.start && end >= target.end && Math.abs(start - target.start) <= 2 && Math.abs(end - target.end) <= 2);
     setFrameStart(null);
     setFrameCurrent(null);
     if (!match) {
       setMessage("Le rectangle ne correspond pas au groupe demandé. Réessaie.");
       return;
     }
-    const index = targets.findIndex((target) => target.id === match.id);
-    setLeftFoundIds((current) => [...current, match.id]);
-    setRightFoundIds((current) => [...current, match.id]);
-    setCurrentIndex(index);
-    setTypeMenuOpen(true);
-    onPoint(match, "left_bracket", 1, `group-left-${match.id}`);
-    onPoint(match, "right_bracket", 1, `group-right-${match.id}`);
+    const index = boundaryTargets.findIndex((target) => target.id === match.id);
+    if (markingFunctions) {
+      setFunctionLeftIds((current) => [...current, match.id]);
+      setFunctionRightIds((current) => [...current, match.id]);
+    } else {
+      setLeftFoundIds((current) => [...current, match.id]);
+      setRightFoundIds((current) => [...current, match.id]);
+      setCurrentIndex(index);
+      setTypeMenuOpen(true);
+      onPoint(match, "left_bracket", 1, `group-left-${match.id}`);
+      onPoint(match, "right_bracket", 1, `group-right-${match.id}`);
+    }
     setMessage("");
   }
 
@@ -971,6 +999,8 @@ export function WordGroupReader({
   function restart() {
     setLeftFoundIds([]);
     setRightFoundIds([]);
+    setFunctionLeftIds([]);
+    setFunctionRightIds([]);
     setCurrentIndex(0);
     setClassifiedIds([]);
     setNucleusFoundIds([]);
@@ -981,6 +1011,8 @@ export function WordGroupReader({
     setTypeMenuOpen(false);
     setContractedAnswer("");
     setStroke([]);
+    setFrameStart(null);
+    setFrameCurrent(null);
     setMessage("");
     restoreRef.current?.([]);
 
@@ -1216,6 +1248,9 @@ export function WordGroupReader({
     if (phase === "nested_type") {
       return "Quel est le groupe enchâssé?";
     }
+    if (markingFunctions) return continuationBoundaryMode === "frame"
+      ? "Encadre la fonction : clique sur un premier coin, puis sur le coin opposé."
+      : "Trace les crochets [ ] pour encadrer la fonction.";
     return boundaryMode === "frame"
       ? "Clique sur un premier coin, puis sur le coin opposé pour encadrer le groupe."
       : "Trace les crochets [ ] pour délimiter le groupe.";
@@ -1230,7 +1265,9 @@ export function WordGroupReader({
           </strong>
           {!complete && (
             <span className="word-group-reader-counter">
-              {nucleusFoundIds.length}/{targets.length} groupes complétés
+              {markingFunctions
+                ? `${functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length}/${functionTargets.length} fonctions encadrées`
+                : `${nucleusFoundIds.length}/${targets.length} groupes complétés`}
             </span>
           )}
         </div>
@@ -1240,9 +1277,11 @@ export function WordGroupReader({
         className={`word-group-drawing-surface phase-${phase}`}
         ref={surfaceRef}
       >
-        {boundaryMode === "frame" && targets.map((target) => {
+        {[...targets.filter(() => boundaryMode === "frame"), ...functionTargets.filter(() => continuationBoundaryMode === "frame")].map((target) => {
           const position = labelPositions[target.id];
-          if (!position || !leftFoundIds.includes(target.id) || !rightFoundIds.includes(target.id)) return null;
+          const isFunction = functionTargets.some((candidate) => candidate.id === target.id);
+          const found = isFunction ? functionLeftIds.includes(target.id) && functionRightIds.includes(target.id) : leftFoundIds.includes(target.id) && rightFoundIds.includes(target.id);
+          if (!position || !found) return null;
           return <span key={`frame-${target.id}`} className="word-group-confirmed-frame" style={{ left: position.x - position.width / 2 - 7, top: position.y - 4, width: position.width + 14, height: position.height + 8 }} />;
         })}
         {targets.map((target) => {
@@ -1331,8 +1370,9 @@ export function WordGroupReader({
 
         <div className="word-group-reader-text">
           {tokens.map((token) => {
-            const leftSymbols = boundaryMode === "brackets" ? targets.filter((target) => target.start >= token.start && target.start < token.end) : [];
-            const rightSymbols = boundaryMode === "brackets" ? targets.filter((target) => target.end > token.start && target.end <= token.end) : [];
+            const bracketTargets = [...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")];
+            const leftSymbols = bracketTargets.filter((target) => target.start >= token.start && target.start < token.end);
+            const rightSymbols = bracketTargets.filter((target) => target.end > token.start && target.end <= token.end);
 
             return (
               <span
@@ -1366,7 +1406,7 @@ export function WordGroupReader({
               >
                 {leftSymbols.map((target) => (
                   <span
-                    className={`word-group-bracket left ${leftFoundIds.includes(target.id) ? "confirmed" : "reserved"}`}
+                    className={`word-group-bracket left ${(leftFoundIds.includes(target.id) || functionLeftIds.includes(target.id)) ? "confirmed" : "reserved"}`}
                     key={`left-${target.id}`}
                   >
                     [
@@ -1375,7 +1415,7 @@ export function WordGroupReader({
                 {token.text}
                 {rightSymbols.map((target) => (
                   <span
-                    className={`word-group-bracket right ${rightFoundIds.includes(target.id) ? "confirmed" : "reserved"}`}
+                    className={`word-group-bracket right ${(rightFoundIds.includes(target.id) || functionRightIds.includes(target.id)) ? "confirmed" : "reserved"}`}
                     key={`right-${target.id}`}
                   >
                     ]
@@ -1389,11 +1429,12 @@ export function WordGroupReader({
         <canvas
           ref={canvasRef}
           className={`word-group-drawing-canvas${
-            phase === "brackets" ? "" : " inactive"
+            phase === "brackets" || phase === "function_brackets" ? "" : " inactive"
           }`}
           onPointerDown={beginDrawing}
           onPointerMove={(event) => {
-            if (boundaryMode === "frame" && frameStart) {
+            const activeBoundaryMode = markingFunctions ? continuationBoundaryMode : boundaryMode;
+            if (activeBoundaryMode === "frame" && frameStart) {
               const position = pointerPosition(event.clientX, event.clientY);
               if (position) setFrameCurrent(position);
               return;
@@ -1544,7 +1585,9 @@ export function WordGroupReader({
         <div className="word-group-reader-complete">
           <CheckCircle2 size={20} />
           <span>
-            Tous les groupes ont été correctement identifiés.
+            {functionTargets.length > 0
+              ? "Tous les groupes et toutes les fonctions ont été correctement identifiés."
+              : "Tous les groupes ont été correctement identifiés."}
           </span>
         </div>
       )}

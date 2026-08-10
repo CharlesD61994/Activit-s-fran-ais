@@ -320,6 +320,7 @@ export function InteractiveSentenceReader({
   const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
   const correctedGrammarSentence = useMemo(() => buildCorrectedGrammarSentence(sentence, correctedText), [correctedText, sentence]);
   const usesNativeGroupPhase = sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0;
+  const usesSharedRangeSurface = Boolean(usesNativeGroupPhase || (correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "function") && sentence.workflowPhases?.some((phase) => phase.kind === "functions" && phase.actions.some((action) => action.enabled)));
   const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
@@ -588,28 +589,29 @@ export function InteractiveSentenceReader({
         <Button variant="secondary" onClick={restart}>
           Recommencer
         </Button>
-        {!usesNativeGroupPhase && finishControl}
+        {!usesSharedRangeSurface && finishControl}
       </div>
 
       <div className="interactive-sentence" ref={sentenceRef}>
         {renderedLines}
       </div>
 
-      {correctionComplete && usesNativeGroupPhase && (
+      {correctionComplete && usesSharedRangeSurface && (
         <>
           <WordGroupReader
-            sentence={{ ...sentence, originalText: correctedText, corrections: [], wordGroupTargets: hybridGroupTargets }}
+            sentence={{ ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets }}
             persistenceKey={persistenceKey ? `${persistenceKey}-groups` : undefined}
             onPoint={() => undefined}
             onCompleteChange={setHybridGroupComplete}
             boundaryMode={groupBoundaryMode}
+            continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
             finishControl={hybridGroupComplete ? finishControl : undefined}
           />
-          {hybridGroupComplete && <GrammarExtensionReader sentence={correctedGrammarSentence} excludedKinds={["group", "nucleus"]} />}
+          {hybridGroupComplete && <GrammarExtensionReader sentence={correctedGrammarSentence} excludedKinds={["group", "nucleus", "function"]} />}
         </>
       )}
 
-      {correctionComplete && !usesNativeGroupPhase && (
+      {correctionComplete && !usesSharedRangeSurface && (
         <GrammarExtensionReader sentence={correctedGrammarSentence} />
       )}
 
