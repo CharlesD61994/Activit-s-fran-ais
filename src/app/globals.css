@@ -6305,11 +6305,15 @@ textarea {
 }
 
 .word-group-reader.embedded .word-group-reader-text {
-  padding: 34px 44px;
+  padding: 12px 44px 24px;
   font-size: clamp(1.8rem, 4.1vw, 4.8rem);
   line-height: 1.38;
   letter-spacing: -.03em;
   font-weight: 700;
+}
+
+.word-group-reader.embedded .word-group-reader-toolbar {
+  padding: 0 12px 4px;
 }
 
 .word-group-reader-token {
@@ -6317,18 +6321,20 @@ textarea {
   position: relative;
 }
 
-.word-group-overlay-bracket {
-  position: absolute;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.word-group-bracket.confirmed {
+  display: inline;
   color: var(--primary);
-  font-family: Arial, sans-serif;
-  font-size: clamp(2rem, 4vw, 4.2rem);
+  font: inherit;
   font-weight: 900;
-  line-height: 1;
-  pointer-events: none;
+  line-height: inherit;
+}
+
+.word-group-bracket.confirmed.left {
+  margin-right: .04em;
+}
+
+.word-group-bracket.confirmed.right {
+  margin-left: .04em;
 }
 
 .word-group-confirmed-frame {
@@ -6441,9 +6447,9 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 38px;
-  padding: 6px 10px;
+  min-width: 1.7em;
+  min-height: .82em;
+  padding: 0 .18em;
   border: 2px solid var(--primary);
   border-radius: .18em;
   background: var(--surface);
@@ -6464,10 +6470,10 @@ textarea {
 
 .word-group-type-menu {
   position: absolute;
-  z-index: 30;
+  z-index: 200;
   left: 50%;
-  top: calc(100% + 8px);
-  bottom: auto;
+  top: auto;
+  bottom: calc(100% + 8px);
   transform: translateX(-50%);
   display: grid;
   gap: 5px;
@@ -6485,7 +6491,6 @@ textarea {
   align-items: center;
   gap: 7px;
   width: 100%;
-  min-height: 44px;
   padding: 9px 10px;
   border: 0;
   border-radius: 9px;

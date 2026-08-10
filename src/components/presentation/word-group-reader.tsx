@@ -1302,17 +1302,6 @@ export function WordGroupReader({
           if (!position || !found) return null;
           return <span key={`frame-${target.id}`} className="word-group-confirmed-frame" style={{ left: position.x - position.width / 2 - 7, top: position.y - 4, width: position.width + 14, height: position.height + 8 }} />;
         })}
-        {[...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")].flatMap((target) => {
-          const position = labelPositions[target.id];
-          if (!position) return [];
-          const allBracketTargets = [...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")];
-          const leftDepth = allBracketTargets.filter((candidate) => candidate.start === target.start).findIndex((candidate) => candidate.id === target.id);
-          const rightDepth = allBracketTargets.filter((candidate) => candidate.end === target.end).findIndex((candidate) => candidate.id === target.id);
-          const marks: React.ReactNode[] = [];
-          if (leftFoundIds.includes(target.id) || functionLeftIds.includes(target.id)) marks.push(<span key={`overlay-left-${target.id}`} className="word-group-overlay-bracket left" style={{ left: position.x - position.width / 2 - 13 - Math.max(0, leftDepth) * 8, top: position.y - 5, height: position.height + 10 }}>[</span>);
-          if (rightFoundIds.includes(target.id) || functionRightIds.includes(target.id)) marks.push(<span key={`overlay-right-${target.id}`} className="word-group-overlay-bracket right" style={{ left: position.x + position.width / 2 + 5 + Math.max(0, rightDepth) * 8, top: position.y - 5, height: position.height + 10 }}>]</span>);
-          return marks;
-        })}
         {targets.map((target) => {
           const position = labelPositions[target.id];
           const classified = classifiedIds.includes(target.id);
@@ -1399,6 +1388,9 @@ export function WordGroupReader({
 
         <div className="word-group-reader-text">
           {tokens.map((token) => {
+            const bracketTargets = [...targets.filter(() => boundaryMode === "brackets"), ...functionTargets.filter(() => continuationBoundaryMode === "brackets")];
+            const leftSymbols = bracketTargets.filter((target) => (leftFoundIds.includes(target.id) || functionLeftIds.includes(target.id)) && target.start >= token.start && target.start < token.end);
+            const rightSymbols = bracketTargets.filter((target) => (rightFoundIds.includes(target.id) || functionRightIds.includes(target.id)) && target.end > token.start && target.end <= token.end);
             return (
               <span
                 key={token.id}
@@ -1429,7 +1421,9 @@ export function WordGroupReader({
                     : undefined
                 }
               >
+                {leftSymbols.map((target) => <span className="word-group-bracket confirmed left" key={`left-${target.id}`}>[</span>)}
                 {token.text}
+                {rightSymbols.map((target) => <span className="word-group-bracket confirmed right" key={`right-${target.id}`}>]</span>)}
               </span>
             );
           })}
