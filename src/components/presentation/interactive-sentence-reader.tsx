@@ -599,11 +599,7 @@ export function InteractiveSentenceReader({
         {!usesSharedRangeSurface && finishControl}
       </div>
 
-      <div className="interactive-sentence" ref={sentenceRef}>
-        {renderedLines}
-      </div>
-
-      {correctionComplete && usesSharedRangeSurface && (
+      {correctionComplete && usesSharedRangeSurface ? (
         <>
           <WordGroupReader
             sentence={{ ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets }}
@@ -613,9 +609,14 @@ export function InteractiveSentenceReader({
             boundaryMode={groupBoundaryMode}
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
             finishControl={hybridGroupComplete ? finishControl : undefined}
+            embedded
           />
           {hybridGroupComplete && <GrammarExtensionReader sentence={correctedGrammarSentence} excludedKinds={["group", "nucleus", "function"]} />}
         </>
+      ) : (
+        <div className="interactive-sentence" ref={sentenceRef}>
+          {renderedLines}
+        </div>
       )}
 
       {correctionComplete && !usesSharedRangeSurface && (

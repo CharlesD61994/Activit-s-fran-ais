@@ -6293,6 +6293,25 @@ textarea {
   pointer-events: none;
 }
 
+.word-group-reader.embedded {
+  width: 100%;
+}
+
+.word-group-reader.embedded .word-group-drawing-surface {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.word-group-reader.embedded .word-group-reader-text {
+  padding: 34px 44px;
+  font-size: clamp(1.8rem, 4.1vw, 4.8rem);
+  line-height: 1.38;
+  letter-spacing: -.03em;
+  font-weight: 700;
+}
+
 .word-group-reader-token {
   display: inline;
   position: relative;

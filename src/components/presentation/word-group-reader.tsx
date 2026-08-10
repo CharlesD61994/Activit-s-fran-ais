@@ -50,6 +50,7 @@ type Props = {
   finishControl?: React.ReactNode;
   boundaryMode?: "brackets" | "frame";
   continuationBoundaryMode?: "brackets" | "frame";
+  embedded?: boolean;
 };
 
 type Token = {
@@ -140,7 +141,8 @@ export function WordGroupReader({
   onCompleteChange,
   finishControl,
   boundaryMode = "brackets",
-  continuationBoundaryMode = "frame"
+  continuationBoundaryMode = "frame",
+  embedded = false
 }: Props) {
   const targets = useMemo(
     () =>
@@ -1257,7 +1259,7 @@ export function WordGroupReader({
   }
 
   return (
-    <div className="word-group-reader">
+    <div className={`word-group-reader ${embedded ? "embedded" : ""}`}>
       <div className="word-group-reader-toolbar">
         <div className="word-group-reader-instruction">
           <strong>
