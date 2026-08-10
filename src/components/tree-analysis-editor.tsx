@@ -26,6 +26,7 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { captureSharedTextSelection, groupSharedTextMarks, rebaseSharedTextRange, renderSharedAnnotatedText } from "@/components/grammar/shared-annotated-text";
 import { Card } from "@/components/ui/card";
 import type {
   ClassGroup,
@@ -148,47 +149,14 @@ function snap(value: number) {
   return Math.round(value / GRID) * GRID;
 }
 
-function rebaseTextRange(previousText: string, nextText: string, start: number, end: number) {
-  if (previousText === nextText) return { start, end };
-  let prefix = 0;
-  while (prefix < previousText.length && prefix < nextText.length && previousText[prefix] === nextText[prefix]) prefix += 1;
-  let suffix = 0;
-  while (suffix < previousText.length - prefix && suffix < nextText.length - prefix && previousText[previousText.length - 1 - suffix] === nextText[nextText.length - 1 - suffix]) suffix += 1;
-  const previousChangeEnd = previousText.length - suffix;
-  const nextChangeEnd = nextText.length - suffix;
-  const delta = nextText.length - previousText.length;
-  const mapIndex = (index: number) => index <= prefix ? index : index >= previousChangeEnd ? index + delta : nextChangeEnd;
-  return { start: mapIndex(start), end: mapIndex(end) };
-}
+const rebaseTextRange = rebaseSharedTextRange;
 
 function rebaseTextAnnotations(box: TreeAnalysisTextBox, nextText: string) {
   return box.annotations.map((annotation) => ({ ...annotation, ...rebaseTextRange(box.text, nextText, annotation.start, annotation.end) })).filter((annotation) => annotation.end > annotation.start);
 }
 
-function getTextStyleGroups(box: TreeAnalysisTextBox) {
-  const boundaries = Array.from(new Set([0, box.text.length, ...box.annotations.flatMap((annotation) => [annotation.start, annotation.end])])).sort((a, b) => a - b);
-  const segments = boundaries.slice(0, -1).map((start, index) => {
-    const end = boundaries[index + 1];
-    const annotations = box.annotations.filter((item) => item.start <= start && item.end >= end);
-    const color = [...annotations].reverse().find((item) => item.color !== undefined)?.color ?? undefined;
-    const framed = [...annotations].reverse().find((item) => item.framed !== undefined)?.framed ?? false;
-    const bold = [...annotations].reverse().find((item) => item.bold !== undefined)?.bold ?? false;
-    return { start, end, text: box.text.slice(start, end), color, framed, bold };
-  });
-  return segments.reduce<Array<{ framed: boolean; segments: typeof segments }>>((groups, segment) => {
-    const group = groups[groups.length - 1];
-    if (group && group.framed === segment.framed) group.segments.push(segment);
-    else groups.push({ framed: segment.framed, segments: [segment] });
-    return groups;
-  }, []);
-}
-
 function renderTextBoxContent(box: TreeAnalysisTextBox) {
-  return getTextStyleGroups(box).map((group, groupIndex) => (
-    <span key={`${groupIndex}-${group.segments[0]?.start ?? 0}`} className={group.framed ? "tree-analysis-framed-text" : undefined}>
-      {group.segments.map((segment) => <span key={`${segment.start}-${segment.end}`} style={{ color: segment.color ?? undefined, fontWeight: segment.bold ? 700 : undefined }}>{segment.text}</span>)}
-    </span>
-  ));
+  return renderSharedAnnotatedText(box.text, box.annotations, "tree-analysis-framed-text");
 }
 
 function pagePrintScaleX(page: TreeAnalysisDocumentPage | undefined) {
@@ -616,17 +584,8 @@ export function TreeAnalysisEditor({
   }
 
   function captureRenderedTextSelection(box: TreeAnalysisTextBox, element: HTMLDivElement) {
-    const browserSelection = window.getSelection();
-    if (!browserSelection || browserSelection.rangeCount === 0) return;
-    const range = browserSelection.getRangeAt(0);
-    if (!element.contains(range.startContainer) || !element.contains(range.endContainer)) return;
-    const beforeStart = range.cloneRange();
-    beforeStart.selectNodeContents(element);
-    beforeStart.setEnd(range.startContainer, range.startOffset);
-    const beforeEnd = range.cloneRange();
-    beforeEnd.selectNodeContents(element);
-    beforeEnd.setEnd(range.endContainer, range.endOffset);
-    const selection = { start: beforeStart.toString().length, end: beforeEnd.toString().length };
+    const selection = captureSharedTextSelection(element);
+    if (!selection) return;
     textSelectionRef.current = selection;
     setTextSelection(selection);
     setSelectedTextBoxId(box.id);
@@ -734,7 +693,7 @@ export function TreeAnalysisEditor({
     const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
     const annotated = (box: TreeAnalysisTextBox) => {
       const printableBox = printMode === "answer" ? box : { ...box, annotations: [] };
-      return getTextStyleGroups(printableBox).map((group) => `<span class="${group.framed ? "framed-text" : ""}">${group.segments.map((segment) => `<span style="${segment.color ? `color:${segment.color};` : ""}${segment.bold ? "font-weight:700;" : ""}">${escape(segment.text)}</span>`).join("")}</span>`).join("");
+      return groupSharedTextMarks(printableBox.text, printableBox.annotations).map((group) => `<span class="${group.framed ? "framed-text" : ""}">${group.segments.map((segment) => `<span style="${segment.color ? `color:${segment.color};` : ""}${segment.bold ? "font-weight:700;" : ""}">${escape(segment.text)}</span>`).join("")}</span>`).join("");
     };
     const htmlPages = documentPages.map((page, pageIndex) => {
       const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
