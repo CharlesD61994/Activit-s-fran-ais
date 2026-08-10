@@ -1,168 +1,42 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import type { GrammarAnnotation, GrammarAnnotationKind, Sentence } from "@/types";
 import { grammarActionLabels, grammarPhaseLabels } from "@/lib/grammar-workflow";
+import { matchDrawnRange, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
+import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
+import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 
-type TextToken = { text: string; start: number; end: number; isWord: boolean };
 type Point = { x: number; y: number };
-type AnswerBox = { id: string; left: number; top: number; width: number; height: number };
+const actionAnnotationKind: Partial<Record<string, GrammarAnnotationKind>> = { frame_groups: "group", identify_group_types: "group", identify_word_classes: "word_class", find_nuclei: "nucleus", frame_functions: "function", identify_functions: "function", identify_donors: "donor", identify_receivers: "receiver" };
+type Props = { sentence: Sentence; excludedKinds?: GrammarAnnotationKind[]; initialSolvedIds?: string[]; forcedLineBreaks?: number[]; onCompleteChange?: (complete: boolean) => void; finishControl?: React.ReactNode };
 
-const actionAnnotationKind: Partial<Record<string, GrammarAnnotationKind>> = {
-  frame_groups: "group",
-  identify_group_types: "group",
-  identify_word_classes: "word_class",
-  find_nuclei: "nucleus",
-  frame_functions: "function",
-  identify_functions: "function",
-  identify_donors: "donor",
-  identify_receivers: "receiver"
-};
-
-function tokenize(text: string): TextToken[] {
-  return Array.from(text.matchAll(/\S+|\s+/g)).map((match) => ({
-    text: match[0],
-    start: match.index ?? 0,
-    end: (match.index ?? 0) + match[0].length,
-    isWord: /\S/.test(match[0])
-  }));
-}
-
-function rangeMatches(annotation: GrammarAnnotation, start: number, end: number) {
-  const overlap = Math.max(0, Math.min(annotation.end, end) - Math.max(annotation.start, start));
-  const expectedLength = Math.max(1, annotation.end - annotation.start);
-  const selectedLength = Math.max(1, end - start);
-  return overlap / expectedLength >= .72 && overlap / selectedLength >= .62;
-}
-
-export function GrammarExtensionReader({ sentence, excludedKinds = [] }: { sentence: Sentence; excludedKinds?: GrammarAnnotationKind[] }) {
+export function GrammarExtensionReader({ sentence, excludedKinds = [], initialSolvedIds = [], forcedLineBreaks = [], onCompleteChange, finishControl }: Props) {
   const annotations = useMemo(() => sentence.grammarAnnotations ?? [], [sentence.grammarAnnotations]);
-  const steps = (sentence.workflowPhases ?? []).flatMap((phase) => phase.actions
-    .filter((action) => {
-      const kind = actionAnnotationKind[action.kind];
-      if (!action.enabled || !kind || excludedKinds.includes(kind)) return false;
-      if (action.kind === "identify_functions" && phase.actions.some((candidate) => candidate.kind === "frame_functions" && candidate.enabled)) return false;
-      return true;
-    })
-    .map((action) => ({ phase, action, kind: actionAnnotationKind[action.kind]! })));
-  const [stepIndex, setStepIndex] = useState(0);
-  const [solvedIds, setSolvedIds] = useState<string[]>([]);
-  const [drawingStart, setDrawingStart] = useState<Point | null>(null);
-  const [drawingCurrent, setDrawingCurrent] = useState<Point | null>(null);
-  const [answerBoxes, setAnswerBoxes] = useState<AnswerBox[]>([]);
-  const [message, setMessage] = useState("");
-  const surfaceRef = useRef<HTMLDivElement>(null);
-  const tokens = useMemo(() => tokenize(sentence.originalText), [sentence.originalText]);
-  const step = steps[stepIndex];
-  const expected = step ? annotations.filter((annotation) => annotation.kind === step.kind && !solvedIds.includes(annotation.id)) : [];
+  const steps = useMemo(() => (sentence.workflowPhases ?? []).flatMap((phase) => phase.actions.filter((action) => { const kind = actionAnnotationKind[action.kind]; if (!action.enabled || !kind || excludedKinds.includes(kind)) return false; if (action.kind === "identify_functions" && phase.actions.some((candidate) => candidate.kind === "frame_functions" && candidate.enabled)) return false; return true; }).map((action) => ({ phase, action, kind: actionAnnotationKind[action.kind]! }))), [excludedKinds, sentence.workflowPhases]);
+  const [stepIndex, setStepIndex] = useState(0); const [solvedIds, setSolvedIds] = useState<string[]>(initialSolvedIds); const [drawingStart, setDrawingStart] = useState<Point | null>(null); const [drawingCurrent, setDrawingCurrent] = useState<Point | null>(null); const [message, setMessage] = useState("");
+  const surfaceRef = useRef<HTMLDivElement>(null); const tokens = useMemo(() => tokenizeGrammarText(sentence.originalText, "extension-token"), [sentence.originalText]);
+  const positions = useRangeTargetPositions(surfaceRef, annotations, tokens, "data-extension-token-id");
+  const step = steps[stepIndex]; const expected = step ? annotations.filter((annotation) => annotation.kind === step.kind && !solvedIds.includes(annotation.id)) : [];
   const responseMode = step?.action.responseMode ?? (step?.kind === "function" || step?.kind === "group" ? "frame" : "click");
+  const complete = stepIndex >= steps.length;
 
-  useEffect(() => {
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    const update = () => {
-      const surfaceRect = surface.getBoundingClientRect();
-      const next: AnswerBox[] = [];
-      annotations.filter((annotation) => solvedIds.includes(annotation.id) && (annotation.kind === "function" || annotation.kind === "group")).forEach((annotation) => {
-        const elements = Array.from(surface.querySelectorAll<HTMLElement>("[data-grammar-start]")).filter((element) => {
-          const start = Number(element.dataset.grammarStart);
-          const end = Number(element.dataset.grammarEnd);
-          return start < annotation.end && end > annotation.start;
-        });
-        const lines = new Map<number, DOMRect[]>();
-        elements.forEach((element) => {
-          const rect = element.getBoundingClientRect();
-          const key = Math.round(rect.top / 4) * 4;
-          lines.set(key, [...(lines.get(key) ?? []), rect]);
-        });
-        Array.from(lines.values()).forEach((rects, index) => {
-          const left = Math.min(...rects.map((rect) => rect.left));
-          const right = Math.max(...rects.map((rect) => rect.right));
-          const top = Math.min(...rects.map((rect) => rect.top));
-          const bottom = Math.max(...rects.map((rect) => rect.bottom));
-          next.push({ id: `${annotation.id}-${index}`, left: left - surfaceRect.left - 5, top: top - surfaceRect.top - 3, width: right - left + 10, height: bottom - top + 6 });
-        });
-      });
-      setAnswerBoxes(next);
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(surface);
-    return () => observer.disconnect();
-  }, [annotations, solvedIds, sentence.originalText]);
+  useEffect(() => { setSolvedIds((current) => Array.from(new Set([...current, ...initialSolvedIds]))); }, [initialSolvedIds]);
+  useEffect(() => { if (step && expected.length === 0) setStepIndex((index) => index + 1); }, [expected.length, step]);
+  useEffect(() => { onCompleteChange?.(complete); }, [complete, onCompleteChange]);
 
-  if (!annotations.length || !step) return null;
+  function solve(annotation: GrammarAnnotation) { const next = solvedIds.includes(annotation.id) ? solvedIds : [...solvedIds, annotation.id]; setSolvedIds(next); setMessage(annotation.label ? `Oui — ${annotation.label}.` : "Bonne réponse."); if (!annotations.some((candidate) => candidate.kind === step?.kind && !next.includes(candidate.id))) { setStepIndex((index) => index + 1); setDrawingStart(null); setDrawingCurrent(null); } }
+  function handleSurfaceClick(event: ReactMouseEvent<HTMLDivElement>) { if (responseMode !== "frame" || !step) return; const surface = surfaceRef.current; if (!surface) return; const rect = surface.getBoundingClientRect(); const point = { x: event.clientX - rect.left, y: event.clientY - rect.top }; if (!drawingStart) { setDrawingStart(point); setDrawingCurrent(point); setMessage("Clique maintenant sur le coin opposé du rectangle."); return; } const left = Math.min(drawingStart.x, point.x) - 7, right = Math.max(drawingStart.x, point.x) + 7, top = Math.min(drawingStart.y, point.y) - 10, bottom = Math.max(drawingStart.y, point.y) + 10; const selected = tokens.filter((token) => { if (!token.isWord) return false; const position = positions[expected.find((annotation) => token.start < annotation.end && token.end > annotation.start)?.id ?? ""]; const element = surface.querySelector<HTMLElement>(`[data-extension-token-id="${token.id}"]`); if (!element) return false; const box = element.getBoundingClientRect(); const x = (box.left + box.right) / 2 - rect.left, y = (box.top + box.bottom) / 2 - rect.top; return Boolean(position) && x >= left && x <= right && y >= top && y <= bottom; }); const start = selected.length ? Math.min(...selected.map((token) => token.start)) : -1, end = selected.length ? Math.max(...selected.map((token) => token.end)) : -1; const match = matchDrawnRange(start, end, expected, [], undefined, Math.max(2, Math.round((end - start) * .28))); setDrawingStart(null); setDrawingCurrent(null); if (match) solve(match); else setMessage("Ce n’est pas tout à fait la bonne partie. Réessaie."); }
+  function tokenStyle(start: number, end: number): CSSProperties { const marks = annotations.filter((annotation) => solvedIds.includes(annotation.id) && start < annotation.end && end > annotation.start); const color = [...marks].reverse().find((annotation) => annotation.visualEffect?.kind === "color")?.visualEffect?.color; const backgroundColor = [...marks].reverse().find((annotation) => annotation.visualEffect?.kind === "highlight")?.visualEffect?.color; const underline = [...marks].reverse().find((annotation) => annotation.visualEffect?.kind === "underline")?.visualEffect?.color; return { color, backgroundColor, fontWeight: marks.some((annotation) => annotation.visualEffect?.kind === "bold") ? 800 : undefined, textDecoration: underline ? "underline" : undefined, textDecorationColor: underline }; }
+  const bracketTargets = annotations.filter((annotation) => solvedIds.includes(annotation.id) && (annotation.visualEffect?.kind === "brackets" || (!annotation.visualEffect && annotation.kind === "group"))); const frameTargets = annotations.filter((annotation) => solvedIds.includes(annotation.id) && (annotation.visualEffect?.kind === "frame" || (!annotation.visualEffect && annotation.kind === "function")));
 
-  function complete(annotation: GrammarAnnotation) {
-    const next = solvedIds.includes(annotation.id) ? solvedIds : [...solvedIds, annotation.id];
-    setSolvedIds(next);
-    setMessage(annotation.label ? `Oui — ${annotation.label}.` : "Bonne réponse.");
-    if (!annotations.some((candidate) => candidate.kind === step.kind && !next.includes(candidate.id))) {
-      setStepIndex((index) => Math.min(index + 1, steps.length));
-      setDrawingStart(null);
-      setDrawingCurrent(null);
-    }
-  }
-
-  function handleSurfaceClick(event: ReactMouseEvent<HTMLDivElement>) {
-    if (responseMode !== "frame") return;
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    const rect = surface.getBoundingClientRect();
-    const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-    if (!drawingStart) {
-      setDrawingStart(point);
-      setDrawingCurrent(point);
-      setMessage("Clique maintenant sur le coin opposé du rectangle.");
-      return;
-    }
-    const left = Math.min(drawingStart.x, point.x) - 7;
-    const right = Math.max(drawingStart.x, point.x) + 7;
-    const top = Math.min(drawingStart.y, point.y) - 10;
-    const bottom = Math.max(drawingStart.y, point.y) + 10;
-    const selected = Array.from(surface.querySelectorAll<HTMLElement>("[data-grammar-start]")).filter((element) => {
-      const wordRect = element.getBoundingClientRect();
-      const centerX = (wordRect.left + wordRect.right) / 2 - rect.left;
-      const centerY = (wordRect.top + wordRect.bottom) / 2 - rect.top;
-      return centerX >= left && centerX <= right && centerY >= top && centerY <= bottom;
-    });
-    const start = selected.length ? Math.min(...selected.map((element) => Number(element.dataset.grammarStart))) : -1;
-    const end = selected.length ? Math.max(...selected.map((element) => Number(element.dataset.grammarEnd))) : -1;
-    const match = expected.find((annotation) => rangeMatches(annotation, start, end));
-    setDrawingStart(null);
-    setDrawingCurrent(null);
-    if (!match) {
-      setMessage("Ce n’est pas tout à fait la bonne partie. Réessaie.");
-      return;
-    }
-    complete(match);
-  }
-
-  function chooseWord(token: TextToken) {
-    if (responseMode !== "click") return;
-    const match = expected.find((annotation) => token.start < annotation.end && token.end > annotation.start);
-    if (!match) {
-      setMessage("Ce n’est pas le bon mot. Réessaie.");
-      return;
-    }
-    complete(match);
-  }
-
-  return (
-    <section className="grammar-extension-reader">
-      <div className="grammar-reader-progress">{steps.map((item, index) => <span className={index === stepIndex ? "active" : index < stepIndex ? "done" : ""} key={`${item.phase.id}-${item.action.id}`}>{index + 1}</span>)}</div>
-      <div className="grammar-reader-instruction">
-        <small>{grammarPhaseLabels[step.phase.kind]}</small>
-        <strong>{grammarActionLabels[step.action.kind]}</strong>
-        <span>{responseMode === "frame" ? "Clique sur un premier coin, puis sur le coin opposé." : "Clique sur le bon mot."}</span>
-      </div>
-      <div className={`grammar-reader-text ${responseMode === "frame" ? "framing" : "clicking"}`} ref={surfaceRef} onClick={handleSurfaceClick} onMouseMove={(event) => { if (!drawingStart || responseMode !== "frame") return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: event.clientX - rect.left, y: event.clientY - rect.top }); }}>
-        {answerBoxes.map((box) => <span key={box.id} className="grammar-reader-answer-frame" style={{ left: box.left, top: box.top, width: box.width, height: box.height }} />)}
-        {drawingStart && drawingCurrent && <span className="grammar-reader-drawing-frame" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
-        {tokens.map((token) => token.isWord ? <button type="button" data-grammar-start={token.start} data-grammar-end={token.end} key={`${token.start}-${token.end}`} onClick={(event) => { if (responseMode === "click") { event.stopPropagation(); chooseWord(token); } }}>{token.text}</button> : <span key={`${token.start}-${token.end}`}>{token.text}</span>)}
-      </div>
-      {message && <p className="grammar-reader-message">{message}</p>}
-    </section>
-  );
+  if (!annotations.length) return <>{finishControl}</>;
+  return <section className="grammar-extension-reader">
+    {!complete && step && <><div className="grammar-reader-progress">{steps.map((item, index) => <span className={index === stepIndex ? "active" : index < stepIndex ? "done" : ""} key={`${item.phase.id}-${item.action.id}`}>{index + 1}</span>)}</div><div className="grammar-reader-instruction"><small>{grammarPhaseLabels[step.phase.kind]}</small><strong>{grammarActionLabels[step.action.kind]}</strong><span>{responseMode === "frame" ? "Clique sur un premier coin, puis sur le coin opposé." : "Clique sur le bon mot."}</span></div></>}
+    <div className={`grammar-reader-text shared-grammar-reader-text ${responseMode === "frame" ? "framing" : "clicking"}`} ref={surfaceRef} onClick={handleSurfaceClick} onMouseMove={(event) => { if (!drawingStart || responseMode !== "frame") return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: event.clientX - rect.left, y: event.clientY - rect.top }); }}>
+      <RangeMarksLayer targets={bracketTargets} positions={positions} leftIds={bracketTargets.map((target) => target.id)} rightIds={bracketTargets.map((target) => target.id)} mode="brackets"/><RangeMarksLayer targets={frameTargets} positions={positions} leftIds={frameTargets.map((target) => target.id)} rightIds={frameTargets.map((target) => target.id)} mode="frame"/>
+      {drawingStart && drawingCurrent && <span className="grammar-reader-drawing-frame" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }}/>}{tokens.map((token) => <span key={token.id}>{forcedLineBreaks.some((position) => position >= token.start && position < token.end) && <br/>}{token.isWord ? <button type="button" style={tokenStyle(token.start, token.end)} data-extension-token-id={token.id} onClick={(event) => { if (responseMode !== "click" || !step) return; event.stopPropagation(); const match = expected.find((annotation) => token.start < annotation.end && token.end > annotation.start); if (match) solve(match); else setMessage("Ce n’est pas le bon mot. Réessaie."); }}>{token.text}</button> : <span style={tokenStyle(token.start, token.end)}>{token.text}</span>}</span>)}
+    </div>{message && <p className="grammar-reader-message">{message}</p>}{complete && finishControl}
+  </section>;
 }

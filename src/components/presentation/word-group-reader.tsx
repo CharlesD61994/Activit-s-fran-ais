@@ -1186,7 +1186,7 @@ export function WordGroupReader({
           );
         })}
 
-        <div className="word-group-reader-text">
+        <div className="word-group-reader-text shared-grammar-reader-text">
           {tokens.map((token) => {
             const breakBefore = forcedLineBreaks.some((position) => position >= token.start && position < token.end);
             return (

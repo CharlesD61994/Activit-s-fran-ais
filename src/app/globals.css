@@ -6365,6 +6365,32 @@ textarea {
 .mixed-workspace-test { display: grid; gap: 16px; }
 @media (max-width: 980px) { .mixed-workspace-meta { grid-template-columns: 1fr 1fr; position: static; } .mixed-workspace-grid { grid-template-columns: 1fr; } .mixed-workspace-toolbar, .mixed-workspace-phases { position: static; } }
 
+/* Géométrie unique de la phrase pendant toutes les phases grammaticales. */
+.interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text,
+.word-group-reader.embedded .word-group-reader-text.shared-grammar-reader-text,
+.grammar-extension-reader .grammar-reader-text.shared-grammar-reader-text {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 44px 24px;
+  font-size: clamp(1.75rem, 3.85vw, 4.45rem);
+  line-height: 1.38;
+  letter-spacing: -.03em;
+  font-weight: 700;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+@media (max-width: 760px) {
+  .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text,
+  .word-group-reader.embedded .word-group-reader-text.shared-grammar-reader-text,
+  .grammar-extension-reader .grammar-reader-text.shared-grammar-reader-text {
+    padding-inline: 24px;
+    font-size: clamp(1.45rem, 6.6vw, 2.65rem);
+    line-height: 1.42;
+  }
+}
+
 .word-group-drawing-canvas {
   position: absolute;
   inset: 0;

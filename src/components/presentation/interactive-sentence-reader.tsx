@@ -350,7 +350,7 @@ export function InteractiveSentenceReader({
       ].join(" ");
 
       const letterSpacing = Number.parseFloat(styles.letterSpacing) || 0;
-      const availableWidth = target.clientWidth;
+      const availableWidth = target.clientWidth - (Number.parseFloat(styles.paddingLeft) || 0) - (Number.parseFloat(styles.paddingRight) || 0);
       const lines: string[][] = [];
       let currentLine: string[] = [];
       let currentWidth = 0;
@@ -610,7 +610,15 @@ export function InteractiveSentenceReader({
       </div>
 
       {correctionComplete && usesSharedRangeSurface ? (
-        <>
+        hybridGroupComplete ? (
+          <GrammarExtensionReader
+            sentence={correctedGrammarSentence}
+            excludedKinds={["group", "nucleus", "function"]}
+            initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus" || annotation.kind === "function").map((annotation) => annotation.id)}
+            forcedLineBreaks={stableLineBreaks}
+            finishControl={finishControl}
+          />
+        ) : (
           <WordGroupReader
             sentence={{ ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets }}
             persistenceKey={persistenceKey ? `${persistenceKey}-groups` : undefined}
@@ -618,14 +626,12 @@ export function InteractiveSentenceReader({
             onCompleteChange={setHybridGroupComplete}
             boundaryMode={groupBoundaryMode}
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
-            finishControl={hybridGroupComplete ? finishControl : undefined}
             embedded
             forcedLineBreaks={stableLineBreaks}
           />
-          {hybridGroupComplete && <GrammarExtensionReader sentence={correctedGrammarSentence} excludedKinds={["group", "nucleus", "function"]} />}
-        </>
+        )
       ) : (
-        <div className="interactive-sentence" ref={sentenceRef}>
+        <div className="interactive-sentence shared-grammar-reader-text" ref={sentenceRef}>
           {renderedLines}
         </div>
       )}
