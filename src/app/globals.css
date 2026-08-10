@@ -6346,6 +6346,25 @@ textarea {
   pointer-events: none;
 }
 
+.mixed-workspace { display: grid; gap: 16px; }
+.mixed-workspace-meta { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(130px, .7fr)) auto auto; gap: 10px; align-items: end; padding: 12px; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--surface) 96%, transparent); box-shadow: var(--shadow-sm); }
+.mixed-workspace-meta label { display: grid; gap: 5px; font-weight: 800; font-size: .82rem; }
+.mixed-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 360px); gap: 16px; align-items: start; }
+.mixed-workspace-editor { display: grid; gap: 14px; min-width: 0; }
+.mixed-workspace-toolbar { position: sticky; top: 86px; z-index: 18; display: flex; flex-wrap: wrap; gap: 7px; padding: 10px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.mixed-workspace-toolbar button { min-height: 38px; padding: 7px 11px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-weight: 800; cursor: pointer; }
+.mixed-workspace-toolbar button:hover { border-color: var(--primary); background: var(--secondary); }
+.mixed-workspace-surface, .mixed-workspace-answers, .mixed-workspace-test { padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.mixed-workspace-surface { display: grid; gap: 10px; }
+.mixed-workspace-surface textarea { width: 100%; min-height: 170px; resize: vertical; padding: 18px; border: 1px solid var(--border); border-radius: 13px; font: 700 clamp(1.25rem, 2.4vw, 2rem)/1.45 Arial, sans-serif; }
+.mixed-workspace-preview { min-height: 90px; padding: 18px; border-radius: 13px; background: var(--secondary); white-space: pre-wrap; font: 700 clamp(1.2rem, 2.2vw, 1.8rem)/1.45 Arial, sans-serif; }
+.mixed-workspace-phases { position: sticky; top: 86px; }
+.mixed-workspace-answers { display: grid; gap: 8px; }
+.mixed-workspace-answers > div { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px; border: 1px solid var(--border); border-radius: 10px; }
+.mixed-workspace-answers button { border: 0; background: transparent; cursor: pointer; }
+.mixed-workspace-test { display: grid; gap: 16px; }
+@media (max-width: 980px) { .mixed-workspace-meta { grid-template-columns: 1fr 1fr; position: static; } .mixed-workspace-grid { grid-template-columns: 1fr; } .mixed-workspace-toolbar, .mixed-workspace-phases { position: static; } }
+
 .word-group-drawing-canvas {
   position: absolute;
   inset: 0;

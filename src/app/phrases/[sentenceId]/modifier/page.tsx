@@ -8,6 +8,7 @@ import { SentenceEditor } from "@/components/sentence-editor";
 import { WordClassEditor } from "@/components/word-class-editor";
 import { WordGroupEditor } from "@/components/word-group-editor";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
+import { MixedActivityEditor } from "@/components/mixed-activity-editor";
 import { Card } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
 
@@ -25,6 +26,7 @@ export default function EditSentencePage({ params }: { params: Promise<{ sentenc
   const isWordClassActivity = sentence.activityType === "word_classes";
   const isWordGroupActivity = sentence.activityType === "word_groups";
   const isTreeAnalysisActivity = sentence.activityType === "tree_analysis";
+  const isMixedActivity = sentence.primaryObjective === "mixed_grammar";
 
   return (
     <div className="page">
@@ -44,7 +46,9 @@ export default function EditSentencePage({ params }: { params: Promise<{ sentenc
               : "Modifie la phrase, ses corrections ou ses paramètres."}
         </p>
       </div>
-      {isTreeAnalysisActivity ? (
+      {isMixedActivity ? (
+        <MixedActivityEditor initialSentence={sentence} levels={data.levels} correctionCodes={data.correctionCodes} onSave={(updated) => { saveSentence(updated); router.push("/phrases"); }}/>
+      ) : isTreeAnalysisActivity ? (
         <TreeAnalysisEditor
           initialSentence={sentence}
           levels={data.levels}

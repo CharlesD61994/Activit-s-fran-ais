@@ -1756,7 +1756,7 @@ export function TreeAnalysisEditor({
                 functionOptions={sentenceFunctionOptions}
                 wordClassLabels={wordClassLabels}
                 linkedTargetLabel={selectedInteractionNode ? getNodeLabel(selectedInteractionNode) || "sans réponse" : undefined}
-                onChange={(draft) => { setInteractionKind(draft.kind); setInteractionLabel(draft.label); setInteractionInstruction(draft.instruction); setInteractionResponseMode(draft.responseMode); setInteractionNucleusClass(draft.nucleusWordClass); setInteractionLinkedNodeId(draft.linkedTargetId); }}
+                onChange={(draft) => { if (draft.kind === "function" || draft.kind === "group" || draft.kind === "nucleus") setInteractionKind(draft.kind); setInteractionLabel(draft.label); setInteractionInstruction(draft.instruction); if (draft.responseMode === "click" || draft.responseMode === "frame") setInteractionResponseMode(draft.responseMode); setInteractionNucleusClass(draft.nucleusWordClass); setInteractionLinkedNodeId(draft.linkedTargetId); }}
                 onCancel={cancelInteraction}
                 onSave={saveInteraction}
                 onPickLinkedTarget={() => { setInteractionModalOpen(false); setPickingInteractionNode(true); }}

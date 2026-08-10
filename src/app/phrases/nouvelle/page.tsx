@@ -7,6 +7,7 @@ import { SentenceEditor } from "@/components/sentence-editor";
 import { WordClassEditor } from "@/components/word-class-editor";
 import { WordGroupEditor } from "@/components/word-group-editor";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
+import { MixedActivityEditor } from "@/components/mixed-activity-editor";
 import { useAppStore } from "@/store/app-store";
 import type { ActivityType, GrammarObjective } from "@/types";
 
@@ -47,7 +48,9 @@ export default function NewSentencePage() {
       <div className="page-header">
         <span className="eyebrow">Création</span>
         <h1>
-          {activityType === "tree_analysis"
+          {primaryObjective === "mixed_grammar"
+            ? "Nouvelle activité grammaticale mixte"
+            : activityType === "tree_analysis"
             ? "Nouvelle analyse en arbre"
             : activityType === "word_groups"
             ? "Nouvelle activité sur les groupes de mots"
@@ -58,7 +61,9 @@ export default function NewSentencePage() {
               : "Nouvelle phrase à corriger"}
         </h1>
         <p>
-          {activityType === "tree_analysis"
+          {primaryObjective === "mixed_grammar"
+            ? "Sélectionne les réponses dans la phrase, configure leurs gestes, puis organise les phases du lecteur."
+            : activityType === "tree_analysis"
             ? "Écris une phrase compatible avec une feuille Lettre en paysage, puis construis son arbre."
             : activityType === "word_groups"
             ? "Écris la phrase, délimite chaque groupe, choisis son type et identifie son noyau."
@@ -70,7 +75,9 @@ export default function NewSentencePage() {
         </p>
       </div>
 
-      {activityType === "tree_analysis" ? (
+      {primaryObjective === "mixed_grammar" ? (
+        <MixedActivityEditor levels={data.levels} correctionCodes={data.correctionCodes} onSave={saveAndReturn}/>
+      ) : activityType === "tree_analysis" ? (
         <TreeAnalysisEditor
           levels={data.levels}
           groups={data.groups}

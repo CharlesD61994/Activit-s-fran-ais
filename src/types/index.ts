@@ -137,6 +137,12 @@ export type GrammarAnnotation = {
   kind: GrammarAnnotationKind;
   label?: string;
   linkedAnnotationId?: string;
+  parentAnnotationId?: string;
+  responseMode?: "click" | "frame" | "brackets";
+  visualEffect?: {
+    kind: "none" | "color" | "frame" | "brackets" | "bold" | "highlight" | "underline";
+    color?: string;
+  };
 };
 export type AssignmentStatus = "todo" | "in_progress" | "completed" | "archived";
 
