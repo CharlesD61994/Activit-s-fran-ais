@@ -4,26 +4,29 @@ import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  BookOpenCheck,
+  BookOpen,
   CalendarDays,
+  ChevronRight,
+  Flag,
   Play,
   RotateCcw,
+  Sparkles,
+  Star,
   Trophy,
+  UsersRound,
   X
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ActivityObjectiveBadges } from "@/components/activity-objective-badges";
+import {
+  ActivityObjectiveBadges,
+  getActivityObjectiveKey
+} from "@/components/activity-objective-badges";
 import { useAppStore } from "@/store/app-store";
-import {
-  getWordClassActivityPointTotal,
-  getWordClassAnalysisTargetCount
-} from "@/lib/activity-types";
-import {
-  getCompletedSentenceIds,
-  getPerfectSentenceCount,
-  getWeeklyPoints
-} from "@/lib/stats";
+import { getWordClassActivityPointTotal } from "@/lib/activity-types";
+import { getWeeklyPoints } from "@/lib/stats";
+
+type PortalTab = "activities" | "sessions" | "competition";
 
 export default function ClassroomGroupPage({
   params
@@ -37,11 +40,11 @@ export default function ClassroomGroupPage({
     setSessionAssignmentStatus
   } = useAppStore();
 
-  const [showAllCompetitionScores, setShowAllCompetitionScores] = useState(false);
+  const [activeTab, setActiveTab] = useState<PortalTab>("activities");
+  const [showAllCompetitionScores, setShowAllCompetitionScores] =
+    useState(false);
 
   const group = data.groups.find((item) => item.id === groupId);
-  const level = data.levels.find((item) => item.id === group?.levelId);
-
   const activities = data.sentences.filter((sentence) =>
     sentence.assignedGroupIds.includes(groupId)
   );
@@ -58,18 +61,28 @@ export default function ClassroomGroupPage({
   const sessionStatus = (planned: typeof sessions[number]) =>
     sessionSource(planned)?.assignmentStatusByGroup?.[groupId] ?? "todo";
 
-  const activeActivities = activities.filter((activity) =>
-    !["completed", "archived"].includes(activityStatus(activity))
+  const activeActivities = activities.filter(
+    (activity) =>
+      !["completed", "archived"].includes(activityStatus(activity))
+  );
+  const continuingActivities = activeActivities.filter(
+    (activity) => activityStatus(activity) === "in_progress"
+  );
+  const newActivities = activeActivities.filter(
+    (activity) => activityStatus(activity) !== "in_progress"
   );
   const completedActivities = activities.filter(
     (activity) => activityStatus(activity) === "completed"
   );
-  const activeSessions = sessions.filter((session) =>
-    !["completed", "archived"].includes(sessionStatus(session))
+
+  const activeSessions = sessions.filter(
+    (session) =>
+      !["completed", "archived"].includes(sessionStatus(session))
   );
   const completedSessions = sessions.filter(
     (session) => sessionStatus(session) === "completed"
   );
+
   const teams = data.teams
     .filter((team) => team.groupId === groupId)
     .sort((a, b) => a.name.localeCompare(b.name, "fr"));
@@ -102,7 +115,6 @@ export default function ClassroomGroupPage({
       .forEach((result) => {
         result.standings.forEach((standing) => {
           const current = totals.get(standing.teamId);
-
           totals.set(standing.teamId, {
             teamId: standing.teamId,
             teamName: standing.teamName,
@@ -137,209 +149,270 @@ export default function ClassroomGroupPage({
         previousScore !== null && previousScore === team.score
           ? previousRank
           : index + 1;
-
       previousScore = team.score;
       previousRank = rank;
-
       return { ...team, rank };
     });
   }, [data.competitionResults, groupId, teams]);
 
-  if (!group || !level) {
+  if (!group) {
     return (
       <div className="classroom-page">
         <Card>
           <h1>Groupe introuvable</h1>
-          <Link href="/classe">Retour à Classe</Link>
+          <Link href="/classe">Retour aux groupes</Link>
         </Card>
       </div>
     );
   }
 
+  const weeklyPoints = getWeeklyPoints(data.scoreEvents, group.id);
   const completedCompetitionResults = data.competitionResults
     .filter((result) => result.groupId === group.id)
     .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
 
+  function activityPointTotal(activity: typeof activities[number]) {
+    if (activity.activityType === "word_classes") {
+      return getWordClassActivityPointTotal(activity);
+    }
 
-  const weeklyPoints = getWeeklyPoints(data.scoreEvents, group.id);
-  const completedIds = getCompletedSentenceIds(data.scoreEvents, group.id);
-  const perfectCount = getPerfectSentenceCount(
-    data.scoreEvents,
-    data.sentences,
-    group.id
-  );
-  const reviewCount = data.reviewStates.filter(
-    (item) => item.groupId === group.id && item.markedForReview
-  ).length;
-
-  function getActivityCompletionStats(activityId: string) {
-    const events = data.scoreEvents.filter(
-      (event) =>
-        event.groupId === groupId &&
-        event.sentenceId === activityId
+    const correctionPoints = activity.corrections.reduce(
+      (sum, correction) => sum + correction.points,
+      0
     );
 
-    const activity = data.sentences.find(
-      (sentence) => sentence.id === activityId
-    );
+    if (correctionPoints > 0) return correctionPoints;
 
-    return {
-      score: events.reduce((sum, event) => sum + event.points, 0),
-      successfulCorrections: new Set(
-        events
-          .filter((event) => event.correctionId && event.points > 0)
-          .map((event) => event.correctionId)
-      ).size,
-      totalCorrections:
-        activity?.activityType === "word_classes"
-          ? getWordClassActivityPointTotal(activity)
-          : activity?.corrections.length ?? 0
-    };
+    const interactiveTargets = activity.grammarAnnotations?.length ?? 0;
+    return Math.max(1, interactiveTargets);
   }
 
-  function getSessionCompletionStats(sentenceIds: string[]) {
-    const events = data.scoreEvents.filter(
-      (event) =>
-        event.groupId === groupId &&
-        sentenceIds.includes(event.sentenceId)
+  function activityScore(activityId: string) {
+    return data.scoreEvents
+      .filter(
+        (event) =>
+          event.groupId === groupId &&
+          event.sentenceId === activityId
+      )
+      .reduce((sum, event) => sum + event.points, 0);
+  }
+
+  function renderActivityCard(
+    activity: typeof activities[number],
+    featured = false
+  ) {
+    const status = activityStatus(activity);
+    const totalPoints = activityPointTotal(activity);
+    const score = activityScore(activity.id);
+    const progress =
+      totalPoints > 0
+        ? Math.min(100, Math.round((score / totalPoints) * 100))
+        : 0;
+    const objectiveKey = getActivityObjectiveKey(activity);
+
+    return (
+      <Card
+        className={
+          "classroom-mission-card activity-theme-" +
+          objectiveKey +
+          (featured ? " featured" : "")
+        }
+        key={activity.id}
+      >
+        <div className="classroom-mission-band">
+          <ActivityObjectiveBadges sentence={activity} primaryOnly />
+          <span className={"assignment-status-pill status-" + status}>
+            {status === "in_progress" ? "En cours" : "À faire"}
+          </span>
+        </div>
+
+        <div className="classroom-mission-body">
+          <div className="classroom-mission-icon">
+            {objectiveKey === "mixed_grammar" ? (
+              <Sparkles size={28} />
+            ) : objectiveKey === "functions" ? (
+              <Flag size={28} />
+            ) : (
+              <BookOpen size={28} />
+            )}
+          </div>
+
+          <div className="classroom-mission-copy">
+            <h3>{activity.title}</h3>
+            <ActivityObjectiveBadges sentence={activity} secondaryOnly />
+          </div>
+        </div>
+
+        <div className="classroom-mission-footer">
+          <div className="classroom-mission-progress">
+            <span>
+              {status === "in_progress"
+                ? score > 0
+                  ? progress + " % complété"
+                  : "Activité commencée"
+                : "Prêt à commencer"}
+            </span>
+            <span className="classroom-mission-progress-track">
+              <span style={{ width: progress + "%" }} />
+            </span>
+          </div>
+
+          <span className="classroom-mission-points">
+            <Star size={18} fill="currentColor" />
+            {totalPoints} point{totalPoints > 1 ? "s" : ""} à gagner
+          </span>
+
+          <Link
+            href={
+              "/presentation/" +
+              groupId +
+              "/" +
+              activity.id +
+              "?from=classe"
+            }
+          >
+            <Button>
+              {status === "in_progress" ? "Continuer" : "Lancer"}
+              <ChevronRight size={18} />
+            </Button>
+          </Link>
+        </div>
+      </Card>
     );
-
-    const totalCorrections = data.sentences
-      .filter((sentence) => sentenceIds.includes(sentence.id))
-      .reduce(
-        (sum, sentence) =>
-          sum +
-          (sentence.activityType === "word_classes"
-            ? getWordClassActivityPointTotal(sentence)
-            : sentence.corrections.length),
-        0
-      );
-
-    return {
-      score: events.reduce((sum, event) => sum + event.points, 0),
-      successfulCorrections: new Set(
-        events
-          .filter((event) => event.correctionId && event.points > 0)
-          .map((event) => event.correctionId)
-      ).size,
-      totalCorrections
-    };
   }
 
   return (
-    <div className="classroom-page classroom-group-page">
-      <Link href="/classe" className="classroom-section-back">
-        <ArrowLeft size={18} />
-        Tous les groupes
-      </Link>
+    <div className="classroom-page classroom-group-dashboard">
+      <section className="classroom-dashboard-hero">
+        <Link href="/classe" className="classroom-dashboard-back">
+          <ArrowLeft size={20} />
+          Tous les groupes
+        </Link>
 
-      <section className="classroom-group-hero">
-        <div>
-          <span className="eyebrow">{level.name}</span>
-          <h1>{group.name}</h1>
-          {group.description && <p>{group.description}</p>}
+        <div className="classroom-dashboard-identity">
+          <span className="classroom-dashboard-emblem">
+            {group.name.match(/\d+/)?.[0] ??
+              group.name.slice(0, 3).toUpperCase()}
+          </span>
+          <div>
+            <span className="classroom-portal-kicker">
+              Tableau de classe
+            </span>
+            <h1>{group.name}</h1>
+            <p>Activités, séances et défis de la classe</p>
+          </div>
+        </div>
+
+        <div className="classroom-dashboard-points">
+          <span className="classroom-dashboard-point-icon">
+            <Star size={30} fill="currentColor" />
+          </span>
+          <div>
+            <strong>{group.totalPoints} points</strong>
+            <span>+{weeklyPoints} cette semaine</span>
+          </div>
         </div>
       </section>
 
-      <div className="classroom-stats-grid">
-        <Card className="classroom-stat-card">
+      <nav className="classroom-dashboard-tabs" aria-label="Sections du groupe">
+        <button
+          type="button"
+          className={activeTab === "activities" ? "active" : ""}
+          onClick={() => setActiveTab("activities")}
+          aria-pressed={activeTab === "activities"}
+        >
+          <BookOpen size={24} />
+          <span>Activités</span>
+          <b>{activeActivities.length}</b>
+        </button>
+        <button
+          type="button"
+          className={activeTab === "sessions" ? "active" : ""}
+          onClick={() => setActiveTab("sessions")}
+          aria-pressed={activeTab === "sessions"}
+        >
+          <CalendarDays size={24} />
+          <span>Séances</span>
+          <b>{activeSessions.length}</b>
+        </button>
+        <button
+          type="button"
+          className={activeTab === "competition" ? "active" : ""}
+          onClick={() => setActiveTab("competition")}
+          aria-pressed={activeTab === "competition"}
+        >
           <Trophy size={24} />
-          <span>Points cette semaine</span>
-          <strong>{weeklyPoints}</strong>
-        </Card>
+          <span>Compétition amicale</span>
+          <b>{competitionActivities.length + competitionSessions.length}</b>
+        </button>
+      </nav>
 
-        <Card className="classroom-stat-card">
-          <BookOpenCheck size={24} />
-          <span>Réussites parfaites</span>
-          <strong>{perfectCount}/{completedIds.length}</strong>
-        </Card>
-
-        <Card className="classroom-stat-card">
-          <RotateCcw size={24} />
-          <span>À revoir</span>
-          <strong>{reviewCount}</strong>
-        </Card>
-      </div>
-
-      <section className="classroom-content-section">
-        <div className="classroom-section-heading simple">
-          <h2>Activités</h2>
-          <span>{activeActivities.length}</span>
-        </div>
-
-        <div className="classroom-activity-grid">
-          {activeActivities.map((activity) => (
-            <Card className="classroom-activity-card" key={activity.id}>
-              <div className="classroom-activity-card-content">
-                <div className="classroom-activity-card-topline">
-                  <ActivityObjectiveBadges sentence={activity} />
-                  <span className={`assignment-status-pill status-${activityStatus(activity)}`}>
-                    {activityStatus(activity) === "in_progress" ? "En cours" : "À faire"}
+      {activeTab === "activities" && (
+        <div className="classroom-dashboard-panel">
+          {continuingActivities.length > 0 && (
+            <section className="classroom-dashboard-section">
+              <div className="classroom-dashboard-section-heading">
+                <div>
+                  <span className="classroom-dashboard-section-icon">
+                    <RotateCcw size={21} />
                   </span>
+                  <h2>À continuer</h2>
                 </div>
-                <h3>{activity.title}</h3>
+                <span>{continuingActivities.length}</span>
               </div>
-
-              <div className="classroom-activity-card-footer">
-                <span>
-                  {activity.activityType === "word_classes"
-                    ? `${getWordClassAnalysisTargetCount(activity)} mot${
-                        getWordClassAnalysisTargetCount(activity) > 1
-                          ? "s"
-                          : ""
-                      }`
-                    : `${activity.corrections.length} correction${
-                        activity.corrections.length > 1 ? "s" : ""
-                      }`}
-                </span>
-                <Link href={`/presentation/${group.id}/${activity.id}?from=classe`}>
-                  <Button>
-                    <Play size={18} />
-                    Lancer
-                  </Button>
-                </Link>
+              <div className="classroom-mission-grid featured-grid">
+                {continuingActivities.map((activity) =>
+                  renderActivityCard(activity, true)
+                )}
               </div>
-            </Card>
-          ))}
-
-          {activeActivities.length === 0 && (
-            <Card>
-              <h3>Aucune activité assignée</h3>
-              <p>Assigne une activité à ce groupe dans le tableau de bord.</p>
-            </Card>
+            </section>
           )}
-        </div>
 
-        <details className="section-completed-menu">
-          <summary>
-            Terminées ({completedActivities.length})
-          </summary>
+          <section className="classroom-dashboard-section">
+            <div className="classroom-dashboard-section-heading">
+              <div>
+                <span className="classroom-dashboard-section-icon">
+                  <Sparkles size={21} />
+                </span>
+                <h2>
+                  {continuingActivities.length > 0
+                    ? "Nouvelles activités"
+                    : "Activités disponibles"}
+                </h2>
+              </div>
+              <span>{newActivities.length}</span>
+            </div>
 
-          <div className="completed-items-list">
-            {completedActivities.map((activity) => {
-              const stats = getActivityCompletionStats(activity.id);
+            <div className="classroom-mission-grid">
+              {newActivities.map((activity) =>
+                renderActivityCard(activity)
+              )}
+              {activeActivities.length === 0 && (
+                <Card className="classroom-dashboard-empty">
+                  <BookOpen size={34} />
+                  <h3>Aucune activité assignée</h3>
+                  <p>Assigne une activité à ce groupe dans le tableau de bord.</p>
+                </Card>
+              )}
+            </div>
+          </section>
 
-              return (
-                <Card
-                  className="completed-item-card"
-                  key={`completed-activity-${activity.id}`}
-                >
+          <details className="classroom-dashboard-completed">
+            <summary>
+              Activités terminées
+              <span>{completedActivities.length}</span>
+            </summary>
+            <div className="completed-card-grid">
+              {completedActivities.map((activity) => (
+                <Card className="completed-item-card" key={activity.id}>
                   <div className="completed-item-main">
                     <ActivityObjectiveBadges sentence={activity} />
-
                     <strong>{activity.title}</strong>
-
-                    <div className="completed-item-stats">
-                      <span>Score : {stats.score}</span>
-                      <span>
-                        {activity.activityType === "word_classes"
-                          ? "Réponses"
-                          : "Corrections"} :{" "}
-                        {stats.successfulCorrections}/{stats.totalCorrections}
-                      </span>
-                    </div>
+                    <span className="classroom-completed-score">
+                      <Star size={16} fill="currentColor" />
+                      {activityScore(activity.id)} points obtenus
+                    </span>
                   </div>
-
                   <Button
                     variant="secondary"
                     onClick={() =>
@@ -354,214 +427,201 @@ export default function ClassroomGroupPage({
                     Rejouer
                   </Button>
                 </Card>
-              );
-            })}
-
-            {completedActivities.length === 0 && (
-              <p className="completed-empty">Aucune activité terminée.</p>
-            )}
-          </div>
-        </details>
-      </section>
-
-      <section className="classroom-content-section">
-        <div className="classroom-section-heading simple">
-          <h2>Séances</h2>
-          <span>{activeSessions.length}</span>
+              ))}
+              {completedActivities.length === 0 && (
+                <p className="completed-empty">
+                  Aucune activité terminée.
+                </p>
+              )}
+            </div>
+          </details>
         </div>
+      )}
 
-        <div className="classroom-session-list">
-          {activeSessions.map((session) => {
-            const firstActivity = data.sentences.find(
-              (activity) => activity.id === session.sentenceIds[0]
-            );
+      {activeTab === "sessions" && (
+        <div className="classroom-dashboard-panel">
+          <section className="classroom-dashboard-section">
+            <div className="classroom-dashboard-section-heading">
+              <div>
+                <span className="classroom-dashboard-section-icon session">
+                  <CalendarDays size={21} />
+                </span>
+                <h2>Séances disponibles</h2>
+              </div>
+              <span>{activeSessions.length}</span>
+            </div>
 
-            return (
-              <Card className="classroom-session-card" key={session.id}>
-                <div className="classroom-session-icon">
-                  <CalendarDays size={24} />
-                </div>
-                <div>
-                  <h3>{session.title}</h3>
-                  <span className={`assignment-status-pill status-${sessionStatus(session)}`}>
-                    {sessionStatus(session) === "in_progress" ? "En cours" : "À faire"}
-                  </span>
-                  <p>
-                    {new Date(`${session.scheduledDate}T12:00:00`).toLocaleDateString("fr-CA")}
-                    {" · "}
-                    {session.sentenceIds.length} activité{session.sentenceIds.length > 1 ? "s" : ""}
-                  </p>
-                </div>
-                {firstActivity && (
-                  <Link href={`/presentation/${group.id}/${firstActivity.id}?plan=${session.id}&from=classe`}>
-                    <Button>
-                      <Play size={18} />
-                      {sessionStatus(session) === "in_progress" ? "Reprendre" : "Démarrer"}
-                    </Button>
-                  </Link>
-                )}
-              </Card>
-            );
-          })}
+            <div className="classroom-session-dashboard-grid">
+              {activeSessions.map((session) => {
+                const firstActivity = data.sentences.find(
+                  (activity) => activity.id === session.sentenceIds[0]
+                );
+                const status = sessionStatus(session);
 
-          {activeSessions.length === 0 && (
-            <Card>
-              <h3>Aucune séance</h3>
-              <p>Prépare une séance dans la page d’administration du groupe.</p>
-            </Card>
-          )}
-        </div>
+                return (
+                  <Card className="classroom-dashboard-session-card" key={session.id}>
+                    <div className="classroom-dashboard-session-date">
+                      <CalendarDays size={26} />
+                      <span>
+                        {new Date(
+                          session.scheduledDate + "T12:00:00"
+                        ).toLocaleDateString("fr-CA", {
+                          day: "numeric",
+                          month: "short"
+                        })}
+                      </span>
+                    </div>
+                    <div>
+                      <span className={"assignment-status-pill status-" + status}>
+                        {status === "in_progress" ? "En cours" : "À faire"}
+                      </span>
+                      <h3>{session.title}</h3>
+                      <p>
+                        {session.sentenceIds.length} activité
+                        {session.sentenceIds.length > 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    {firstActivity && (
+                      <Link
+                        href={
+                          "/presentation/" +
+                          group.id +
+                          "/" +
+                          firstActivity.id +
+                          "?plan=" +
+                          session.id +
+                          "&from=classe"
+                        }
+                      >
+                        <Button>
+                          <Play size={18} />
+                          {status === "in_progress" ? "Reprendre" : "Démarrer"}
+                        </Button>
+                      </Link>
+                    )}
+                  </Card>
+                );
+              })}
 
+              {activeSessions.length === 0 && (
+                <Card className="classroom-dashboard-empty">
+                  <CalendarDays size={34} />
+                  <h3>Aucune séance</h3>
+                  <p>Prépare une séance dans la page d’administration.</p>
+                </Card>
+              )}
+            </div>
+          </section>
 
-      <details className="section-completed-menu">
-        <summary>
-          Terminées ({completedSessions.length})
-        </summary>
-
-        <div className="completed-items-list">
-          {completedSessions.map((session) => {
-            const stats = getSessionCompletionStats(session.sentenceIds);
-
-            return (
-              <Card
-                className="completed-item-card"
-                key={`completed-session-${session.id}`}
-              >
-                <div className="completed-item-main">
-                  <span className="activity-type-badge">Séance</span>
-                  <strong>{session.title}</strong>
-
-                  <div className="completed-item-stats">
-                    <span>Score : {stats.score}</span>
+          <details className="classroom-dashboard-completed">
+            <summary>
+              Séances terminées
+              <span>{completedSessions.length}</span>
+            </summary>
+            <div className="completed-card-grid">
+              {completedSessions.map((session) => (
+                <Card className="completed-item-card" key={session.id}>
+                  <div className="completed-item-main">
+                    <span className="activity-type-badge objective-functions">
+                      Séance
+                    </span>
+                    <strong>{session.title}</strong>
                     <span>
-                      Corrections : {stats.successfulCorrections}/
-                      {stats.totalCorrections}
+                      {session.sentenceIds.length} activités réalisées
                     </span>
                   </div>
-                </div>
-
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    session.sourceSessionId &&
-                    setSessionAssignmentStatus(
-                      session.sourceSessionId,
-                      group.id,
-                      "todo",
-                      0
-                    )
-                  }
-                >
-                  Rejouer
-                </Button>
-              </Card>
-            );
-          })}
-
-          {completedSessions.length === 0 && (
-            <p className="completed-empty">Aucune séance terminée.</p>
-          )}
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      session.sourceSessionId &&
+                      setSessionAssignmentStatus(
+                        session.sourceSessionId,
+                        group.id,
+                        "todo",
+                        0
+                      )
+                    }
+                  >
+                    Rejouer
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          </details>
         </div>
-      </details>
-      </section>
+      )}
 
-
-
-      <section className="classroom-content-section competition-center organic">
-        <div className="classroom-section-heading simple competition-main-heading">
-          <h2>Compétition amicale</h2>
-        </div>
-
-        <div className="competition-cumulative-podium">
-          <div className="competition-cumulative-heading">
-            <strong>Classement cumulatif</strong>
+      {activeTab === "competition" && (
+        <div className="classroom-dashboard-panel competition-dashboard">
+          <section className="classroom-competition-hero">
+            <div>
+              <span className="classroom-portal-kicker">
+                <Trophy size={18} />
+                Classement cumulatif
+              </span>
+              <h2>Compétition amicale</h2>
+              <p>Les équipes accumulent leurs points au fil des défis.</p>
+            </div>
             <button
               type="button"
               className="competition-ranking-link"
               onClick={() => setShowAllCompetitionScores(true)}
             >
-              Voir tous les points
+              Voir le classement complet
             </button>
-          </div>
+          </section>
 
-          <div className="competition-cumulative-top3">
+          <div className="classroom-competition-podium">
             {cumulativeCompetitionScores.slice(0, 3).map((team) => (
-              <div
-                className={`competition-cumulative-team rank-${team.rank}`}
+              <Card
+                className={"classroom-competition-team rank-" + team.rank}
                 key={team.teamId}
               >
-                <span className="competition-cumulative-medal">
+                <span className="classroom-competition-medal">
                   {team.rank === 1 ? "🥇" : team.rank === 2 ? "🥈" : "🥉"}
                 </span>
-                <span className="competition-cumulative-icon">
+                <span className="classroom-competition-icon">
                   {team.teamIcon ?? "⭐"}
                 </span>
                 <strong>{team.teamName}</strong>
-                <span>{team.score} pts</span>
-              </div>
-            ))}
-
-            {cumulativeCompetitionScores.length === 0 && (
-              <span className="competition-empty-inline">
-                Aucun point accumulé pour l’instant.
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="competition-organic-list">
-          <div className="competition-organic-heading simple">
-            <h3>À faire</h3>
-            <span className="competition-count">
-              {competitionActivities.length + competitionSessions.length}
-            </span>
-          </div>
-
-          <div className="competition-organic-items">
-            {competitionActivities.map((activity) => (
-              <Card className="competition-activity-card" key={`activity-${activity.id}`}>
-                <div>
-                  <span className="activity-type-badge">Activité</span>
-                  <h3>{activity.title}</h3>
-                  <small>Une activité en compétition</small>
-                </div>
-
-                <Link
-                  href={`/presentation/${group.id}/${activity.id}?from=classe&competition=activity&source=${activity.id}`}
-                >
-                  <Button>
-                    <Trophy size={18} />
-                    Commencer
-                  </Button>
-                </Link>
+                <b>{team.score} pts</b>
               </Card>
             ))}
+          </div>
 
-            {competitionSessions.map((session) => {
-              const firstActivity = data.sentences.find(
-                (activity) => activity.id === session.sentenceIds[0]
-              );
-              if (!firstActivity) return null;
+          <section className="classroom-dashboard-section">
+            <div className="classroom-dashboard-section-heading">
+              <div>
+                <span className="classroom-dashboard-section-icon competition">
+                  <Flag size={21} />
+                </span>
+                <h2>Défis à faire</h2>
+              </div>
+              <span>
+                {competitionActivities.length + competitionSessions.length}
+              </span>
+            </div>
 
-              const planned = data.plannedSessions.find(
-                (item) =>
-                  item.sourceSessionId === session.id &&
-                  item.groupId === group.id
-              );
-
-              return (
-                <Card className="competition-activity-card" key={`session-${session.id}`}>
+            <div className="competition-organic-items">
+              {competitionActivities.map((activity) => (
+                <Card
+                  className="competition-activity-card"
+                  key={"activity-" + activity.id}
+                >
                   <div>
-                    <span className="activity-type-badge">Séance</span>
-                    <h3>{session.name}</h3>
-                    <small>
-                      {session.sentenceIds.length} activité
-                      {session.sentenceIds.length > 1 ? "s" : ""}
-                    </small>
+                    <ActivityObjectiveBadges sentence={activity} />
+                    <h3>{activity.title}</h3>
+                    <small>Une activité en compétition</small>
                   </div>
-
                   <Link
-                    href={`/presentation/${group.id}/${firstActivity.id}?from=classe&competition=session&source=${session.id}${planned ? `&plan=${planned.id}` : ""}`}
+                    href={
+                      "/presentation/" +
+                      group.id +
+                      "/" +
+                      activity.id +
+                      "?from=classe&competition=activity&source=" +
+                      activity.id
+                    }
                   >
                     <Button>
                       <Trophy size={18} />
@@ -569,108 +629,129 @@ export default function ClassroomGroupPage({
                     </Button>
                   </Link>
                 </Card>
-              );
-            })}
+              ))}
 
-            {competitionActivities.length + competitionSessions.length === 0 && (
-              <div className="competition-empty-row">
-                Aucune compétition assignée.
-              </div>
-            )}
-          </div>
-        </div>
+              {competitionSessions.map((session) => {
+                const firstActivity = data.sentences.find(
+                  (activity) => activity.id === session.sentenceIds[0]
+                );
+                if (!firstActivity) return null;
 
-        <details className="section-completed-menu competition-completed-menu">
-          <summary>
-            Terminées ({completedCompetitionResults.length})
-          </summary>
+                const planned = data.plannedSessions.find(
+                  (item) =>
+                    item.sourceSessionId === session.id &&
+                    item.groupId === group.id
+                );
 
-          <div className="completed-card-grid">
-            {completedCompetitionResults.map((result) => {
-              const winner = result.standings.find(
-                (standing) => standing.rank === 1
-              );
-
-              return (
-                <Card
-                  className="completed-item-card completed-competition-card"
-                  key={result.id}
-                >
-                  <div className="completed-item-main">
-                    <span className="activity-type-badge">
-                      {result.sourceType === "session" ? "Séance" : "Activité"}
-                    </span>
-
-                    <strong>{result.title}</strong>
-
-                    <div className="completed-item-stats">
-                      <span>
-                        {new Date(result.completedAt).toLocaleDateString("fr-CA")}
+                return (
+                  <Card
+                    className="competition-activity-card"
+                    key={"session-" + session.id}
+                  >
+                    <div>
+                      <span className="activity-type-badge objective-agreements">
+                        Séance
                       </span>
+                      <h3>{session.name}</h3>
+                      <small>
+                        {session.sentenceIds.length} activités
+                      </small>
+                    </div>
+                    <Link
+                      href={
+                        "/presentation/" +
+                        group.id +
+                        "/" +
+                        firstActivity.id +
+                        "?from=classe&competition=session&source=" +
+                        session.id +
+                        (planned ? "&plan=" + planned.id : "")
+                      }
+                    >
+                      <Button>
+                        <Trophy size={18} />
+                        Commencer
+                      </Button>
+                    </Link>
+                  </Card>
+                );
+              })}
+
+              {competitionActivities.length + competitionSessions.length === 0 && (
+                <Card className="classroom-dashboard-empty">
+                  <Flag size={34} />
+                  <h3>Aucun défi assigné</h3>
+                </Card>
+              )}
+            </div>
+          </section>
+
+          <section className="classroom-competition-teams">
+            <div className="classroom-dashboard-section-heading">
+              <div>
+                <span className="classroom-dashboard-section-icon team">
+                  <UsersRound size={21} />
+                </span>
+                <h2>Équipes</h2>
+              </div>
+              <span>{teams.length}</span>
+            </div>
+            <div className="competition-team-list">
+              {teams.map((team) => (
+                <div className="competition-team-line" key={team.id}>
+                  <span className="classroom-team-icon">
+                    {team.icon ?? "⭐"}
+                  </span>
+                  <div>
+                    <strong>{team.name}</strong>
+                    <small>
+                      {(team.members ?? []).length > 0
+                        ? (team.members ?? []).join(", ")
+                        : "Aucun élève"}
+                    </small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <details className="classroom-dashboard-completed">
+            <summary>
+              Compétitions terminées
+              <span>{completedCompetitionResults.length}</span>
+            </summary>
+            <div className="completed-card-grid">
+              {completedCompetitionResults.map((result) => {
+                const winner = result.standings.find(
+                  (standing) => standing.rank === 1
+                );
+                return (
+                  <Card
+                    className="completed-item-card completed-competition-card"
+                    key={result.id}
+                  >
+                    <div className="completed-item-main">
+                      <strong>{result.title}</strong>
                       <span>
                         {winner
-                          ? `🏆 ${winner.teamIcon ?? "⭐"} ${winner.teamName} : ${winner.score}`
+                          ? "🏆 " +
+                            (winner.teamIcon ?? "⭐") +
+                            " " +
+                            winner.teamName +
+                            " · " +
+                            winner.score +
+                            " points"
                           : "Aucun résultat"}
                       </span>
                     </div>
-                  </div>
-
-                  <div className="completed-competition-ranking">
-                    {result.standings.slice(0, 3).map((standing) => (
-                      <span key={standing.teamId}>
-                        {standing.rank === 1
-                          ? "🥇"
-                          : standing.rank === 2
-                            ? "🥈"
-                            : "🥉"}
-                        {" "}
-                        {standing.teamIcon ?? "⭐"} {standing.teamName} :
-                        {" "}
-                        {standing.score}
-                      </span>
-                    ))}
-                  </div>
-                </Card>
-              );
-            })}
-
-            {completedCompetitionResults.length === 0 && (
-              <p className="completed-empty">
-                Aucune compétition terminée.
-              </p>
-            )}
-          </div>
-        </details>
-
-        <div className="competition-organic-teams">
-          <div className="competition-organic-heading simple">
-            <h3>Équipes</h3>
-            <span className="competition-count">{teams.length}</span>
-          </div>
-
-          <div className="competition-team-list">
-            {teams.map((team) => (
-              <div className="competition-team-line" key={team.id}>
-                <span className="classroom-team-icon">{team.icon ?? "⭐"}</span>
-                <div>
-                  <strong>{team.name}</strong>
-                  <small>
-                    {(team.members ?? []).length > 0
-                      ? (team.members ?? []).join(", ")
-                      : "Aucun élève"}
-                  </small>
-                </div>
-              </div>
-            ))}
-
-            {teams.length === 0 && (
-              <div className="competition-empty-row">
-                Aucune équipe créée.
-              </div>
-            )}
-          </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </details>
         </div>
-      </section>
+      )}
+
       {showAllCompetitionScores && (
         <div className="modal-backdrop">
           <Card
@@ -681,10 +762,9 @@ export default function ClassroomGroupPage({
           >
             <div className="modal-heading">
               <div>
-                <span className="eyebrow">Compétitions amicales</span>
-                <h2>Points de toutes les équipes</h2>
+                <span className="eyebrow">Compétition amicale</span>
+                <h2>Classement de toutes les équipes</h2>
               </div>
-
               <button
                 type="button"
                 className="icon-control"
@@ -710,7 +790,6 @@ export default function ClassroomGroupPage({
           </Card>
         </div>
       )}
-
     </div>
   );
 }

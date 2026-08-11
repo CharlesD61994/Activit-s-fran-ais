@@ -9608,3 +9608,864 @@ textarea {
   text-decoration-thickness: 3px;
   text-underline-offset: 5px;
 }
+
+
+/* V90 — portail de classe grand écran inspiré du tableau de missions */
+.activity-type-badge.objective-sentence_correction,
+.activity-type-badge.objective-text_correction {
+  --objective-color: #f05a32;
+  background: #fff0eb;
+  color: #c43d1b;
+}
+
+.activity-type-badge.objective-word_classes {
+  --objective-color: #7757cf;
+  background: #f1edff;
+  color: #5d3ab9;
+}
+
+.activity-type-badge.objective-word_groups {
+  --objective-color: #0f9f91;
+  background: #e5f8f5;
+  color: #08766d;
+}
+
+.activity-type-badge.objective-functions {
+  --objective-color: #2878df;
+  background: #e9f2ff;
+  color: #185cad;
+}
+
+.activity-type-badge.objective-agreements {
+  --objective-color: #eba20b;
+  background: #fff5d9;
+  color: #a86d00;
+}
+
+.activity-type-badge.objective-mixed_grammar {
+  --objective-color: #5868d9;
+  background: #edf0ff;
+  color: #3d4db9;
+}
+
+.activity-type-badge.objective-tree_analysis {
+  --objective-color: #60ad57;
+  background: #edf8eb;
+  color: #347b2e;
+}
+
+.classroom-shell-without-header {
+  background:
+    radial-gradient(circle at 10% 0%, rgb(47 99 140 / 9%), transparent 26rem),
+    #f3f7fb;
+}
+
+.classroom-main-without-header .classroom-page.classroom-portal-home,
+.classroom-main-without-header .classroom-page.classroom-group-dashboard {
+  width: calc(100% - 56px);
+  max-width: 1580px;
+  min-width: 1180px;
+  padding: 28px 0 72px;
+}
+
+.classroom-portal-home {
+  display: grid;
+  gap: 28px;
+}
+
+.classroom-portal-home-hero,
+.classroom-dashboard-hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(circle at 88% 10%, rgb(79 149 213 / 42%), transparent 24rem),
+    linear-gradient(115deg, #082f55, #104d7e 68%, #176595);
+  box-shadow: 0 22px 50px rgb(8 47 85 / 18%);
+}
+
+.classroom-portal-home-hero {
+  min-height: 235px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 42px 48px;
+  border-radius: 28px;
+}
+
+.classroom-portal-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font-size: .82rem;
+  font-weight: 900;
+  letter-spacing: .075em;
+  text-transform: uppercase;
+}
+
+.classroom-portal-home-hero h1 {
+  margin: 10px 0 10px;
+  color: #fff;
+  font-size: clamp(3rem, 4.8vw, 5.2rem);
+  line-height: .96;
+  letter-spacing: -.055em;
+}
+
+.classroom-portal-home-hero p {
+  max-width: 760px;
+  margin: 0;
+  color: rgb(255 255 255 / 78%);
+  font-size: 1.18rem;
+  line-height: 1.55;
+}
+
+.classroom-portal-overview {
+  min-width: 300px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px;
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 10%);
+  backdrop-filter: blur(10px);
+}
+
+.classroom-portal-overview > svg {
+  width: 52px;
+  height: 52px;
+  padding: 13px;
+  border-radius: 50%;
+  background: #ffb322;
+  color: #fff;
+  fill: currentColor;
+  box-shadow: 0 9px 22px rgb(0 0 0 / 18%);
+}
+
+.classroom-portal-overview strong,
+.classroom-portal-overview span {
+  display: block;
+}
+
+.classroom-portal-overview strong {
+  font-size: 1.22rem;
+}
+
+.classroom-portal-overview span {
+  margin-top: 4px;
+  color: rgb(255 255 255 / 72%);
+  font-size: .9rem;
+}
+
+.classroom-portal-group-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.classroom-portal-group-link {
+  min-width: 0;
+}
+
+.classroom-portal-group-card {
+  --group-accent: #2878df;
+  min-height: 300px;
+  display: grid;
+  gap: 20px;
+  padding: 26px;
+  border: 1px solid rgb(24 67 105 / 12%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 12px 34px rgb(15 55 88 / 9%);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.classroom-portal-group-card.accent-2 { --group-accent: #0f9f91; }
+.classroom-portal-group-card.accent-3 { --group-accent: #7757cf; }
+.classroom-portal-group-card.accent-4 { --group-accent: #e6921b; }
+
+.classroom-portal-group-link:hover .classroom-portal-group-card {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--group-accent) 48%, white);
+  box-shadow: 0 18px 42px rgb(15 55 88 / 14%);
+}
+
+.classroom-portal-group-card-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+}
+
+.classroom-portal-group-emblem {
+  width: 104px;
+  height: 116px;
+  display: grid;
+  place-items: center;
+  clip-path: polygon(50% 0, 92% 15%, 88% 72%, 50% 100%, 12% 72%, 8% 15%);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--group-accent) 78%, white), var(--group-accent));
+  color: #fff;
+  filter: drop-shadow(0 10px 14px rgb(14 54 87 / 18%));
+}
+
+.classroom-portal-group-emblem span {
+  font-size: 1.9rem;
+  font-weight: 950;
+  letter-spacing: -.04em;
+}
+
+.classroom-portal-card-label {
+  color: var(--group-accent);
+  font-size: .73rem;
+  font-weight: 900;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.classroom-portal-group-copy h2 {
+  margin: 5px 0;
+  font-size: 2rem;
+  letter-spacing: -.035em;
+}
+
+.classroom-portal-group-copy p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.classroom-portal-open-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--group-accent) 12%, white);
+  color: var(--group-accent);
+}
+
+.classroom-portal-group-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.classroom-portal-group-metrics > span {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid #dfe8f1;
+  border-radius: 14px;
+  color: #5a7188;
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.classroom-portal-group-metrics svg {
+  color: var(--group-accent);
+}
+
+.classroom-portal-group-metrics strong {
+  color: #123b5d;
+  font-size: 1.08rem;
+}
+
+.classroom-portal-group-reward {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding-top: 18px;
+  border-top: 1px solid #e2eaf2;
+}
+
+.classroom-portal-star,
+.classroom-dashboard-point-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffc94f, #f5a600);
+  color: #fff;
+  box-shadow: 0 7px 18px rgb(217 139 0 / 23%);
+}
+
+.classroom-portal-star {
+  width: 46px;
+  height: 46px;
+}
+
+.classroom-portal-group-reward strong,
+.classroom-portal-group-reward span {
+  display: block;
+}
+
+.classroom-portal-group-reward strong {
+  color: #123b5d;
+  font-size: 1.05rem;
+}
+
+.classroom-portal-group-reward span:not(.classroom-portal-enter) {
+  margin-top: 2px;
+  color: #6b7f92;
+  font-size: .78rem;
+}
+
+.classroom-portal-group-reward .classroom-portal-enter {
+  display: inline-flex;
+  width: max-content;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #123b5d;
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 900;
+}
+
+.classroom-portal-empty {
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+/* Tableau d’un groupe */
+.classroom-group-dashboard {
+  display: grid;
+  gap: 20px;
+}
+
+.classroom-dashboard-hero {
+  min-height: 190px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 30px;
+  padding: 34px 42px;
+  border-radius: 28px 28px 20px 20px;
+}
+
+.classroom-dashboard-back {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgb(255 255 255 / 74%);
+  font-size: .82rem;
+  font-weight: 850;
+}
+
+.classroom-dashboard-back:hover {
+  color: #fff;
+}
+
+.classroom-dashboard-identity {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding-top: 20px;
+}
+
+.classroom-dashboard-emblem {
+  width: 86px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  clip-path: polygon(50% 0, 92% 15%, 88% 72%, 50% 100%, 12% 72%, 8% 15%);
+  background: linear-gradient(145deg, #4d9ae0, #1f6aab);
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 950;
+  filter: drop-shadow(0 9px 13px rgb(0 0 0 / 18%));
+}
+
+.classroom-dashboard-identity h1 {
+  margin: 4px 0;
+  color: #fff;
+  font-size: 3rem;
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+
+.classroom-dashboard-identity p {
+  margin: 0;
+  color: rgb(255 255 255 / 68%);
+}
+
+.classroom-dashboard-points {
+  min-width: 330px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 17px 20px;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 9%);
+}
+
+.classroom-dashboard-point-icon {
+  width: 58px;
+  height: 58px;
+}
+
+.classroom-dashboard-points strong,
+.classroom-dashboard-points span {
+  display: block;
+}
+
+.classroom-dashboard-points strong {
+  font-size: 1.45rem;
+}
+
+.classroom-dashboard-points span {
+  margin-top: 4px;
+  color: #8de4a6;
+  font-size: .88rem;
+  font-weight: 850;
+}
+
+.classroom-dashboard-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.classroom-dashboard-tabs button {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  border: 1px solid #dbe5ef;
+  border-radius: 17px;
+  background: #fff;
+  color: #56708c;
+  box-shadow: 0 7px 18px rgb(15 55 88 / 6%);
+  font: inherit;
+  font-size: 1.03rem;
+  font-weight: 900;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.classroom-dashboard-tabs button:hover {
+  transform: translateY(-2px);
+  border-color: #7ea5c7;
+}
+
+.classroom-dashboard-tabs button.active {
+  border-color: #123b5d;
+  background: linear-gradient(135deg, #123b5d, #1f5f91);
+  color: #fff;
+  box-shadow: 0 12px 28px rgb(18 59 93 / 20%);
+}
+
+.classroom-dashboard-tabs button b {
+  min-width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf3f8;
+  color: #456480;
+  font-size: .78rem;
+}
+
+.classroom-dashboard-tabs button.active b {
+  background: rgb(255 255 255 / 16%);
+  color: #fff;
+}
+
+.classroom-dashboard-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.classroom-dashboard-section {
+  display: grid;
+  gap: 15px;
+  padding: 22px;
+  border: 1px solid #dfe8f1;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 10px 30px rgb(15 55 88 / 6%);
+}
+
+.classroom-dashboard-section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.classroom-dashboard-section-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.classroom-dashboard-section-heading h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: -.025em;
+}
+
+.classroom-dashboard-section-heading > span {
+  min-width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf3f8;
+  color: #456480;
+  font-size: .78rem;
+  font-weight: 900;
+}
+
+.classroom-dashboard-section-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #e9f2ff;
+  color: #2878df;
+}
+
+.classroom-dashboard-section-icon.session { background: #f1edff; color: #7757cf; }
+.classroom-dashboard-section-icon.competition { background: #fff3d5; color: #d98e00; }
+.classroom-dashboard-section-icon.team { background: #e5f8f5; color: #0f9f91; }
+
+.classroom-dashboard-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid #dbe5ef;
+  border-radius: 11px;
+  background: #fff;
+  color: #486783;
+  font-weight: 800;
+}
+
+.classroom-mission-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.classroom-mission-grid.featured-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.classroom-mission-card {
+  --activity-accent: #2878df;
+  min-height: 270px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--activity-accent) 18%, #dbe5ef);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgb(15 55 88 / 7%);
+}
+
+.classroom-mission-card.activity-theme-sentence_correction,
+.classroom-mission-card.activity-theme-text_correction { --activity-accent: #f05a32; }
+.classroom-mission-card.activity-theme-word_classes { --activity-accent: #7757cf; }
+.classroom-mission-card.activity-theme-word_groups { --activity-accent: #0f9f91; }
+.classroom-mission-card.activity-theme-functions { --activity-accent: #2878df; }
+.classroom-mission-card.activity-theme-agreements { --activity-accent: #eba20b; }
+.classroom-mission-card.activity-theme-mixed_grammar { --activity-accent: #5868d9; }
+.classroom-mission-card.activity-theme-tree_analysis { --activity-accent: #60ad57; }
+
+.classroom-mission-card.featured {
+  min-height: 290px;
+}
+
+.classroom-mission-band {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--activity-accent) 10%, white);
+  border-top: 5px solid var(--activity-accent);
+}
+
+.classroom-mission-band .activity-type-badge {
+  background: transparent;
+  color: var(--activity-accent);
+  padding-left: 0;
+  font-size: .76rem;
+}
+
+.classroom-mission-band .assignment-status-pill {
+  margin: 0;
+  background: rgb(255 255 255 / 78%);
+  color: #49677f;
+  border: 1px solid color-mix(in srgb, var(--activity-accent) 15%, #dbe5ef);
+}
+
+.classroom-mission-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 13px;
+  padding: 20px 18px 12px;
+}
+
+.classroom-mission-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--activity-accent) 11%, white);
+  color: var(--activity-accent);
+}
+
+.classroom-mission-copy h3 {
+  margin: 2px 0 12px;
+  font-size: 1.18rem;
+  line-height: 1.16;
+  letter-spacing: -.02em;
+}
+
+.classroom-mission-copy .activity-secondary-badges {
+  margin: 0;
+}
+
+.classroom-mission-copy .activity-secondary-badges > span {
+  background: #fff;
+  color: #506b82;
+  border-color: #dbe5ef;
+}
+
+.classroom-mission-footer {
+  display: grid;
+  grid-template-columns: minmax(95px, 1fr) auto auto;
+  align-items: end;
+  gap: 12px;
+  padding: 14px 18px 17px;
+}
+
+.classroom-mission-progress {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  color: #5f768a;
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.classroom-mission-progress-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5edf4;
+}
+
+.classroom-mission-progress-track > span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--activity-accent);
+}
+
+.classroom-mission-points {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-bottom: 9px;
+  color: #50697f;
+  font-size: .75rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.classroom-mission-points svg {
+  color: #f2a20b;
+}
+
+.classroom-mission-footer .button {
+  min-height: 42px;
+  gap: 5px;
+  border-radius: 11px;
+  background: #123b5d;
+}
+
+.classroom-dashboard-empty {
+  min-height: 230px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 7px;
+  color: #698096;
+  text-align: center;
+  border-style: dashed;
+}
+
+.classroom-dashboard-empty h3,
+.classroom-dashboard-empty p {
+  margin: 0;
+}
+
+.classroom-dashboard-completed {
+  padding: 15px 18px;
+  border: 1px solid #dfe8f1;
+  border-radius: 17px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.classroom-dashboard-completed summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #486783;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.classroom-dashboard-completed summary > span {
+  min-width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf3f8;
+  font-size: .75rem;
+}
+
+.classroom-completed-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #b97500;
+  font-size: .82rem;
+  font-weight: 850;
+}
+
+/* Séances */
+.classroom-session-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.classroom-dashboard-session-card {
+  min-height: 180px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  border-radius: 18px;
+}
+
+.classroom-dashboard-session-date {
+  width: 92px;
+  height: 106px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  border-radius: 18px;
+  background: #f1edff;
+  color: #6849be;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.classroom-dashboard-session-card h3 {
+  margin: 8px 0 4px;
+  font-size: 1.25rem;
+}
+
+.classroom-dashboard-session-card p {
+  margin: 0;
+  color: #698096;
+}
+
+/* Compétition */
+.competition-dashboard {
+  gap: 16px;
+}
+
+.classroom-competition-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 26px 30px;
+  border-radius: 22px;
+  background: linear-gradient(120deg, #fff8e2, #fffdf6);
+  border: 1px solid #f0d898;
+}
+
+.classroom-competition-hero .classroom-portal-kicker {
+  color: #b97800;
+}
+
+.classroom-competition-hero h2 {
+  margin: 7px 0 4px;
+  font-size: 2rem;
+}
+
+.classroom-competition-hero p {
+  margin: 0;
+  color: #75674b;
+}
+
+.classroom-competition-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.classroom-competition-team {
+  min-height: 150px;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border-radius: 19px;
+}
+
+.classroom-competition-team.rank-1 {
+  border-color: #e8c562;
+  background: #fffaf0;
+}
+
+.classroom-competition-medal {
+  font-size: 2rem;
+}
+
+.classroom-competition-icon {
+  font-size: 2.25rem;
+}
+
+.classroom-competition-team b {
+  color: #b97800;
+  font-size: 1.12rem;
+}
+
+.classroom-competition-teams {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid #dfe8f1;
+  border-radius: 22px;
+  background: #fff;
+}
