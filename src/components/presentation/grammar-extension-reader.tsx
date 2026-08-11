@@ -27,6 +27,7 @@ import type {
 } from "@/components/grammar/range-interaction-engine";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
+import { bracketTokenMargins } from "@/components/grammar/range-mark-spacing";
 
 type Point = InteractionPoint;
 type Boundary = "left" | "right";
@@ -158,6 +159,22 @@ export function GrammarExtensionReader({
   const solvedStepCount = stepTargets.filter((annotation) =>
     solvedIds.includes(annotation.id)
   ).length;
+
+  const workflowBracketKinds = useMemo(
+    () =>
+      new Set(
+        steps
+          .filter((item) => item.action.responseMode === "brackets")
+          .map((item) => item.kind)
+      ),
+    [steps]
+  );
+  const reservedBracketTargets = annotations.filter(
+    (annotation) =>
+      annotation.visualEffect?.kind === "brackets" ||
+      (!annotation.visualEffect && annotation.kind === "group") ||
+      workflowBracketKinds.has(annotation.kind)
+  );
 
   const solvedBracketTargets = annotations.filter(
     (annotation) =>
@@ -549,7 +566,12 @@ export function GrammarExtensionReader({
               );
               const measurable =
                 token.isWord || token.text.trim().length > 0;
-              const style = tokenStyle(token.start, token.end);
+              const style = {
+                ...tokenStyle(token.start, token.end),
+                ...(measurable
+                  ? bracketTokenMargins(token, reservedBracketTargets)
+                  : {})
+              };
 
               return (
                 <span key={token.id}>

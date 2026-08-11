@@ -31,3 +31,24 @@ export function bracketReserve(boundaryCount: number) {
   return Math.max(0, boundaryCount) *
     (DEFAULT_BRACKET_CAP + DEFAULT_TEXT_GAP);
 }
+
+type RangeBoundary = { start: number; end: number };
+
+export function bracketTokenMargins(
+  token: RangeBoundary,
+  targets: RangeBoundary[]
+) {
+  const leftBoundaryCount = targets.filter(
+    (target) =>
+      token.start <= target.start && token.end > target.start
+  ).length;
+  const rightBoundaryCount = targets.filter(
+    (target) =>
+      token.start < target.end && token.end >= target.end
+  ).length;
+
+  return {
+    marginLeft: bracketReserve(leftBoundaryCount),
+    marginRight: bracketReserve(rightBoundaryCount)
+  };
+}

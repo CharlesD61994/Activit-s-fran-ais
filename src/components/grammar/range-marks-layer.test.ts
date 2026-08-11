@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { bracketReserve, bracketSpacing } from "./range-mark-spacing";
+import {
+  bracketReserve,
+  bracketSpacing,
+  bracketTokenMargins
+} from "./range-mark-spacing";
 
 describe("bracketSpacing", () => {
   it("keeps the normal gap when boundaries have enough room", () => {
@@ -20,5 +24,21 @@ describe("bracketSpacing", () => {
   it("reserves layout space for every boundary before marks appear", () => {
     expect(bracketReserve(1)).toBe(10);
     expect(bracketReserve(2)).toBe(20);
+  });
+
+  it("shares the same token gutter between group and function readers", () => {
+    const targets = [
+      { start: 0, end: 8 },
+      { start: 9, end: 20 }
+    ];
+
+    expect(bracketTokenMargins({ start: 0, end: 8 }, targets)).toEqual({
+      marginLeft: 10,
+      marginRight: 10
+    });
+    expect(bracketTokenMargins({ start: 9, end: 12 }, targets)).toEqual({
+      marginLeft: 10,
+      marginRight: 0
+    });
   });
 });

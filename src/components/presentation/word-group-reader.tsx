@@ -12,7 +12,7 @@ import { useRangeTargetPositions } from "@/components/grammar/use-range-target-p
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
-import { bracketReserve } from "@/components/grammar/range-mark-spacing";
+import { bracketTokenMargins } from "@/components/grammar/range-mark-spacing";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
@@ -1195,18 +1195,7 @@ export function WordGroupReader({
             const breakBefore = forcedLineBreaks.some((position) => position >= token.start && position < token.end);
             const measurableToken =
               token.isWord || token.text.trim().length > 0;
-            const leftBoundaryCount = measurableToken
-              ? reservedBracketTargets.filter(
-                  (target) =>
-                    token.start <= target.start && token.end > target.start
-                ).length
-              : 0;
-            const rightBoundaryCount = measurableToken
-              ? reservedBracketTargets.filter(
-                  (target) =>
-                    token.start < target.end && token.end >= target.end
-                ).length
-              : 0;
+
             const groupConfirmed =
               token.isWord &&
               targets.some(
@@ -1244,10 +1233,7 @@ export function WordGroupReader({
                 }
                 style={
                   measurableToken
-                    ? {
-                        marginLeft: bracketReserve(leftBoundaryCount),
-                        marginRight: bracketReserve(rightBoundaryCount)
-                      }
+                    ? bracketTokenMargins(token, reservedBracketTargets)
                     : undefined
                 }
                 onClick={
