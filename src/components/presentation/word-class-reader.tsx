@@ -487,30 +487,48 @@ export function WordClassReader({
           ));
         }
 
-        const nextArrows = answeredLinks.flatMap(({ task, answerId }, linkIndex) => {
+        const resolvedLinks = answeredLinks.flatMap(({ task, answerId }) => {
           const donorId = task.role === "donor" ? task.targetId : answerId;
           const receiverId = task.role === "donor" ? answerId : task.targetId;
           const donor = tokenRects.get(donorId);
           const receiver = tokenRects.get(receiverId);
-          if (!donor || !receiver) return [];
-
-          const startX = donor.centerX;
+          return donor && receiver ? [{ task, answerId, donorId, receiverId, donor, receiver }] : [];
+        });
+        const nextArrows = resolvedLinks.map((link, linkIndex) => {
+          const { task, answerId, donorId, donor, receiver } = link;
+          const donorLine = lineIndex(donor);
+          const receiverLine = lineIndex(receiver);
+          const siblings = resolvedLinks
+            .filter((candidate) =>
+              candidate.donorId === donorId &&
+              lineIndex(candidate.donor) === donorLine &&
+              lineIndex(candidate.receiver) === receiverLine
+            )
+            .sort((a, b) =>
+              Math.abs(a.receiver.centerX - a.donor.centerX) -
+              Math.abs(b.receiver.centerX - b.donor.centerX)
+            );
+          const laneRank = Math.max(0, siblings.findIndex((candidate) => candidate.answerId === answerId));
+          const startSpread = (laneRank - (siblings.length - 1) / 2) * 8;
+          const startX = donor.centerX + startSpread;
           const startY = donor.bottom + 3;
           const endX = receiver.centerX;
           const endY = receiver.bottom + 3;
-          const donorLine = lineIndex(donor);
-          const receiverLine = lineIndex(receiver);
-          const laneOffset = 13 + (linkIndex % 3) * 9;
+          const laneOffset = 16 + laneRank * 14;
           let path: string;
+          let finalControl = { x: endX, y: endY + 18 };
 
           if (donorLine === receiverLine) {
             const laneY = Math.min(
               canvasHeight - 12,
               Math.max(donor.bottom, receiver.bottom) + laneOffset
             );
-            const horizontalPull = Math.max(16, Math.abs(endX - startX) * .22);
-            const direction = endX >= startX ? 1 : -1;
-            path = `M ${startX} ${startY} C ${startX} ${laneY}, ${startX + direction * horizontalPull} ${laneY}, ${(startX + endX) / 2} ${laneY} S ${endX} ${laneY}, ${endX} ${endY}`;
+            const approachDirection = endX < startX ? 1 : -1;
+            finalControl = {
+              x: endX + approachDirection * Math.min(28, Math.max(18, Math.abs(endX - startX) * .08)),
+              y: laneY
+            };
+            path = `M ${startX} ${startY} C ${startX} ${laneY}, ${finalControl.x} ${laneY}, ${endX} ${endY}`;
           } else {
             const railLane = linkIndex % 3;
             const leftRail = 18 + railLane * 9;
@@ -524,26 +542,34 @@ export function WordClassReader({
             const endLaneY = Math.min(canvasHeight - 14, receiver.bottom + laneOffset);
             const radius = 10;
             const startDirection = railX < startX ? -1 : 1;
-            const endDirection = railX < endX ? 1 : -1;
+            const approachDirection = railX < endX ? -1 : 1;
+            finalControl = { x: endX + approachDirection * 22, y: endLaneY };
             path = [
               `M ${startX} ${startY}`,
               `C ${startX} ${startLaneY}, ${startX} ${startLaneY}, ${startX + startDirection * radius} ${startLaneY}`,
               `L ${railX - startDirection * radius} ${startLaneY}`,
               `Q ${railX} ${startLaneY}, ${railX} ${startLaneY + radius}`,
               `L ${railX} ${endLaneY - radius}`,
-              `Q ${railX} ${endLaneY}, ${railX + endDirection * radius} ${endLaneY}`,
-              `L ${endX - endDirection * radius} ${endLaneY}`,
-              `C ${endX} ${endLaneY}, ${endX} ${endLaneY}, ${endX} ${endY}`
+              `Q ${railX} ${endLaneY}, ${railX - approachDirection * radius} ${endLaneY}`,
+              `L ${finalControl.x} ${endLaneY}`,
+              `C ${finalControl.x} ${endLaneY}, ${finalControl.x} ${endLaneY}, ${endX} ${endY}`
             ].join(" ");
           }
 
-          const tipWidth = 5;
-          const tipDepth = 8;
-          return [{
+          const tangentX = endX - finalControl.x;
+          const tangentY = endY - finalControl.y;
+          const tangentLength = Math.max(1, Math.hypot(tangentX, tangentY));
+          const unitX = tangentX / tangentLength;
+          const unitY = tangentY / tangentLength;
+          const baseX = endX - unitX * 10;
+          const baseY = endY - unitY * 10;
+          const perpendicularX = -unitY * 4.5;
+          const perpendicularY = unitX * 4.5;
+          return {
             id: `${task.targetId}-${answerId}`,
             path,
-            tipPath: `M ${endX - tipWidth} ${endY + tipDepth} L ${endX} ${endY} L ${endX + tipWidth} ${endY + tipDepth}`
-          }];
+            tipPath: `M ${baseX + perpendicularX} ${baseY + perpendicularY} L ${endX} ${endY} L ${baseX - perpendicularX} ${baseY - perpendicularY}`
+          };
         });
 
         setAgreementArrows((current) => {
