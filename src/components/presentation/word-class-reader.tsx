@@ -9,6 +9,7 @@ import { Check, CheckCircle2, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { wordClassLabels } from "@/lib/activity-types";
 import { buildRelationTasks } from "@/lib/word-class-relations";
+import { getAgreementWorkflowSettings } from "@/lib/grammar-workflow";
 import type {
   Sentence,
   WordClass,
@@ -235,7 +236,11 @@ export function WordClassReader({
     () => sentence.agreementRelations ?? [],
     [sentence.agreementRelations]
   );
-  const relationTasks = useMemo(
+  const agreementWorkflow = useMemo(
+    () => getAgreementWorkflowSettings(sentence),
+    [sentence]
+  );
+  const allRelationTasks = useMemo(
     () =>
       sentence.agreementRelationsEnabled
         ? buildRelationTasks(analysisTargets, relations)
@@ -245,6 +250,23 @@ export function WordClassReader({
       relations,
       sentence.agreementRelationsEnabled
     ]
+  );
+  const roleTasks = useMemo(
+    () =>
+      allRelationTasks.filter((task) =>
+        task.role === "donor"
+          ? agreementWorkflow.identifyDonors
+          : agreementWorkflow.identifyReceivers
+      ),
+    [
+      agreementWorkflow.identifyDonors,
+      agreementWorkflow.identifyReceivers,
+      allRelationTasks
+    ]
+  );
+  const relationTasks = useMemo(
+    () => (agreementWorkflow.linkAgreement ? allRelationTasks : []),
+    [agreementWorkflow.linkAgreement, allRelationTasks]
   );
 
   const agreementBandHeight = useMemo(() => {
@@ -283,6 +305,10 @@ export function WordClassReader({
         relationTasks.map((task) => [task.targetId, task])
       ),
     [relationTasks]
+  );
+  const roleTaskMap = useMemo(
+    () => new Map(roleTasks.map((task) => [task.targetId, task])),
+    [roleTasks]
   );
 
   const [foundIds, setFoundIds] = useState<string[]>([]);
@@ -688,7 +714,7 @@ export function WordClassReader({
     analysisTargets.length > 0 &&
     foundIds.length === analysisTargets.length;
 
-  const rolesComplete = relationTasks.every((task) =>
+  const rolesComplete = roleTasks.every((task) =>
     resolvedRoleIds.includes(task.targetId)
   );
 
@@ -738,12 +764,17 @@ export function WordClassReader({
   }
 
   function startRoleOrContinue(target: WordClassTarget) {
-    const task = taskMap.get(target.id);
+    const roleTask = roleTaskMap.get(target.id);
 
-    if (!task) return;
+    if (roleTask) {
+      setRoleTargetId(target.id);
+      setRoleFeedback("");
+      return;
+    }
 
-    setRoleTargetId(target.id);
-    setRoleFeedback("");
+    if (taskMap.has(target.id)) {
+      setActiveRelationTargetId(target.id);
+    }
   }
 
   function startTargetFollowup(target: WordClassTarget) {
@@ -857,7 +888,7 @@ export function WordClassReader({
   function answerRole(answer: TargetRole) {
     if (!roleTargetId) return;
 
-    const task = taskMap.get(roleTargetId);
+    const task = roleTaskMap.get(roleTargetId);
     const target = targetMap.get(roleTargetId);
     if (!task || !target) return;
 
@@ -894,7 +925,9 @@ export function WordClassReader({
     window.setTimeout(() => {
       setRoleTargetId(null);
       setRoleFeedback("");
-      setActiveRelationTargetId(task.targetId);
+      setActiveRelationTargetId(
+        taskMap.has(task.targetId) ? task.targetId : null
+      );
     }, 700);
   }
 
@@ -1304,9 +1337,9 @@ export function WordClassReader({
 
       <div
         ref={textContainerRef}
-        className={`word-class-reader-text ${sentence.agreementRelationsEnabled ? "has-agreement-relations" : ""} ${currentTask ? "drawing-agreement" : ""}`}
+        className={`word-class-reader-text ${relationTasks.length > 0 ? "has-agreement-relations" : ""} ${currentTask ? "drawing-agreement" : ""}`}
         style={
-          sentence.agreementRelationsEnabled
+          relationTasks.length > 0
             ? ({
                 "--agreement-band-height": `${agreementBandHeight}px`
               } as CSSProperties)

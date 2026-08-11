@@ -38,9 +38,9 @@ export const grammarActionLabels: Record<GrammarActionKind, string> = {
   find_nuclei: "Trouver les noyaux",
   frame_functions: "Encadrer les fonctions",
   identify_functions: "Identifier les fonctions",
-  identify_donors: "Identifier les donneurs",
-  identify_receivers: "Identifier les receveurs",
-  link_agreement: "Relier les donneurs et les receveurs",
+  identify_donors: "Demander le rôle des donneurs",
+  identify_receivers: "Demander le rôle des receveurs",
+  link_agreement: "Faire tracer les flèches d’accord",
   identify_gender: "Identifier le genre",
   identify_number: "Identifier le nombre",
   complete_table: "Compléter le tableau"
@@ -113,6 +113,29 @@ export function getSentenceWorkflow(sentence: Sentence): GrammarWorkflowPhase[] 
     ? sentence.workflowPhases
     : defaultWorkflowForObjective(getSentenceObjective(sentence));
   return normalizeGrammarWorkflow(phases, Boolean(sentence.grammarAnnotations?.some((annotation) => annotation.kind === "nucleus")));
+}
+
+export function getAgreementWorkflowSettings(sentence: Sentence) {
+  const phase = sentence.workflowPhases?.find(
+    (candidate) => candidate.kind === "agreements"
+  );
+
+  if (!phase) {
+    return {
+      identifyDonors: true,
+      identifyReceivers: true,
+      linkAgreement: true
+    };
+  }
+
+  const enabled = (kind: GrammarActionKind) =>
+    phase.actions.some((action) => action.kind === kind && action.enabled);
+
+  return {
+    identifyDonors: enabled("identify_donors"),
+    identifyReceivers: enabled("identify_receivers"),
+    linkAgreement: enabled("link_agreement")
+  };
 }
 
 export function getSecondaryObjectives(sentence: Sentence): GrammarPhaseKind[] {

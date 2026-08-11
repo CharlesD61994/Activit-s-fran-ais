@@ -41,6 +41,11 @@ export function GrammarWorkflowPlanner({ phases, onChange }: Props) {
             </div>
             {!phase.collapsed && (
               <div className="workflow-actions">
+                {phase.kind === "agreements" && (
+                  <small className="workflow-agreement-help">
+                    Active les questions de rôle seulement si l’élève doit dire si le mot est donneur ou receveur. Les flèches restent une option indépendante.
+                  </small>
+                )}
                 {phase.actions.map((action) => (
                   <div className="workflow-action-row" key={action.id}>
                     <label>
