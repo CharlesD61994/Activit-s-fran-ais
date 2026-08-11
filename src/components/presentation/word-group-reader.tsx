@@ -12,7 +12,6 @@ import { useRangeTargetPositions } from "@/components/grammar/use-range-target-p
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
-import { InlineRangeBrackets } from "@/components/grammar/inline-range-brackets";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
 type Boundary = "left_bracket" | "right_bracket";
@@ -1103,8 +1102,8 @@ export function WordGroupReader({
         className={`word-group-drawing-surface phase-${phase}`}
         ref={surfaceRef}
       >
-        {boundaryMode === "frame" && <RangeMarksLayer targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode="frame"/>}
-        {continuationBoundaryMode === "frame" && <RangeMarksLayer targets={functionTargets} positions={labelPositions} leftIds={functionLeftIds} rightIds={functionRightIds} mode="frame"/>}
+        <RangeMarksLayer targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>
+        <RangeMarksLayer targets={functionTargets} positions={labelPositions} leftIds={functionLeftIds} rightIds={functionRightIds} mode={continuationBoundaryMode}/>
         {targets.map((target) => {
           const position = labelPositions[target.id];
           const classified = classifiedIds.includes(target.id);
@@ -1196,14 +1195,6 @@ export function WordGroupReader({
         <div className="word-group-reader-text shared-grammar-reader-text">
           {tokens.map((token) => {
             const breakBefore = forcedLineBreaks.some((position) => position >= token.start && position < token.end);
-            const leftBracketTargets = token.isWord ? [
-              ...(boundaryMode === "brackets" ? targets.filter((target) => leftFoundIds.includes(target.id)) : []),
-              ...(continuationBoundaryMode === "brackets" ? functionTargets.filter((target) => functionLeftIds.includes(target.id)) : [])
-            ] : [];
-            const rightBracketTargets = token.isWord ? [
-              ...(boundaryMode === "brackets" ? targets.filter((target) => rightFoundIds.includes(target.id)) : []),
-              ...(continuationBoundaryMode === "brackets" ? functionTargets.filter((target) => functionRightIds.includes(target.id)) : [])
-            ] : [];
             return (
               <span key={token.id}>
               {breakBefore && <br />}
@@ -1235,13 +1226,6 @@ export function WordGroupReader({
                     : undefined
                 }
               >
-                <InlineRangeBrackets
-                  tokenId={token.id}
-                  tokenStart={token.start}
-                  tokenEnd={token.end}
-                  leftTargets={leftBracketTargets}
-                  rightTargets={rightBracketTargets}
-                />
                 {token.text}
               </span>
               </span>

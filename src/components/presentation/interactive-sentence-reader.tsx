@@ -568,16 +568,6 @@ export function InteractiveSentenceReader({
   }
 
   const tokenMap = new Map(layoutTokens.map((token) => [token.key, token]));
-  const stableLineBreaks = layoutLines.slice(0, -1).reduce<number[]>((breaks, line) => {
-    const previous = breaks[breaks.length - 1] ?? 0;
-    const lineLength = line.reduce((length, key) => {
-      const token = tokenMap.get(key);
-      if (!token) return length;
-      return length + (token.correction ? token.correction.correctedText.length : token.text.length);
-    }, 0);
-    return [...breaks, previous + lineLength];
-  }, []);
-
   const renderedLines =
     layoutLines.length > 0
       ? layoutLines.map((line, lineIndex) => (
@@ -617,7 +607,6 @@ export function InteractiveSentenceReader({
             sentence={correctedGrammarSentence}
             excludedKinds={["group", "nucleus", "function"]}
             initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus" || annotation.kind === "function").map((annotation) => annotation.id)}
-            forcedLineBreaks={stableLineBreaks}
             finishControl={finishControl}
           />
         ) : (
@@ -630,7 +619,6 @@ export function InteractiveSentenceReader({
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
             identifyNuclei={identifyGroupNuclei}
             embedded
-            forcedLineBreaks={stableLineBreaks}
           />
         )
       ) : (

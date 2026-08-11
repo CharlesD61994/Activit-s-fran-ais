@@ -6321,22 +6321,6 @@ textarea {
   position: relative;
 }
 
-.word-group-inline-bracket {
-  position: absolute;
-  z-index: 5;
-  top: 50%;
-  width: .075em;
-  height: .92em;
-  box-sizing: border-box;
-  border-top: .055em solid var(--primary);
-  border-bottom: .055em solid var(--primary);
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-
-.word-group-inline-bracket.left { border-left: .055em solid var(--primary); }
-.word-group-inline-bracket.right { border-right: .055em solid var(--primary); }
-
 .word-group-range-bracket {
   position: absolute;
   z-index: 4;
