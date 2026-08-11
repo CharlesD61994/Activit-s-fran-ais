@@ -6325,6 +6325,7 @@ textarea {
   position: absolute;
   z-index: 4;
   width: 6px;
+  box-sizing: border-box;
   border-top: 4px solid var(--primary);
   border-bottom: 4px solid var(--primary);
   pointer-events: none;
