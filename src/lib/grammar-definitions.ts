@@ -2,7 +2,7 @@ import { wordClassLabels } from "@/lib/activity-types";
 import type { GrammarAnnotationKind, WordClass, WordGroupType } from "@/types";
 
 export const grammarAnnotationLabels: Record<Exclude<GrammarAnnotationKind, "error">, string> = {
-  group: "Groupe", word_class: "Classe de mot", nucleus: "Noyau", function: "Fonction", donor: "Donneur", receiver: "Receveur"
+  group: "Groupe", word_class: "Classe de mot", nucleus: "Noyau", function: "Fonction", donor: "Donneur", receiver: "Receveur", gender_number: "Genre et nombre"
 };
 
 export const sentenceFunctionOptions = ["Sujet", "Prédicat", "Complément de phrase", "Complément direct", "Complément indirect", "Attribut du sujet", "Complément du nom", "Complément de l’adjectif", "Modificateur"];

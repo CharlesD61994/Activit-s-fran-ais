@@ -24,6 +24,7 @@ export const grammarPhaseLabels: Record<GrammarPhaseKind, string> = {
   nuclei: "Noyaux",
   functions: "Fonctions",
   agreements: "Donneurs et receveurs",
+  gender_number: "Genre et nombre",
   table: "Tableau"
 };
 
@@ -40,6 +41,8 @@ export const grammarActionLabels: Record<GrammarActionKind, string> = {
   identify_donors: "Identifier les donneurs",
   identify_receivers: "Identifier les receveurs",
   link_agreement: "Relier les donneurs et les receveurs",
+  identify_gender: "Identifier le genre",
+  identify_number: "Identifier le nombre",
   complete_table: "Compléter le tableau"
 };
 
@@ -50,6 +53,7 @@ const actionsByPhase: Record<GrammarPhaseKind, GrammarActionKind[]> = {
   nuclei: ["find_nuclei"],
   functions: ["frame_functions", "identify_functions"],
   agreements: ["identify_donors", "identify_receivers", "link_agreement"],
+  gender_number: ["identify_gender", "identify_number"],
   table: ["complete_table"]
 };
 

@@ -73,6 +73,15 @@ export function buildMixedWordClassSentence(sentence: Sentence): Sentence {
     return undefined;
   }
 
+  annotations
+    .filter((annotation) => annotation.kind === "gender_number")
+    .forEach((annotation) => {
+      const target = targetForAnnotation(annotation, targets) ?? inheritedClassTarget(annotation);
+      if (!target) return;
+      target.grammaticalGender = annotation.grammaticalGender;
+      target.grammaticalNumber = annotation.grammaticalNumber;
+    });
+
   function ensureRelationEndpoint(annotation: GrammarAnnotation) {
     const existing = targetForAnnotation(annotation, targets);
     if (existing) return existing;

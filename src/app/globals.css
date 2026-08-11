@@ -9247,3 +9247,59 @@ textarea {
     padding-top: var(--agreement-band-height, 36px);
   }
 }
+
+/* V85 — accords compacts, codes adaptatifs et contrôle des flèches */
+.word-class-reader-text.has-agreement-relations {
+  padding-top: 2px !important;
+  padding-bottom: 4px;
+  line-height: .98;
+}
+
+.word-class-reader-text.has-agreement-relations .word-class-reader-token {
+  margin-top: .08em;
+  padding-top: var(--agreement-band-height, 22px);
+}
+
+.word-class-reader-text.has-agreement-relations .word-class-reader-label {
+  transform: translateX(calc(-50% + var(--word-class-label-offset, 0px)));
+  animation: none;
+  transition: transform .18s ease;
+  white-space: nowrap;
+}
+
+.agreement-clear-arrows {
+  min-height: 36px;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+
+.grammar-gender-number-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.grammar-gender-number-fields small {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+  .word-class-reader-text.has-agreement-relations {
+    padding-top: 2px !important;
+    padding-bottom: 3px;
+    line-height: .96;
+  }
+
+  .word-class-reader-text.has-agreement-relations .word-class-reader-token {
+    margin-top: .06em;
+    padding-top: var(--agreement-band-height, 22px);
+  }
+
+  .grammar-gender-number-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .grammar-gender-number-fields small {
+    grid-column: auto;
+  }
+}

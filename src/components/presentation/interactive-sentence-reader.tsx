@@ -349,7 +349,7 @@ export function InteractiveSentenceReader({
   const usesNativeGroupPhase = Boolean(sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0);
   const usesNativeWordClassPhase = Boolean(
     sentence.workflowPhases?.some((phase) =>
-      (phase.kind === "word_classes" || phase.kind === "agreements") && phase.actions.some((action) => action.enabled)
+      (phase.kind === "word_classes" || phase.kind === "agreements" || phase.kind === "gender_number") && phase.actions.some((action) => action.enabled)
     ) && (hybridWordClassSentence.wordClassTargets?.length ?? 0) > 0
   );
   const usesNativeFunctionPhase = Boolean((correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "function") && sentence.workflowPhases?.some((phase) => phase.kind === "functions" && phase.actions.some((action) => action.enabled)));

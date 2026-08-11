@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { SentenceRenderer } from "@/components/sentence-renderer";
 import { GrammarWorkflowPlanner } from "@/components/grammar-workflow-planner";
 import { rangesOverlap, readTextareaSelection } from "@/components/grammar/shared-textarea-selection";
-import { defaultWorkflowForObjective, grammarObjectiveLabels, objectiveFromActivityType } from "@/lib/grammar-workflow";
+import { createWorkflowPhase, defaultWorkflowForObjective, grammarObjectiveLabels, objectiveFromActivityType } from "@/lib/grammar-workflow";
 import { grammarAnnotationAnswers, grammarAnnotationLabels } from "@/lib/grammar-definitions";
 import type { ActivityType, ClassGroup, CorrectionCode, GrammarAnnotation, GrammarAnnotationKind, GrammarObjective, GrammarWorkflowPhase, SchoolLevel, Sentence, SentenceCorrection, SentenceDifficulty } from "@/types";
 
@@ -94,10 +94,11 @@ export function SentenceEditor({
     originalText,
     showCorrectionCount,
     corrections,
+    grammarAnnotations,
     assignedGroupIds,
     createdAt: initialSentence?.createdAt ?? now,
     updatedAt: now
-  }), [activityType, assignedGroupIds, corrections, difficulty, initialSentence, levelId, now, originalText, primaryObjective, showCorrectionCount, tagsText, title, workflowPhases]);
+  }), [activityType, assignedGroupIds, corrections, difficulty, grammarAnnotations, initialSentence, levelId, now, originalText, primaryObjective, showCorrectionCount, tagsText, title, workflowPhases]);
 
   function captureSelection() {
     const textarea = textareaRef.current;
@@ -165,12 +166,22 @@ export function SentenceEditor({
       setMessage("Sélectionne d’abord le mot ou le passage à annoter.");
       return;
     }
+    const classAnnotation = kind === "gender_number"
+      ? grammarAnnotations.find((annotation) => annotation.kind === "word_class" && annotation.start === selection.start && annotation.end === selection.end)
+      : undefined;
+    if (kind === "gender_number" && !classAnnotation) {
+      setMessage("Ajoute d’abord la classe de mot sur exactement ce mot, puis sélectionne Genre et nombre.");
+      return;
+    }
     setAnnotationDraft({
       start: selection.start,
       end: selection.end,
       text: selection.text,
       kind,
-      label: annotationAnswers[kind]?.[0] ?? (kind === "nucleus" ? "Noyau" : "")
+      label: annotationAnswers[kind]?.[0] ?? (kind === "nucleus" ? "Noyau" : kind === "gender_number" ? "Genre et nombre" : ""),
+      parentAnnotationId: classAnnotation?.id,
+      grammaticalGender: kind === "gender_number" ? "feminine" : undefined,
+      grammaticalNumber: kind === "gender_number" ? "singular" : undefined
     });
     setMessage("");
   }
@@ -183,8 +194,14 @@ export function SentenceEditor({
       end: annotationDraft.end,
       kind: annotationDraft.kind,
       label: annotationDraft.label?.trim() || undefined,
-      linkedAnnotationId: annotationDraft.linkedAnnotationId
+      linkedAnnotationId: annotationDraft.linkedAnnotationId,
+      parentAnnotationId: annotationDraft.parentAnnotationId,
+      grammaticalGender: annotationDraft.grammaticalGender,
+      grammaticalNumber: annotationDraft.grammaticalNumber
     }]);
+    if (annotationDraft.kind === "gender_number") {
+      setWorkflowPhases((phases) => phases.some((phase) => phase.kind === "gender_number") ? phases : [...phases, createWorkflowPhase("gender_number")]);
+    }
     setAnnotationDraft(null);
   }
 
@@ -375,13 +392,26 @@ export function SentenceEditor({
             <h2>« {annotationDraft.text} »</h2>
             <div className="form-grid">
               <label>Type<input value={annotationLabels[annotationDraft.kind as Exclude<GrammarAnnotationKind, "error">]} disabled /></label>
-              <label>Réponse attendue
+              {annotationDraft.kind === "gender_number" ? <>
+                <label>Genre attendu
+                  <select value={annotationDraft.grammaticalGender ?? "feminine"} onChange={(event) => setAnnotationDraft({ ...annotationDraft, grammaticalGender: event.target.value as "feminine" | "masculine" })}>
+                    <option value="feminine">Féminin — Fém.</option>
+                    <option value="masculine">Masculin — Masc.</option>
+                  </select>
+                </label>
+                <label>Nombre attendu
+                  <select value={annotationDraft.grammaticalNumber ?? "singular"} onChange={(event) => setAnnotationDraft({ ...annotationDraft, grammaticalNumber: event.target.value as "singular" | "plural" })}>
+                    <option value="singular">Singulier — Sing.</option>
+                    <option value="plural">Pluriel — Plur.</option>
+                  </select>
+                </label>
+              </> : <label>Réponse attendue
                 {annotationAnswers[annotationDraft.kind]?.length ? (
                   <select value={annotationDraft.label ?? ""} onChange={(event) => setAnnotationDraft({ ...annotationDraft, label: event.target.value })}>
                     {annotationAnswers[annotationDraft.kind]?.map((answer) => <option key={answer}>{answer}</option>)}
                   </select>
                 ) : <input value={annotationDraft.label ?? ""} onChange={(event) => setAnnotationDraft({ ...annotationDraft, label: event.target.value })} />}
-              </label>
+              </label>}
               {annotationDraft.kind === "receiver" && grammarAnnotations.some((annotation) => annotation.kind === "donor") && (
                 <label>Donneur associé
                   <select value={annotationDraft.linkedAnnotationId ?? ""} onChange={(event) => setAnnotationDraft({ ...annotationDraft, linkedAnnotationId: event.target.value || undefined })}>
@@ -488,7 +518,7 @@ export function SentenceEditor({
         <Card className="workflow-sticky-card">
           <GrammarWorkflowPlanner phases={workflowPhases} onChange={setWorkflowPhases} />
         </Card>
-        {grammarAnnotations.length > 0 && <Card><span className="eyebrow">Réponses grammaticales</span><div className="grammar-annotation-list">{grammarAnnotations.map((annotation) => <div key={annotation.id}><span>{annotationLabels[annotation.kind as Exclude<GrammarAnnotationKind, "error">] ?? annotation.kind}</span><strong>{originalText.slice(annotation.start, annotation.end)}</strong><small>{annotation.label}</small><button type="button" onClick={() => setGrammarAnnotations((items) => items.filter((item) => item.id !== annotation.id))}><Trash2 size={15}/></button></div>)}</div></Card>}
+        {grammarAnnotations.length > 0 && <Card><span className="eyebrow">Réponses grammaticales</span><div className="grammar-annotation-list">{grammarAnnotations.map((annotation) => <div key={annotation.id}><span>{annotationLabels[annotation.kind as Exclude<GrammarAnnotationKind, "error">] ?? annotation.kind}</span><strong>{originalText.slice(annotation.start, annotation.end)}</strong><small>{annotation.label}{annotation.kind === "gender_number" && annotation.grammaticalGender && annotation.grammaticalNumber ? " — " + (annotation.grammaticalGender === "feminine" ? "Fém." : "Masc.") + ", " + (annotation.grammaticalNumber === "singular" ? "Sing." : "Plur.") : ""}</small><button type="button" onClick={() => setGrammarAnnotations((items) => items.filter((item) => item.id !== annotation.id))}><Trash2 size={15}/></button></div>)}</div></Card>}
         <Card>
           <span className="eyebrow">Aperçu</span>
           <span className="activity-type-badge">

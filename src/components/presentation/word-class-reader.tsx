@@ -5,7 +5,7 @@ import type {
   CSSProperties,
   PointerEvent as ReactPointerEvent
 } from "react";
-import { Check, CheckCircle2, RotateCcw, X } from "lucide-react";
+import { Check, CheckCircle2, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { wordClassLabels } from "@/lib/activity-types";
 import { buildRelationTasks } from "@/lib/word-class-relations";
@@ -172,6 +172,60 @@ function buildAgreementArrow(
     ].join(" ")
   };
 }
+type AgreementCollisionRect = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
+
+function segmentIntersectsRect(
+  start: AgreementPoint,
+  end: AgreementPoint,
+  rect: AgreementCollisionRect
+) {
+  let minimum = 0;
+  let maximum = 1;
+  const deltaX = end.x - start.x;
+  const deltaY = end.y - start.y;
+  const boundaries: Array<[number, number]> = [
+    [-deltaX, start.x - rect.left],
+    [deltaX, rect.right - start.x],
+    [-deltaY, start.y - rect.top],
+    [deltaY, rect.bottom - start.y]
+  ];
+
+  for (const [direction, distance] of boundaries) {
+    if (direction === 0) {
+      if (distance < 0) return false;
+      continue;
+    }
+
+    const ratio = distance / direction;
+    if (direction < 0) {
+      if (ratio > maximum) return false;
+      minimum = Math.max(minimum, ratio);
+    } else {
+      if (ratio < minimum) return false;
+      maximum = Math.min(maximum, ratio);
+    }
+  }
+
+  return true;
+}
+
+function polylineIntersectsRect(
+  points: AgreementPoint[],
+  rect: AgreementCollisionRect
+) {
+  for (let index = 1; index < points.length; index += 1) {
+    if (segmentIntersectsRect(points[index - 1], points[index], rect)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function WordClassReader({
   sentence,
   persistenceKey,
@@ -229,8 +283,8 @@ export function WordClassReader({
     );
 
     return Math.min(
-      46,
-      30 + Math.max(1, Math.min(linkCount, 4)) * 4
+      28,
+      20 + Math.max(1, Math.min(linkCount, 4)) * 2
     );
   }, [relationTasks]);
 
@@ -263,6 +317,8 @@ export function WordClassReader({
   const [foundIds, setFoundIds] = useState<string[]>([]);
   const [classPointIds, setClassPointIds] = useState<string[]>([]);
   const [resolvedRoleIds, setResolvedRoleIds] = useState<string[]>([]);
+  const [resolvedGenderIds, setResolvedGenderIds] = useState<string[]>([]);
+  const [resolvedNumberIds, setResolvedNumberIds] = useState<string[]>([]);
   const [rolePointIds, setRolePointIds] = useState<string[]>([]);
   const [relationAnswers, setRelationAnswers] = useState<
     Record<string, string[]>
@@ -272,6 +328,9 @@ export function WordClassReader({
     selectedClasses[0] ?? "noun"
   );
   const [roleTargetId, setRoleTargetId] = useState<string | null>(null);
+  const [genderNumberTargetId, setGenderNumberTargetId] = useState<string | null>(null);
+  const [genderNumberStep, setGenderNumberStep] = useState<"gender" | "number">("gender");
+  const [genderNumberFeedback, setGenderNumberFeedback] = useState("");
   const [activeRelationTargetId, setActiveRelationTargetId] =
     useState<string | null>(null);
   const [roleFeedback, setRoleFeedback] = useState("");
@@ -283,6 +342,8 @@ export function WordClassReader({
   const [draftAgreementPoints, setDraftAgreementPoints] = useState<
     AgreementPoint[]
   >([]);
+  const [agreementArrowsVisible, setAgreementArrowsVisible] = useState(true);
+  const [codeOffsetByTargetId, setCodeOffsetByTargetId] = useState<Record<string, number>>({});
   const [agreementInkColor, setAgreementInkColor] = useState<string>(
     DEFAULT_AGREEMENT_INK_COLOR
   );
@@ -328,7 +389,9 @@ export function WordClassReader({
           start: target.start,
           end: target.end,
           wordClass: target.wordClass,
-          isAnalysisTarget: target.isAnalysisTarget
+          isAnalysisTarget: target.isAnalysisTarget,
+          grammaticalGender: target.grammaticalGender,
+          grammaticalNumber: target.grammaticalNumber
         })),
         relations,
         selectedClasses
@@ -343,9 +406,12 @@ export function WordClassReader({
       setFoundIds([]);
       setClassPointIds([]);
       setResolvedRoleIds([]);
+      setResolvedGenderIds([]);
+      setResolvedNumberIds([]);
       setRolePointIds([]);
       setRelationAnswers({});
       setDrawnAgreementArrows([]);
+      setAgreementArrowsVisible(true);
       setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
       setDraftAgreementPoints([]);
       draftAgreementPointsRef.current = [];
@@ -360,9 +426,12 @@ export function WordClassReader({
       setFoundIds([]);
       setClassPointIds([]);
       setResolvedRoleIds([]);
+      setResolvedGenderIds([]);
+      setResolvedNumberIds([]);
       setRolePointIds([]);
       setRelationAnswers({});
       setDrawnAgreementArrows([]);
+      setAgreementArrowsVisible(true);
       setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
       setDraftAgreementPoints([]);
       draftAgreementPointsRef.current = [];
@@ -376,6 +445,8 @@ export function WordClassReader({
         foundIds?: string[];
         classPointIds?: string[];
         resolvedRoleIds?: string[];
+        resolvedGenderIds?: string[];
+        resolvedNumberIds?: string[];
         rolePointIds?: string[];
         relationAnswers?: Record<string, string[]>;
         activeRelationTargetId?: string | null;
@@ -383,11 +454,14 @@ export function WordClassReader({
           Omit<DrawnAgreementArrow, "color"> & { color?: string }
         >;
         agreementInkColor?: string;
+        agreementArrowsVisible?: boolean;
       };
 
       const restoredFoundIds = saved.foundIds ?? [];
       const restoredClassPointIds = saved.classPointIds ?? [];
       const restoredResolvedRoleIds = saved.resolvedRoleIds ?? [];
+      const restoredResolvedGenderIds = saved.resolvedGenderIds ?? [];
+      const restoredResolvedNumberIds = saved.resolvedNumberIds ?? [];
       const restoredRolePointIds = saved.rolePointIds ?? [];
       const restoredRelationAnswers = saved.relationAnswers ?? {};
       const restoredDrawnAgreementArrows = (
@@ -400,9 +474,12 @@ export function WordClassReader({
       setFoundIds(restoredFoundIds);
       setClassPointIds(restoredClassPointIds);
       setResolvedRoleIds(restoredResolvedRoleIds);
+      setResolvedGenderIds(restoredResolvedGenderIds);
+      setResolvedNumberIds(restoredResolvedNumberIds);
       setRolePointIds(restoredRolePointIds);
       setRelationAnswers(restoredRelationAnswers);
       setDrawnAgreementArrows(restoredDrawnAgreementArrows);
+      setAgreementArrowsVisible(saved.agreementArrowsVisible ?? true);
       setAgreementInkColor(
         saved.agreementInkColor ?? DEFAULT_AGREEMENT_INK_COLOR
       );
@@ -493,11 +570,14 @@ export function WordClassReader({
         foundIds,
         classPointIds,
         resolvedRoleIds,
+        resolvedGenderIds,
+        resolvedNumberIds,
         rolePointIds,
         relationAnswers,
         activeRelationTargetId,
         drawnAgreementArrows,
-        agreementInkColor
+        agreementInkColor,
+        agreementArrowsVisible
       })
     );
   }, [
@@ -509,6 +589,9 @@ export function WordClassReader({
     relationAnswers,
     drawnAgreementArrows,
     agreementInkColor,
+    agreementArrowsVisible,
+    resolvedGenderIds,
+    resolvedNumberIds,
     resolvedRoleIds,
     rolePointIds
   ]);
@@ -557,7 +640,7 @@ export function WordClassReader({
 
   const agreementArrows = useMemo(
     () =>
-      drawnAgreementArrows.flatMap((arrow) => {
+      agreementArrowsVisible ? drawnAgreementArrows.flatMap((arrow) => {
         if (arrowCanvas.width <= 0 || arrowCanvas.height <= 0) {
           return [];
         }
@@ -572,8 +655,8 @@ export function WordClassReader({
         );
 
         return rendered ? [rendered] : [];
-      }),
-    [arrowCanvas.height, arrowCanvas.width, drawnAgreementArrows]
+      }) : [],
+    [agreementArrowsVisible, arrowCanvas.height, arrowCanvas.width, drawnAgreementArrows]
   );
 
   const draftAgreementArrow = useMemo(
@@ -628,6 +711,104 @@ export function WordClassReader({
     };
   }, []);
 
+  useLayoutEffect(() => {
+    const container = textContainerRef.current;
+    if (
+      !container ||
+      !agreementArrowsVisible ||
+      drawnAgreementArrows.length === 0 ||
+      arrowCanvas.width <= 0 ||
+      arrowCanvas.height <= 0
+    ) {
+      setCodeOffsetByTargetId((current) =>
+        Object.keys(current).length === 0 ? current : {}
+      );
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const polylines = drawnAgreementArrows.map((arrow) =>
+      arrow.points.map((point) => ({
+        x: point.x * arrowCanvas.width,
+        y: point.y * arrowCanvas.height
+      }))
+    );
+    const occupied: AgreementCollisionRect[] = [];
+    const nextOffsets: Record<string, number> = {};
+    const candidates = [0, -32, 32, -56, 56, -80, 80];
+
+    container
+      .querySelectorAll<HTMLElement>("[data-target-label-id]")
+      .forEach((label) => {
+        const targetId = label.dataset.targetLabelId;
+        const token = label.closest<HTMLElement>(".word-class-reader-token");
+        const glyph = token?.querySelector<HTMLElement>("[data-word-glyph]");
+        if (!targetId || !glyph) return;
+
+        const glyphRect = glyph.getBoundingClientRect();
+        const width = Math.max(24, label.offsetWidth);
+        const height = Math.max(14, label.offsetHeight);
+        const centerX =
+          glyphRect.left - containerRect.left + container.scrollLeft +
+          glyphRect.width / 2;
+        const top =
+          glyphRect.top - containerRect.top + container.scrollTop -
+          height - 2;
+
+        let bestOffset = 0;
+        let bestScore = Number.POSITIVE_INFINITY;
+        let bestRect: AgreementCollisionRect | null = null;
+
+        candidates.forEach((offset) => {
+          const rect = {
+            left: centerX + offset - width / 2,
+            right: centerX + offset + width / 2,
+            top,
+            bottom: top + height
+          };
+          const expanded = {
+            left: rect.left - 5,
+            right: rect.right + 5,
+            top: rect.top - 4,
+            bottom: rect.bottom + 4
+          };
+          const arrowCollisions = polylines.filter((points) =>
+            polylineIntersectsRect(points, expanded)
+          ).length;
+          const labelCollisions = occupied.filter((other) =>
+            rect.left < other.right + 5 &&
+            rect.right > other.left - 5 &&
+            rect.top < other.bottom &&
+            rect.bottom > other.top
+          ).length;
+          const score = arrowCollisions * 1000 + labelCollisions * 100 + Math.abs(offset);
+
+          if (score < bestScore) {
+            bestScore = score;
+            bestOffset = offset;
+            bestRect = rect;
+          }
+        });
+
+        if (bestOffset !== 0) nextOffsets[targetId] = bestOffset;
+        if (bestRect) occupied.push(bestRect);
+      });
+
+    setCodeOffsetByTargetId((current) =>
+      JSON.stringify(current) === JSON.stringify(nextOffsets)
+        ? current
+        : nextOffsets
+    );
+  }, [
+    agreementArrowsVisible,
+    arrowCanvas.height,
+    arrowCanvas.width,
+    drawnAgreementArrows,
+    foundIds,
+    resolvedGenderIds,
+    resolvedNumberIds
+  ]);
+
   const classesComplete =
     analysisTargets.length > 0 &&
     foundIds.length === analysisTargets.length;
@@ -642,8 +823,13 @@ export function WordClassReader({
     )
   );
 
+  const genderNumberComplete = analysisTargets.every((target) =>
+    (!target.grammaticalGender || resolvedGenderIds.includes(target.id)) &&
+    (!target.grammaticalNumber || resolvedNumberIds.includes(target.id))
+  );
+
   const complete =
-    classesComplete && rolesComplete && relationsComplete;
+    classesComplete && genderNumberComplete && rolesComplete && relationsComplete;
 
   useEffect(() => {
     completeRef.current?.(complete);
@@ -685,8 +871,52 @@ export function WordClassReader({
     setRoleFeedback("");
   }
 
+  function startTargetFollowup(target: WordClassTarget) {
+    if (target.grammaticalGender && !resolvedGenderIds.includes(target.id)) {
+      setGenderNumberTargetId(target.id);
+      setGenderNumberStep("gender");
+      setGenderNumberFeedback("");
+      return;
+    }
+
+    if (target.grammaticalNumber && !resolvedNumberIds.includes(target.id)) {
+      setGenderNumberTargetId(target.id);
+      setGenderNumberStep("number");
+      setGenderNumberFeedback("");
+      return;
+    }
+
+    startRoleOrContinue(target);
+  }
+
+  function answerGenderNumber(answer: "feminine" | "masculine" | "singular" | "plural") {
+    if (!genderNumberTargetId) return;
+    const target = targetMap.get(genderNumberTargetId);
+    if (!target) return;
+
+    if (genderNumberStep === "gender") {
+      const correct = answer === target.grammaticalGender;
+      setResolvedGenderIds((current) => current.includes(target.id) ? current : [...current, target.id]);
+      setGenderNumberFeedback(correct ? "Bonne réponse." : "Le genre attendu a été affiché. Le point est perdu.");
+      window.setTimeout(() => {
+        setGenderNumberStep("number");
+        setGenderNumberFeedback("");
+      }, 650);
+      return;
+    }
+
+    const correct = answer === target.grammaticalNumber;
+    setResolvedNumberIds((current) => current.includes(target.id) ? current : [...current, target.id]);
+    setGenderNumberFeedback(correct ? "Bonne réponse." : "Le nombre attendu a été affiché. Le point est perdu.");
+    window.setTimeout(() => {
+      setGenderNumberTargetId(null);
+      setGenderNumberFeedback("");
+      startRoleOrContinue(target);
+    }, 650);
+  }
+
   function validateSingleClass(token: WordToken) {
-    if (activeRelationTargetId || roleTargetId) return;
+    if (activeRelationTargetId || roleTargetId || genderNumberTargetId) return;
 
     const target = findTarget(token);
 
@@ -703,11 +933,11 @@ export function WordClassReader({
     onPoint(target, "find", 1, `find-${target.id}`);
     setMessage("");
     showWordSuccess([target.id]);
-    startRoleOrContinue(target);
+    startTargetFollowup(target);
   }
 
   function openClassDialog(token: WordToken) {
-    if (activeRelationTargetId || roleTargetId || !token.isWord) {
+    if (activeRelationTargetId || roleTargetId || genderNumberTargetId || !token.isWord) {
       return;
     }
 
@@ -746,7 +976,7 @@ export function WordClassReader({
     setActiveToken(null);
     setMessage("");
     showWordSuccess([target.id]);
-    startRoleOrContinue(target);
+    startTargetFollowup(target);
   }
 
   function answerRole(answer: TargetRole) {
@@ -995,6 +1225,7 @@ export function WordClassReader({
         );
         const id = `${currentTask.targetId}-${answerId}`;
 
+        setAgreementArrowsVisible(true);
         setDrawnAgreementArrows((current) => [
           ...current.filter((arrow) => arrow.id !== id),
           {
@@ -1063,6 +1294,9 @@ export function WordClassReader({
     clearDraftAgreementArrow();
     setActiveToken(null);
     setRoleTargetId(null);
+    setGenderNumberTargetId(null);
+    setGenderNumberStep("gender");
+    setGenderNumberFeedback("");
     setActiveRelationTargetId(null);
     setRoleFeedback("");
     setMessage("");
@@ -1072,6 +1306,17 @@ export function WordClassReader({
     }
 
     restoreRef.current?.([]);
+  }
+
+  function grammaticalSuffix(target: WordClassTarget) {
+    const values: string[] = [];
+    if (resolvedGenderIds.includes(target.id) && target.grammaticalGender) {
+      values.push(target.grammaticalGender === "feminine" ? "Fém." : "Masc.");
+    }
+    if (resolvedNumberIds.includes(target.id) && target.grammaticalNumber) {
+      values.push(target.grammaticalNumber === "singular" ? "Sing." : "Plur.");
+    }
+    return values.length > 0 ? " (" + values.join(", ") + ")" : "";
   }
 
   const instruction =
@@ -1152,6 +1397,20 @@ export function WordClassReader({
                 />
               ))}
             </div>
+          )}
+          {agreementArrowsVisible && drawnAgreementArrows.length > 0 && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="agreement-clear-arrows"
+              onClick={() => {
+                setAgreementArrowsVisible(false);
+                setCodeOffsetByTargetId({});
+              }}
+            >
+              <Trash2 size={16} />
+              Supprimer les flèches
+            </Button>
           )}
         </div>
       </div>
@@ -1279,8 +1538,9 @@ export function WordClassReader({
                 <span
                   className="word-class-reader-label"
                   data-target-label-id={target.id}
+                  style={codeOffsetByTargetId[target.id] ? ({ "--word-class-label-offset": codeOffsetByTargetId[target.id] + "px" } as CSSProperties) : undefined}
                 >
-                  {wordClassLabels[target.wordClass]}
+                  {wordClassLabels[target.wordClass]}{grammaticalSuffix(target)}
                 </span>
               )}
               {token.text}
@@ -1371,6 +1631,27 @@ export function WordClassReader({
                 Annuler
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {genderNumberTargetId && (
+        <div className="reader-dialog-backdrop">
+          <div className="reader-dialog word-role-dialog" role="dialog" aria-modal="true">
+            <span className="eyebrow">{genderNumberStep === "gender" ? "Genre" : "Nombre"}</span>
+            <h2>« {targetMap.get(genderNumberTargetId)?.text ?? ""} »</h2>
+            <p>{genderNumberStep === "gender" ? "Quel est le genre de ce mot?" : "Quel est le nombre de ce mot?"}</p>
+            {!genderNumberFeedback ? (
+              <div className="word-role-options">
+                {genderNumberStep === "gender" ? <>
+                  <Button type="button" onClick={() => answerGenderNumber("feminine")}>Féminin</Button>
+                  <Button type="button" variant="secondary" onClick={() => answerGenderNumber("masculine")}>Masculin</Button>
+                </> : <>
+                  <Button type="button" onClick={() => answerGenderNumber("singular")}>Singulier</Button>
+                  <Button type="button" variant="secondary" onClick={() => answerGenderNumber("plural")}>Pluriel</Button>
+                </>}
+              </div>
+            ) : <p className={"word-role-feedback " + (genderNumberFeedback === "Bonne réponse." ? "correct" : "incorrect")}>{genderNumberFeedback}</p>}
           </div>
         </div>
       )}

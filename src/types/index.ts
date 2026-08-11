@@ -88,6 +88,7 @@ export type GrammarPhaseKind =
   | "nuclei"
   | "functions"
   | "agreements"
+  | "gender_number"
   | "table";
 
 export type GrammarActionKind =
@@ -103,6 +104,8 @@ export type GrammarActionKind =
   | "identify_donors"
   | "identify_receivers"
   | "link_agreement"
+  | "identify_gender"
+  | "identify_number"
   | "complete_table";
 
 export type GrammarWorkflowAction = {
@@ -128,7 +131,8 @@ export type GrammarAnnotationKind =
   | "nucleus"
   | "function"
   | "donor"
-  | "receiver";
+  | "receiver"
+  | "gender_number";
 
 export type GrammarAnnotation = {
   id: string;
@@ -138,6 +142,9 @@ export type GrammarAnnotation = {
   label?: string;
   linkedAnnotationId?: string;
   parentAnnotationId?: string;
+  grammaticalGender?: "feminine" | "masculine";
+  grammaticalNumber?: "singular" | "plural";
+
   responseMode?: "click" | "frame" | "brackets";
   visualEffect?: {
     kind: "none" | "color" | "frame" | "brackets" | "bold" | "highlight" | "underline";
@@ -164,6 +171,8 @@ export type WordClassTarget = {
   text: string;
   wordClass: WordClass;
   isAnalysisTarget?: boolean;
+  grammaticalGender?: "feminine" | "masculine";
+  grammaticalNumber?: "singular" | "plural";
 };
 
 
