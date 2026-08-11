@@ -10913,11 +10913,11 @@ textarea {
 }
 /* V905 — respiration verticale égale autour des phrases analysées */
 .reader-scene .word-class-reader-text {
-  padding-bottom: 68px;
+  padding-bottom: 38px;
 }
 
 @media (max-width: 760px) {
   .reader-scene .word-class-reader-text {
-    padding-bottom: 60px;
+    padding-bottom: 34px;
   }
 }
