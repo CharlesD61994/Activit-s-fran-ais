@@ -144,6 +144,7 @@ export type GrammarAnnotation = {
   parentAnnotationId?: string;
   grammaticalGender?: "feminine" | "masculine";
   grammaticalNumber?: "singular" | "plural";
+  wordClassInteractionMode?: "find_requested" | "choose_class";
 
   responseMode?: "click" | "frame" | "brackets";
   visualEffect?: {
@@ -173,6 +174,7 @@ export type WordClassTarget = {
   isAnalysisTarget?: boolean;
   grammaticalGender?: "feminine" | "masculine";
   grammaticalNumber?: "singular" | "plural";
+  wordClassInteractionMode?: "find_requested" | "choose_class";
 };
 
 

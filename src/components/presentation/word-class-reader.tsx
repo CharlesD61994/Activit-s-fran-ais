@@ -77,6 +77,8 @@ const AGREEMENT_INK_COLORS = [
   { value: "#d97706", label: "Orange" }
 ] as const;
 
+const ALL_WORD_CLASSES = Object.keys(wordClassLabels) as WordClass[];
+
 const DEFAULT_AGREEMENT_INK_COLOR =
   AGREEMENT_INK_COLORS[0].value;
 
@@ -117,6 +119,11 @@ function normalizeTargets(
   });
 }
 
+
+function usesClassChoice(target: WordClassTarget, multipleClasses: boolean) {
+  return target.wordClassInteractionMode === "choose_class" ||
+    (!target.wordClassInteractionMode && multipleClasses);
+}
 
 function buildAgreementArrow(
   id: string,
@@ -260,6 +267,8 @@ export function WordClassReader({
     [allTargets, selectedClasses]
   );
 
+  const hasClassChoiceTargets = analysisTargets.some((target) => usesClassChoice(target, multipleClasses));
+
   const relations = useMemo(
     () => sentence.agreementRelations ?? [],
     [sentence.agreementRelations]
@@ -391,7 +400,8 @@ export function WordClassReader({
           wordClass: target.wordClass,
           isAnalysisTarget: target.isAnalysisTarget,
           grammaticalGender: target.grammaticalGender,
-          grammaticalNumber: target.grammaticalNumber
+          grammaticalNumber: target.grammaticalNumber,
+          wordClassInteractionMode: target.wordClassInteractionMode
         })),
         relations,
         selectedClasses
@@ -502,7 +512,7 @@ export function WordClassReader({
         }
 
         if (
-          multipleClasses &&
+          usesClassChoice(target, multipleClasses) &&
           restoredClassPointIds.includes(target.id)
         ) {
           restoredPoints.push({
@@ -945,7 +955,7 @@ export function WordClassReader({
     if (target && foundIds.includes(target.id)) return;
 
     setActiveToken(token);
-    setSelectedClass(selectedClasses[0] ?? "noun");
+    setSelectedClass("noun");
     setMessage("");
   }
 
@@ -968,7 +978,7 @@ export function WordClassReader({
       onPoint(target, "find", 1, `find-${target.id}`);
     }
 
-    if (!classPointIds.includes(target.id)) {
+    if (usesClassChoice(target, multipleClasses) && !classPointIds.includes(target.id)) {
       setClassPointIds((current) => [...current, target.id]);
       onPoint(target, "class", 1, `class-${target.id}`);
     }
@@ -1319,7 +1329,9 @@ export function WordClassReader({
     return values.length > 0 ? " (" + values.join(", ") + ")" : "";
   }
 
-  const instruction =
+  const instruction = hasClassChoiceTargets
+    ? "Clique sur un mot, puis choisis sa classe."
+    :
     selectedClasses.length === 1
       ? `Trouve tous les ${wordClassLabels[
           selectedClasses[0]
@@ -1526,7 +1538,12 @@ export function WordClassReader({
               onClick={() => {
                 if (currentTask) return;
 
-                if (multipleClasses) {
+                const clickedTarget = findTarget(token);
+                if (
+                  clickedTarget
+                    ? usesClassChoice(clickedTarget, multipleClasses)
+                    : hasClassChoiceTargets
+                ) {
                   openClassDialog(token);
                 } else {
                   validateSingleClass(token);
@@ -1606,7 +1623,7 @@ export function WordClassReader({
                   setSelectedClass(event.target.value as WordClass)
                 }
               >
-                {selectedClasses.map((wordClass) => (
+                {((findTarget(activeToken)?.wordClassInteractionMode === "choose_class" ? ALL_WORD_CLASSES : selectedClasses)).map((wordClass) => (
                   <option value={wordClass} key={wordClass}>
                     {wordClassLabels[wordClass]}
                   </option>

@@ -1,11 +1,11 @@
-import { wordClassLabels } from "@/lib/activity-types";
+import { wordClassLabels } from "./activity-types";
 import type {
   AgreementRelation,
   GrammarAnnotation,
   Sentence,
   WordClass,
   WordClassTarget
-} from "@/types";
+} from "../types";
 
 function normalizeLabel(value: string | undefined) {
   return (value ?? "")
@@ -46,7 +46,8 @@ export function buildMixedWordClassSentence(sentence: Sentence): Sentence {
         end: annotation.end,
         text: sentence.originalText.slice(annotation.start, annotation.end),
         wordClass,
-        isAnalysisTarget: true
+        isAnalysisTarget: true,
+        wordClassInteractionMode: annotation.wordClassInteractionMode
       };
     })
     .filter((target): target is WordClassTarget => Boolean(target));

@@ -181,7 +181,8 @@ export function SentenceEditor({
       label: annotationAnswers[kind]?.[0] ?? (kind === "nucleus" ? "Noyau" : kind === "gender_number" ? "Genre et nombre" : ""),
       parentAnnotationId: classAnnotation?.id,
       grammaticalGender: kind === "gender_number" ? "feminine" : undefined,
-      grammaticalNumber: kind === "gender_number" ? "singular" : undefined
+      grammaticalNumber: kind === "gender_number" ? "singular" : undefined,
+      wordClassInteractionMode: kind === "word_class" ? "find_requested" : undefined
     });
     setMessage("");
   }
@@ -197,7 +198,8 @@ export function SentenceEditor({
       linkedAnnotationId: annotationDraft.linkedAnnotationId,
       parentAnnotationId: annotationDraft.parentAnnotationId,
       grammaticalGender: annotationDraft.grammaticalGender,
-      grammaticalNumber: annotationDraft.grammaticalNumber
+      grammaticalNumber: annotationDraft.grammaticalNumber,
+      wordClassInteractionMode: annotationDraft.wordClassInteractionMode
     }]);
     if (annotationDraft.kind === "gender_number") {
       setWorkflowPhases((phases) => phases.some((phase) => phase.kind === "gender_number") ? phases : [...phases, createWorkflowPhase("gender_number")]);
@@ -392,6 +394,13 @@ export function SentenceEditor({
             <h2>« {annotationDraft.text} »</h2>
             <div className="form-grid">
               <label>Type<input value={annotationLabels[annotationDraft.kind as Exclude<GrammarAnnotationKind, "error">]} disabled /></label>
+              {annotationDraft.kind === "word_class" && <label>Comportement dans le lecteur
+                <select value={annotationDraft.wordClassInteractionMode ?? "find_requested"} onChange={(event) => setAnnotationDraft({ ...annotationDraft, wordClassInteractionMode: event.target.value as "find_requested" | "choose_class" })}>
+                  <option value="find_requested">Repérer la classe demandée — cliquer directement sur le bon mot</option>
+                  <option value="choose_class">Identifier la classe du mot — cliquer sur le mot, puis choisir sa classe</option>
+                </select>
+                <small>Le deuxième mode permet d’enchaîner ensuite le genre, le nombre et les accords du même mot.</small>
+              </label>}
               {annotationDraft.kind === "gender_number" ? <>
                 <label>Genre attendu
                   <select value={annotationDraft.grammaticalGender ?? "feminine"} onChange={(event) => setAnnotationDraft({ ...annotationDraft, grammaticalGender: event.target.value as "feminine" | "masculine" })}>
@@ -518,7 +527,7 @@ export function SentenceEditor({
         <Card className="workflow-sticky-card">
           <GrammarWorkflowPlanner phases={workflowPhases} onChange={setWorkflowPhases} />
         </Card>
-        {grammarAnnotations.length > 0 && <Card><span className="eyebrow">Réponses grammaticales</span><div className="grammar-annotation-list">{grammarAnnotations.map((annotation) => <div key={annotation.id}><span>{annotationLabels[annotation.kind as Exclude<GrammarAnnotationKind, "error">] ?? annotation.kind}</span><strong>{originalText.slice(annotation.start, annotation.end)}</strong><small>{annotation.label}{annotation.kind === "gender_number" && annotation.grammaticalGender && annotation.grammaticalNumber ? " — " + (annotation.grammaticalGender === "feminine" ? "Fém." : "Masc.") + ", " + (annotation.grammaticalNumber === "singular" ? "Sing." : "Plur.") : ""}</small><button type="button" onClick={() => setGrammarAnnotations((items) => items.filter((item) => item.id !== annotation.id))}><Trash2 size={15}/></button></div>)}</div></Card>}
+        {grammarAnnotations.length > 0 && <Card><span className="eyebrow">Réponses grammaticales</span><div className="grammar-annotation-list">{grammarAnnotations.map((annotation) => <div key={annotation.id}><span>{annotationLabels[annotation.kind as Exclude<GrammarAnnotationKind, "error">] ?? annotation.kind}</span><strong>{originalText.slice(annotation.start, annotation.end)}</strong><small>{annotation.label}{annotation.kind === "word_class" ? annotation.wordClassInteractionMode === "choose_class" ? " — choix après le clic" : " — classe demandée" : ""}{annotation.kind === "gender_number" && annotation.grammaticalGender && annotation.grammaticalNumber ? " — " + (annotation.grammaticalGender === "feminine" ? "Fém." : "Masc.") + ", " + (annotation.grammaticalNumber === "singular" ? "Sing." : "Plur.") : ""}</small><button type="button" onClick={() => setGrammarAnnotations((items) => items.filter((item) => item.id !== annotation.id))}><Trash2 size={15}/></button></div>)}</div></Card>}
         <Card>
           <span className="eyebrow">Aperçu</span>
           <span className="activity-type-badge">
