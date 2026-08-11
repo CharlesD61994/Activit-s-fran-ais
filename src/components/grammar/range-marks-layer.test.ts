@@ -1,0 +1,19 @@
+import { describe, expect, it } from "vitest";
+import { bracketSpacing } from "./range-mark-spacing";
+
+describe("bracketSpacing", () => {
+  it("keeps the normal gap when boundaries have enough room", () => {
+    expect(bracketSpacing(30)).toEqual({ cap: 6, gap: 4 });
+  });
+
+  it("shrinks both brackets instead of merging adjacent boundaries", () => {
+    const spacing = bracketSpacing(18);
+    expect(spacing.cap).toBe(6);
+    expect(spacing.gap).toBe(2);
+    expect((spacing.cap + spacing.gap) * 2 + 2).toBeLessThanOrEqual(18);
+  });
+
+  it("always leaves a gap between a bracket and its word", () => {
+    expect(bracketSpacing(10).gap).toBeGreaterThanOrEqual(1);
+  });
+});
