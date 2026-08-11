@@ -463,6 +463,13 @@ export function WordClassReader({
             const id = element.dataset.targetId;
             if (id) tokenRects.set(id, glyphRect(element));
           });
+        const labelRects = new Map<string, ReturnType<typeof localRect>>();
+        activeContainer
+          .querySelectorAll<HTMLElement>('[data-target-label-id]')
+          .forEach((element) => {
+            const id = element.dataset.targetLabelId;
+            if (id) labelRects.set(id, localRect(element.getBoundingClientRect()));
+          });
 
         const lineBands: Array<{ top: number; bottom: number; centerY: number }> = [];
         Array.from(tokenRects.values())
@@ -510,18 +517,20 @@ export function WordClassReader({
             );
           const laneRank = Math.max(0, siblings.findIndex((candidate) => candidate.answerId === answerId));
           const startSpread = (laneRank - (siblings.length - 1) / 2) * 8;
-          const startX = donor.centerX + startSpread;
-          const startY = donor.bottom + 3;
-          const endX = receiver.centerX;
-          const endY = receiver.bottom + 3;
-          const laneOffset = 16 + laneRank * 14;
+          const donorAnchor = labelRects.get(donorId) ?? donor;
+          const receiverAnchor = labelRects.get(link.receiverId) ?? receiver;
+          const startX = donorAnchor.centerX + startSpread;
+          const startY = donorAnchor.top - 3;
+          const endX = receiverAnchor.centerX;
+          const endY = receiverAnchor.top - 3;
+          const laneOffset = 18 + laneRank * 15;
           let path: string;
-          let finalControl = { x: endX, y: endY + 18 };
+          let finalControl = { x: endX, y: endY - 18 };
 
           if (donorLine === receiverLine) {
-            const laneY = Math.min(
-              canvasHeight - 12,
-              Math.max(donor.bottom, receiver.bottom) + laneOffset
+            const laneY = Math.max(
+              10,
+              Math.min(donorAnchor.top, receiverAnchor.top) - laneOffset
             );
             const approachDirection = endX < startX ? 1 : -1;
             finalControl = {
@@ -538,20 +547,14 @@ export function WordClassReader({
               Math.abs(startX - rightRail) + Math.abs(endX - rightRail)
                 ? leftRail
                 : rightRail;
-            const startLaneY = Math.min(canvasHeight - 14, donor.bottom + laneOffset);
-            const endLaneY = Math.min(canvasHeight - 14, receiver.bottom + laneOffset);
-            const radius = 10;
-            const startDirection = railX < startX ? -1 : 1;
+            const startLaneY = Math.max(10, donorAnchor.top - laneOffset);
+            const endLaneY = Math.max(10, receiverAnchor.top - laneOffset);
             const approachDirection = railX < endX ? -1 : 1;
             finalControl = { x: endX + approachDirection * 22, y: endLaneY };
             path = [
               `M ${startX} ${startY}`,
-              `C ${startX} ${startLaneY}, ${startX} ${startLaneY}, ${startX + startDirection * radius} ${startLaneY}`,
-              `L ${railX - startDirection * radius} ${startLaneY}`,
-              `Q ${railX} ${startLaneY}, ${railX} ${startLaneY + radius}`,
-              `L ${railX} ${endLaneY - radius}`,
-              `Q ${railX} ${endLaneY}, ${railX - approachDirection * radius} ${endLaneY}`,
-              `L ${finalControl.x} ${endLaneY}`,
+              `C ${startX} ${startLaneY}, ${railX} ${startLaneY}, ${railX} ${startLaneY}`,
+              `C ${railX} ${(startLaneY + endLaneY) / 2}, ${railX} ${endLaneY}, ${railX} ${endLaneY}`,
               `C ${finalControl.x} ${endLaneY}, ${finalControl.x} ${endLaneY}, ${endX} ${endY}`
             ].join(" ");
           }
