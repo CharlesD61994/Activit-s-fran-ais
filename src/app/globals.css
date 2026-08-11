@@ -6476,11 +6476,9 @@ textarea {
 }
 
 .word-group-reader-token.nucleus-confirmed {
-  color: var(--primary);
-  font-weight: 900;
-  text-decoration: underline;
-  text-decoration-thickness: .09em;
-  text-underline-offset: .16em;
+  color: #dc2626;
+  font-weight: inherit;
+  text-decoration: none;
 }
 
 /* V70 — sélecteur de groupe au-dessus de la phrase, comme la case de code */
