@@ -6324,7 +6324,7 @@ textarea {
 .word-group-range-bracket {
   position: absolute;
   z-index: 4;
-  width: 11px;
+  width: 6px;
   border-top: 4px solid var(--primary);
   border-bottom: 4px solid var(--primary);
   pointer-events: none;

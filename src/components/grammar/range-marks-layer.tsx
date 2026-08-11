@@ -14,7 +14,7 @@ export function RangeMarksLayer({ targets, positions, leftIds, rightIds, mode }:
     const rightDepth = Math.max(0, sameRight.findIndex((candidate) => candidate.id === target.id));
     const marks: React.ReactNode[] = [];
     if (leftIds.includes(target.id)) marks.push(<span key={`left-mark-${target.id}`} className="word-group-range-bracket left" style={{ left: position.startX - 7 - leftDepth * 7, top: position.startY - 4, height: position.startHeight + 8 }}/>);
-    if (rightIds.includes(target.id)) marks.push(<span key={`right-mark-${target.id}`} className="word-group-range-bracket right" style={{ left: position.endX - 9 + rightDepth * 7, top: position.endY - 4, height: position.endHeight + 8 }}/>);
+    if (rightIds.includes(target.id)) marks.push(<span key={`right-mark-${target.id}`} className="word-group-range-bracket right" style={{ left: position.endX + 1 + rightDepth * 7, top: position.endY - 4, height: position.endHeight + 8 }}/>);
     return marks;
   })}</>;
 }
