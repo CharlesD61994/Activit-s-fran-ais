@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWorkflowPhase, defaultWorkflowForObjective, getAgreementWorkflowSettings, normalizeGrammarWorkflow } from "./grammar-workflow";
+import { createWorkflowPhase, defaultWorkflowForObjective, getAgreementWorkflowSettings, normalizeGrammarWorkflow, shuffledGrammarTargetIds } from "./grammar-workflow";
 import type { Sentence } from "../types";
 
 describe("grammar workflow", () => {
@@ -39,6 +39,16 @@ describe("grammar workflow", () => {
       identifyReceivers: true,
       linkAgreement: true
     });
+  });
+
+  it("shuffles target ids without mutating the source order", () => {
+    const source = ["fonction-1", "fonction-2", "fonction-3"];
+    expect(shuffledGrammarTargetIds(source, () => 0)).toEqual([
+      "fonction-2",
+      "fonction-3",
+      "fonction-1"
+    ]);
+    expect(source).toEqual(["fonction-1", "fonction-2", "fonction-3"]);
   });
 
 });

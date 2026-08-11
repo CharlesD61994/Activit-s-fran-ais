@@ -11,7 +11,8 @@ import type {
   Sentence
 } from "@/types";
 import {
-  grammarActionLabels
+  grammarActionLabels,
+  shuffledGrammarTargetIds
 } from "@/lib/grammar-workflow";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import {
@@ -26,7 +27,6 @@ import type {
 } from "@/components/grammar/range-interaction-engine";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
-import { bracketReserve } from "@/components/grammar/range-mark-spacing";
 
 type Point = InteractionPoint;
 type Boundary = "left" | "right";
@@ -95,6 +95,17 @@ export function GrammarExtensionReader({
     [excludedKinds, sentence.workflowPhases]
   );
 
+  const [functionTargetOrder] = useState(() =>
+    shuffledGrammarTargetIds(
+      annotations
+        .filter((annotation) => annotation.kind === "function")
+        .map((annotation) => annotation.id)
+    )
+  );
+  const functionTargetRanks = useMemo(
+    () => new Map(functionTargetOrder.map((id, index) => [id, index])),
+    [functionTargetOrder]
+  );
   const [stepIndex, setStepIndex] = useState(0);
   const [solvedIds, setSolvedIds] = useState<string[]>(initialSolvedIds);
   const [leftIds, setLeftIds] = useState<string[]>(initialSolvedIds);
@@ -122,10 +133,17 @@ export function GrammarExtensionReader({
 
   const step = steps[stepIndex];
   const expected = step
-    ? annotations.filter(
-        (annotation) =>
-          annotation.kind === step.kind && !solvedIds.includes(annotation.id)
-      )
+    ? annotations
+        .filter(
+          (annotation) =>
+            annotation.kind === step.kind && !solvedIds.includes(annotation.id)
+        )
+        .sort((left, right) =>
+          step.kind === "function"
+            ? (functionTargetRanks.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+              (functionTargetRanks.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+            : 0
+        )
     : [];
   const currentTarget = expected[0];
   const responseMode: ResponseMode =
@@ -140,22 +158,6 @@ export function GrammarExtensionReader({
   const solvedStepCount = stepTargets.filter((annotation) =>
     solvedIds.includes(annotation.id)
   ).length;
-
-  const workflowBracketKinds = useMemo(
-    () =>
-      new Set(
-        steps
-          .filter((item) => item.action.responseMode === "brackets")
-          .map((item) => item.kind)
-      ),
-    [steps]
-  );
-  const reservedBracketTargets = annotations.filter(
-    (annotation) =>
-      annotation.visualEffect?.kind === "brackets" ||
-      (!annotation.visualEffect && annotation.kind === "group") ||
-      workflowBracketKinds.has(annotation.kind)
-  );
 
   const solvedBracketTargets = annotations.filter(
     (annotation) =>
@@ -547,29 +549,7 @@ export function GrammarExtensionReader({
               );
               const measurable =
                 token.isWord || token.text.trim().length > 0;
-              const leftBoundaryCount = measurable
-                ? reservedBracketTargets.filter(
-                    (target) =>
-                      token.start <= target.start &&
-                      token.end > target.start
-                  ).length
-                : 0;
-              const rightBoundaryCount = measurable
-                ? reservedBracketTargets.filter(
-                    (target) =>
-                      token.start < target.end &&
-                      token.end >= target.end
-                  ).length
-                : 0;
-              const style = {
-                ...tokenStyle(token.start, token.end),
-                ...(measurable
-                  ? {
-                      marginLeft: bracketReserve(leftBoundaryCount),
-                      marginRight: bracketReserve(rightBoundaryCount)
-                    }
-                  : {})
-              };
+              const style = tokenStyle(token.start, token.end);
 
               return (
                 <span key={token.id}>

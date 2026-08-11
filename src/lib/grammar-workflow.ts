@@ -7,6 +7,21 @@ import type {
   Sentence
 } from "@/types";
 
+export function shuffledGrammarTargetIds(
+  ids: string[],
+  random: () => number = Math.random
+): string[] {
+  const shuffled = [...ids];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [
+      shuffled[swapIndex],
+      shuffled[index]
+    ];
+  }
+  return shuffled;
+}
+
 export const grammarObjectiveLabels: Record<GrammarObjective, string> = {
   sentence_correction: "Phrase à corriger",
   text_correction: "Texte à corriger",
