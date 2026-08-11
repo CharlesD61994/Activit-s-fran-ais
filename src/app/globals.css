@@ -9053,3 +9053,39 @@ textarea {
     stroke-dashoffset: 0;
   }
 }
+
+/* V81 — flèches dessinées librement par l’élève */
+.word-class-reader-text.drawing-agreement {
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.word-class-reader-text.drawing-agreement .word-class-reader-token {
+  pointer-events: none;
+}
+
+.agreement-arrow-path.frozen,
+.agreement-arrow-tip.frozen,
+.agreement-arrow-path.draft,
+.agreement-arrow-tip.draft {
+  animation: none;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+
+.agreement-arrow-path.frozen,
+.agreement-arrow-tip.frozen {
+  opacity: .96;
+}
+
+.agreement-arrow-path.draft,
+.agreement-arrow-tip.draft {
+  opacity: .72;
+  filter: none;
+}
+
+.agreement-arrow-path.draft {
+  stroke-width: 2.35;
+}

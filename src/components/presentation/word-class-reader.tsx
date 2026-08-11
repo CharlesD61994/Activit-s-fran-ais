@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent
+} from "react";
 import { Check, CheckCircle2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { wordClassLabels } from "@/lib/activity-types";
@@ -46,6 +49,18 @@ type WordToken = {
 
 type TargetRole = "donor" | "receiver";
 
+type AgreementPoint = {
+  x: number;
+  y: number;
+};
+
+type DrawnAgreementArrow = {
+  id: string;
+  taskTargetId: string;
+  answerId: string;
+  points: AgreementPoint[];
+};
+
 type AgreementArrow = {
   id: string;
   path: string;
@@ -89,6 +104,59 @@ function normalizeTargets(
   });
 }
 
+
+function buildAgreementArrow(
+  id: string,
+  points: AgreementPoint[]
+): AgreementArrow | null {
+  if (points.length < 2) return null;
+
+  const path = points
+    .map(
+      (point, index) =>
+        `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`
+    )
+    .join(" ");
+
+  const end = points[points.length - 1];
+  let previousIndex = points.length - 2;
+
+  while (
+    previousIndex > 0 &&
+    Math.hypot(
+      end.x - points[previousIndex].x,
+      end.y - points[previousIndex].y
+    ) < 7
+  ) {
+    previousIndex -= 1;
+  }
+
+  const previous = points[previousIndex];
+  const length = Math.max(
+    1,
+    Math.hypot(end.x - previous.x, end.y - previous.y)
+  );
+  const unitX = (end.x - previous.x) / length;
+  const unitY = (end.y - previous.y) / length;
+  const baseX = end.x - unitX * 12;
+  const baseY = end.y - unitY * 12;
+  const perpendicularX = -unitY * 5;
+  const perpendicularY = unitX * 5;
+
+  return {
+    id,
+    path,
+    tipPath: [
+      `M ${(baseX + perpendicularX).toFixed(1)} ${(
+        baseY + perpendicularY
+      ).toFixed(1)}`,
+      `L ${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
+      `L ${(baseX - perpendicularX).toFixed(1)} ${(
+        baseY - perpendicularY
+      ).toFixed(1)}`
+    ].join(" ")
+  };
+}
 export function WordClassReader({
   sentence,
   persistenceKey,
@@ -191,8 +259,11 @@ export function WordClassReader({
   const [roleFeedback, setRoleFeedback] = useState("");
   const [message, setMessage] = useState("");
   const [hydrated, setHydrated] = useState(false);
-  const [agreementArrows, setAgreementArrows] = useState<
-    AgreementArrow[]
+  const [drawnAgreementArrows, setDrawnAgreementArrows] = useState<
+    DrawnAgreementArrow[]
+  >([]);
+  const [draftAgreementPoints, setDraftAgreementPoints] = useState<
+    AgreementPoint[]
   >([]);
   const [arrowCanvas, setArrowCanvas] = useState({
     width: 0,
@@ -200,6 +271,9 @@ export function WordClassReader({
   });
 
   const textContainerRef = useRef<HTMLDivElement>(null);
+  const activeDrawingPointerRef = useRef<number | null>(null);
+  const drawingStartTargetIdRef = useRef<string | null>(null);
+  const draftAgreementPointsRef = useRef<AgreementPoint[]>([]);
   const restoreRef = useRef(onRestorePoints);
   const completeRef = useRef(onCompleteChange);
 
@@ -237,6 +311,9 @@ export function WordClassReader({
       setResolvedRoleIds([]);
       setRolePointIds([]);
       setRelationAnswers({});
+      setDrawnAgreementArrows([]);
+      setDraftAgreementPoints([]);
+      draftAgreementPointsRef.current = [];
       setActiveRelationTargetId(null);
       setHydrated(true);
       return;
@@ -250,6 +327,9 @@ export function WordClassReader({
       setResolvedRoleIds([]);
       setRolePointIds([]);
       setRelationAnswers({});
+      setDrawnAgreementArrows([]);
+      setDraftAgreementPoints([]);
+      draftAgreementPointsRef.current = [];
       setActiveRelationTargetId(null);
       setHydrated(true);
       return;
@@ -263,6 +343,7 @@ export function WordClassReader({
         rolePointIds?: string[];
         relationAnswers?: Record<string, string[]>;
         activeRelationTargetId?: string | null;
+        drawnAgreementArrows?: DrawnAgreementArrow[];
       };
 
       const restoredFoundIds = saved.foundIds ?? [];
@@ -270,12 +351,17 @@ export function WordClassReader({
       const restoredResolvedRoleIds = saved.resolvedRoleIds ?? [];
       const restoredRolePointIds = saved.rolePointIds ?? [];
       const restoredRelationAnswers = saved.relationAnswers ?? {};
+      const restoredDrawnAgreementArrows =
+        saved.drawnAgreementArrows ?? [];
 
       setFoundIds(restoredFoundIds);
       setClassPointIds(restoredClassPointIds);
       setResolvedRoleIds(restoredResolvedRoleIds);
       setRolePointIds(restoredRolePointIds);
       setRelationAnswers(restoredRelationAnswers);
+      setDrawnAgreementArrows(restoredDrawnAgreementArrows);
+      setDraftAgreementPoints([]);
+      draftAgreementPointsRef.current = [];
       setActiveRelationTargetId(
         saved.activeRelationTargetId ?? null
       );
@@ -363,7 +449,8 @@ export function WordClassReader({
         resolvedRoleIds,
         rolePointIds,
         relationAnswers,
-        activeRelationTargetId
+        activeRelationTargetId,
+        drawnAgreementArrows
       })
     );
   }, [
@@ -373,6 +460,7 @@ export function WordClassReader({
     hydrated,
     persistenceKey,
     relationAnswers,
+    drawnAgreementArrows,
     resolvedRoleIds,
     rolePointIds
   ]);
@@ -411,223 +499,72 @@ export function WordClassReader({
     return () => window.clearTimeout(timer);
   }, [currentTask, currentTaskComplete]);
 
+  const agreementArrows = useMemo(
+    () =>
+      drawnAgreementArrows.flatMap((arrow) => {
+        if (arrowCanvas.width <= 0 || arrowCanvas.height <= 0) {
+          return [];
+        }
+
+        const rendered = buildAgreementArrow(
+          arrow.id,
+          arrow.points.map((point) => ({
+            x: point.x * arrowCanvas.width,
+            y: point.y * arrowCanvas.height
+          }))
+        );
+
+        return rendered ? [rendered] : [];
+      }),
+    [arrowCanvas.height, arrowCanvas.width, drawnAgreementArrows]
+  );
+
+  const draftAgreementArrow = useMemo(
+    () => buildAgreementArrow("agreement-draft", draftAgreementPoints),
+    [draftAgreementPoints]
+  );
+
   useLayoutEffect(() => {
     const container = textContainerRef.current;
-    const answeredLinks = relationTasks.flatMap((task) =>
-      (relationAnswers[task.targetId] ?? []).map((answerId) => ({ task, answerId }))
-    );
-
-    if (!container || answeredLinks.length === 0) {
-      setAgreementArrows((current) => current.length === 0 ? current : []);
-      setArrowCanvas((current) =>
-        current.width === 0 && current.height === 0 ? current : { width: 0, height: 0 }
-      );
-      return;
-    }
+    if (!container) return;
 
     let frameId = 0;
 
-    function updateArrows() {
+    function updateCanvas() {
       window.cancelAnimationFrame(frameId);
       frameId = window.requestAnimationFrame(() => {
         const activeContainer = textContainerRef.current;
         if (!activeContainer) return;
-        const containerRect = activeContainer.getBoundingClientRect();
-        const canvasWidth = Math.max(activeContainer.clientWidth, activeContainer.scrollWidth);
-        const canvasHeight = Math.max(activeContainer.clientHeight, activeContainer.scrollHeight);
-        setArrowCanvas((current) =>
-          current.width === canvasWidth && current.height === canvasHeight
-            ? current
-            : { width: canvasWidth, height: canvasHeight }
+
+        const width = Math.max(
+          activeContainer.clientWidth,
+          activeContainer.scrollWidth
+        );
+        const height = Math.max(
+          activeContainer.clientHeight,
+          activeContainer.scrollHeight
         );
 
-        function localRect(rect: DOMRect) {
-          return {
-            left: rect.left - containerRect.left,
-            right: rect.right - containerRect.left,
-            top: rect.top - containerRect.top,
-            bottom: rect.bottom - containerRect.top,
-            width: rect.width,
-            height: rect.height,
-            centerX: rect.left - containerRect.left + rect.width / 2,
-            centerY: rect.top - containerRect.top + rect.height / 2
-          };
-        }
-
-        function glyphRect(element: HTMLElement) {
-          const textNode = Array.from(element.childNodes).find(
-            (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
-          );
-          if (!textNode) return localRect(element.getBoundingClientRect());
-          const range = document.createRange();
-          range.selectNodeContents(textNode);
-          const rect = range.getBoundingClientRect();
-          range.detach();
-          return localRect(rect.width > 0 ? rect : element.getBoundingClientRect());
-        }
-
-        const tokenRects = new Map<string, ReturnType<typeof localRect>>();
-        activeContainer
-          .querySelectorAll<HTMLElement>('.word-class-reader-token[data-target-id]')
-          .forEach((element) => {
-            const id = element.dataset.targetId;
-            const glyph =
-              element.querySelector<HTMLElement>("[data-word-glyph]") ??
-              element;
-            if (id) tokenRects.set(id, glyphRect(glyph));
-          });
-        const labelRects = new Map<string, ReturnType<typeof localRect>>();
-        activeContainer
-          .querySelectorAll<HTMLElement>('[data-target-label-id]')
-          .forEach((element) => {
-            const id = element.dataset.targetLabelId;
-            if (id) labelRects.set(id, localRect(element.getBoundingClientRect()));
-          });
-
-        const lineBands: Array<{ top: number; bottom: number; centerY: number }> = [];
-        Array.from(tokenRects.values())
-          .sort((a, b) => a.centerY - b.centerY)
-          .forEach((rect) => {
-            const line = lineBands.find((candidate) =>
-              Math.abs(candidate.centerY - rect.centerY) < Math.max(8, rect.height * .7)
-            );
-            if (line) {
-              line.top = Math.min(line.top, rect.top);
-              line.bottom = Math.max(line.bottom, rect.bottom);
-              line.centerY = (line.top + line.bottom) / 2;
-            } else {
-              lineBands.push({ top: rect.top, bottom: rect.bottom, centerY: rect.centerY });
-            }
-          });
-        lineBands.sort((a, b) => a.top - b.top);
-
-        function lineIndex(rect: ReturnType<typeof localRect>) {
-          return Math.max(0, lineBands.findIndex((line) =>
-            rect.centerY >= line.top - 4 && rect.centerY <= line.bottom + 4
-          ));
-        }
-
-        const resolvedLinks = answeredLinks.flatMap(({ task, answerId }) => {
-          const donorId = task.role === "donor" ? task.targetId : answerId;
-          const receiverId = task.role === "donor" ? answerId : task.targetId;
-          const donor = tokenRects.get(donorId);
-          const receiver = tokenRects.get(receiverId);
-          return donor && receiver ? [{ task, answerId, donorId, receiverId, donor, receiver }] : [];
-        });
-        const nextArrows = resolvedLinks.map((link, linkIndex) => {
-          const { task, answerId, donorId, donor, receiver } = link;
-          const donorLine = lineIndex(donor);
-          const receiverLine = lineIndex(receiver);
-          const lanePeers = resolvedLinks
-            .filter((candidate) =>
-              lineIndex(candidate.donor) === donorLine &&
-              lineIndex(candidate.receiver) === receiverLine
-            )
-            .sort((a, b) =>
-              Math.abs(a.receiver.centerX - a.donor.centerX) -
-              Math.abs(b.receiver.centerX - b.donor.centerX)
-            );
-          const laneRank = Math.max(
-            0,
-            lanePeers.findIndex(
-              (candidate) =>
-                candidate.task.targetId === task.targetId &&
-                candidate.answerId === answerId
-            )
-          );
-          const donorPeers = lanePeers.filter(
-            (candidate) => candidate.donorId === donorId
-          );
-          const donorRank = Math.max(
-            0,
-            donorPeers.findIndex(
-              (candidate) =>
-                candidate.task.targetId === task.targetId &&
-                candidate.answerId === answerId
-            )
-          );
-          const startSpread =
-            (donorRank - (donorPeers.length - 1) / 2) * 8;
-          const donorAnchor = labelRects.get(donorId) ?? donor;
-          const receiverAnchor = labelRects.get(link.receiverId) ?? receiver;
-          const startX = donorAnchor.centerX + startSpread;
-          const startY = donorAnchor.top - 3;
-          const endX = receiverAnchor.centerX;
-          const endY = receiverAnchor.top - 3;
-          const laneOffset = 16 + laneRank * 13;
-          let path: string;
-          let finalControl = { x: endX, y: endY - 18 };
-
-          if (donorLine === receiverLine) {
-            const laneY = Math.max(
-              10,
-              Math.min(donorAnchor.top, receiverAnchor.top) - laneOffset
-            );
-            const approachDirection = endX < startX ? 1 : -1;
-            finalControl = {
-              x: endX + approachDirection * Math.min(28, Math.max(18, Math.abs(endX - startX) * .08)),
-              y: laneY
-            };
-            path = `M ${startX} ${startY} C ${startX} ${laneY}, ${finalControl.x} ${laneY}, ${endX} ${endY}`;
-          } else {
-            const railLane = linkIndex % 6;
-            const leftRail = 10 + railLane * 7;
-            const rightRail = canvasWidth - 10 - railLane * 7;
-            const railX =
-              Math.abs(startX - leftRail) + Math.abs(endX - leftRail) <=
-              Math.abs(startX - rightRail) + Math.abs(endX - rightRail)
-                ? leftRail
-                : rightRail;
-            const startLaneY = Math.max(10, donorAnchor.top - laneOffset);
-            const endLaneY = Math.max(10, receiverAnchor.top - laneOffset);
-            const approachDirection = railX < endX ? -1 : 1;
-            finalControl = { x: endX + approachDirection * 22, y: endLaneY };
-            path = [
-              `M ${startX} ${startY}`,
-              `C ${startX} ${startLaneY}, ${railX} ${startLaneY}, ${railX} ${startLaneY}`,
-              `C ${railX} ${(startLaneY + endLaneY) / 2}, ${railX} ${endLaneY}, ${railX} ${endLaneY}`,
-              `C ${finalControl.x} ${endLaneY}, ${finalControl.x} ${endLaneY}, ${endX} ${endY}`
-            ].join(" ");
-          }
-
-          const tangentX = endX - finalControl.x;
-          const tangentY = endY - finalControl.y;
-          const tangentLength = Math.max(1, Math.hypot(tangentX, tangentY));
-          const unitX = tangentX / tangentLength;
-          const unitY = tangentY / tangentLength;
-          const baseX = endX - unitX * 10;
-          const baseY = endY - unitY * 10;
-          const perpendicularX = -unitY * 4.5;
-          const perpendicularY = unitX * 4.5;
-          return {
-            id: `${task.targetId}-${answerId}`,
-            path,
-            tipPath: `M ${baseX + perpendicularX} ${baseY + perpendicularY} L ${endX} ${endY} L ${baseX - perpendicularX} ${baseY - perpendicularY}`
-          };
-        });
-
-        setAgreementArrows((current) => {
-          const unchanged = current.length === nextArrows.length && current.every((arrow, index) => {
-            const next = nextArrows[index];
-            return next && arrow.id === next.id && arrow.path === next.path && arrow.tipPath === next.tipPath;
-          });
-          return unchanged ? current : nextArrows;
-        });
+        setArrowCanvas((current) =>
+          current.width === width && current.height === height
+            ? current
+            : { width, height }
+        );
       });
     }
 
-    updateArrows();
-    window.addEventListener("resize", updateArrows);
-    const observer = new ResizeObserver(updateArrows);
+    updateCanvas();
+    window.addEventListener("resize", updateCanvas);
+    const observer = new ResizeObserver(updateCanvas);
     observer.observe(container);
-    document.fonts?.ready.then(updateArrows);
+    document.fonts?.ready.then(updateCanvas);
 
     return () => {
       window.cancelAnimationFrame(frameId);
-      window.removeEventListener("resize", updateArrows);
+      window.removeEventListener("resize", updateCanvas);
       observer.disconnect();
     };
-  }, [relationAnswers, relationTasks]);
+  }, []);
 
   const classesComplete =
     analysisTargets.length > 0 &&
@@ -776,37 +713,256 @@ export function WordClassReader({
     }, 700);
   }
 
-  function validateRelationClick(token: WordToken) {
-    if (!currentTask) return;
+  function localDrawingPoint(
+    clientX: number,
+    clientY: number
+  ): AgreementPoint | null {
+    const container = textContainerRef.current;
+    if (!container) return null;
 
-    const target = findTarget(token);
+    const rect = container.getBoundingClientRect();
+    const width = Math.max(container.clientWidth, container.scrollWidth);
+    const height = Math.max(container.clientHeight, container.scrollHeight);
 
-    if (!target || !currentTask.expectedIds.includes(target.id)) {
-      setMessage(
-        currentTask.role === "donor"
-          ? "Ce mot ne reçoit pas l’accord du donneur."
-          : "Ce mot ne donne pas son accord au receveur."
-      );
+    return {
+      x: Math.min(
+        width,
+        Math.max(0, clientX - rect.left + container.scrollLeft)
+      ),
+      y: Math.min(
+        height,
+        Math.max(0, clientY - rect.top + container.scrollTop)
+      )
+    };
+  }
+
+  function targetIdNearPoint(clientX: number, clientY: number) {
+    const container = textContainerRef.current;
+    if (!container) return null;
+
+    let closest: { id: string; distance: number } | null = null;
+
+    container
+      .querySelectorAll<HTMLElement>(
+        ".word-class-reader-token[data-target-id]"
+      )
+      .forEach((element) => {
+        const id = element.dataset.targetId;
+        if (!id) return;
+
+        const glyph =
+          element.querySelector<HTMLElement>("[data-word-glyph]") ??
+          element;
+        const rect = glyph.getBoundingClientRect();
+        const horizontalDistance =
+          clientX < rect.left
+            ? rect.left - clientX
+            : clientX > rect.right
+              ? clientX - rect.right
+              : 0;
+        const verticalDistance =
+          clientY < rect.top
+            ? rect.top - clientY
+            : clientY > rect.bottom
+              ? clientY - rect.bottom
+              : 0;
+
+        if (horizontalDistance > 28 || verticalDistance > 34) {
+          return;
+        }
+
+        const distance = Math.hypot(
+          horizontalDistance,
+          verticalDistance
+        );
+
+        if (!closest || distance < closest.distance) {
+          closest = { id, distance };
+        }
+      });
+
+    return (closest as { id: string; distance: number } | null)?.id ?? null;
+  }
+
+  function clearDraftAgreementArrow() {
+    activeDrawingPointerRef.current = null;
+    drawingStartTargetIdRef.current = null;
+    draftAgreementPointsRef.current = [];
+    setDraftAgreementPoints([]);
+  }
+
+  function startAgreementDrawing(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    if (!currentTask || event.button !== 0) return;
+
+    const point = localDrawingPoint(event.clientX, event.clientY);
+    if (!point) return;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    activeDrawingPointerRef.current = event.pointerId;
+    drawingStartTargetIdRef.current = targetIdNearPoint(
+      event.clientX,
+      event.clientY
+    );
+    draftAgreementPointsRef.current = [point];
+    setDraftAgreementPoints([point]);
+    setMessage("");
+  }
+
+  function continueAgreementDrawing(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    if (activeDrawingPointerRef.current !== event.pointerId) return;
+
+    event.preventDefault();
+    const point = localDrawingPoint(event.clientX, event.clientY);
+    if (!point) return;
+
+    const current = draftAgreementPointsRef.current;
+    const previous = current[current.length - 1];
+
+    if (
+      previous &&
+      Math.hypot(point.x - previous.x, point.y - previous.y) < 1.5
+    ) {
       return;
     }
 
-    if (currentAnswers.includes(target.id)) return;
+    const next = [...current, point];
+    draftAgreementPointsRef.current = next;
+    setDraftAgreementPoints(next);
+  }
 
-    setRelationAnswers((current) => ({
-      ...current,
-      [currentTask.targetId]: [
-        ...(current[currentTask.targetId] ?? []),
-        target.id
-      ]
-    }));
+  function finishAgreementDrawing(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    if (
+      !currentTask ||
+      activeDrawingPointerRef.current !== event.pointerId
+    ) {
+      return;
+    }
 
-    onPoint(
-      target,
-      "agreement",
-      1,
-      `agreement-${currentTask.targetId}-${target.id}`
+    event.preventDefault();
+
+    const finalPoint = localDrawingPoint(
+      event.clientX,
+      event.clientY
     );
-    setMessage("");
+    const points = [...draftAgreementPointsRef.current];
+
+    if (finalPoint) {
+      const previous = points[points.length - 1];
+      if (
+        !previous ||
+        Math.hypot(
+          finalPoint.x - previous.x,
+          finalPoint.y - previous.y
+        ) >= 1
+      ) {
+        points.push(finalPoint);
+      }
+    }
+
+    const startTargetId = drawingStartTargetIdRef.current;
+    const endTargetId = targetIdNearPoint(
+      event.clientX,
+      event.clientY
+    );
+    const answerId =
+      currentTask.role === "donor" ? endTargetId : startTargetId;
+    const correctStartId =
+      currentTask.role === "donor"
+        ? currentTask.targetId
+        : answerId;
+    const correctEndId =
+      currentTask.role === "donor"
+        ? answerId
+        : currentTask.targetId;
+    const pathLength = points.slice(1).reduce(
+      (total, point, index) =>
+        total +
+        Math.hypot(
+          point.x - points[index].x,
+          point.y - points[index].y
+        ),
+      0
+    );
+    const correct =
+      Boolean(answerId) &&
+      startTargetId === correctStartId &&
+      endTargetId === correctEndId &&
+      currentTask.expectedIds.includes(answerId ?? "") &&
+      !currentAnswers.includes(answerId ?? "") &&
+      pathLength >= 24;
+
+    if (correct && answerId) {
+      const container = textContainerRef.current;
+      const target = targetMap.get(answerId);
+
+      if (container && target) {
+        const width = Math.max(
+          1,
+          container.clientWidth,
+          container.scrollWidth
+        );
+        const height = Math.max(
+          1,
+          container.clientHeight,
+          container.scrollHeight
+        );
+        const id = `${currentTask.targetId}-${answerId}`;
+
+        setDrawnAgreementArrows((current) => [
+          ...current.filter((arrow) => arrow.id !== id),
+          {
+            id,
+            taskTargetId: currentTask.targetId,
+            answerId,
+            points: points.map((point) => ({
+              x: point.x / width,
+              y: point.y / height
+            }))
+          }
+        ]);
+        setRelationAnswers((current) => ({
+          ...current,
+          [currentTask.targetId]: [
+            ...(current[currentTask.targetId] ?? []),
+            answerId
+          ]
+        }));
+        onPoint(
+          target,
+          "agreement",
+          1,
+          `agreement-${currentTask.targetId}-${answerId}`
+        );
+        setMessage("");
+      }
+    } else if (pathLength < 24) {
+      setMessage("Trace une flèche complète d’un mot à l’autre.");
+    } else {
+      setMessage(
+        currentTask.role === "donor"
+          ? "Commence sur le donneur et termine sur un de ses receveurs."
+          : "Commence sur le donneur et termine sur ce receveur."
+      );
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    clearDraftAgreementArrow();
+  }
+
+  function cancelAgreementDrawing(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    if (activeDrawingPointerRef.current !== event.pointerId) return;
+    clearDraftAgreementArrow();
   }
 
   function restart() {
@@ -815,6 +971,8 @@ export function WordClassReader({
     setResolvedRoleIds([]);
     setRolePointIds([]);
     setRelationAnswers({});
+    setDrawnAgreementArrows([]);
+    clearDraftAgreementArrow();
     setActiveToken(null);
     setRoleTargetId(null);
     setActiveRelationTargetId(null);
@@ -841,14 +999,8 @@ export function WordClassReader({
 
   const toolbarText = currentTask
     ? currentTask.role === "donor"
-      ? `Clique sur les ${currentTask.expectedIds.length} mot${
-          currentTask.expectedIds.length > 1 ? "s" : ""
-        } qui reçoivent l’accord de « ${
-          currentFocusTarget?.text ?? ""
-        } ».`
-      : `Clique sur le mot qui donne son accord à « ${
-          currentFocusTarget?.text ?? ""
-        } ».`
+      ? `Trace une flèche de « ${currentFocusTarget?.text ?? ""} » vers chacun des ${currentTask.expectedIds.length} mot${currentTask.expectedIds.length > 1 ? "s" : ""} qui reçoivent son accord.`
+      : `Trace une flèche du mot donneur vers « ${currentFocusTarget?.text ?? ""} ».`
     : complete
       ? "Toutes les réponses ont été trouvées."
       : instruction;
@@ -901,7 +1053,7 @@ export function WordClassReader({
 
       <div
         ref={textContainerRef}
-        className={`word-class-reader-text ${sentence.agreementRelationsEnabled ? "has-agreement-relations" : ""}`}
+        className={`word-class-reader-text ${sentence.agreementRelationsEnabled ? "has-agreement-relations" : ""} ${currentTask ? "drawing-agreement" : ""}`}
         style={
           sentence.agreementRelationsEnabled
             ? ({
@@ -909,9 +1061,13 @@ export function WordClassReader({
               } as CSSProperties)
             : undefined
         }
+        onPointerDown={startAgreementDrawing}
+        onPointerMove={continueAgreementDrawing}
+        onPointerUp={finishAgreementDrawing}
+        onPointerCancel={cancelAgreementDrawing}
         aria-live="polite"
       >
-        {agreementArrows.length > 0 && (
+        {(agreementArrows.length > 0 || draftAgreementArrow) && (
           <svg
             className="agreement-arrow-layer"
             width={arrowCanvas.width}
@@ -923,16 +1079,28 @@ export function WordClassReader({
             {agreementArrows.map((arrow) => (
               <g className="agreement-arrow-group" key={arrow.id}>
                 <path
-                  className="agreement-arrow-path"
+                  className="agreement-arrow-path frozen"
                   d={arrow.path}
-                  pathLength={1}
                 />
                 <path
-                  className="agreement-arrow-tip"
+                  className="agreement-arrow-tip frozen"
                   d={arrow.tipPath}
                 />
               </g>
             ))}
+
+            {draftAgreementArrow && (
+              <g className="agreement-arrow-group draft">
+                <path
+                  className="agreement-arrow-path draft"
+                  d={draftAgreementArrow.path}
+                />
+                <path
+                  className="agreement-arrow-tip draft"
+                  d={draftAgreementArrow.tipPath}
+                />
+              </g>
+            )}
           </svg>
         )}
 
@@ -965,10 +1133,7 @@ export function WordClassReader({
               data-target-id={target?.id}
               aria-pressed={found || relationSelected}
               onClick={() => {
-                if (currentTask) {
-                  validateRelationClick(token);
-                  return;
-                }
+                if (currentTask) return;
 
                 if (multipleClasses) {
                   openClassDialog(token);
