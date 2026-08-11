@@ -54,29 +54,72 @@ export function buildMixedWordClassSentence(sentence: Sentence): Sentence {
   const targetMap = new Map<string, WordClassTarget>();
   [...(sentence.wordClassTargets ?? []), ...annotationTargets].forEach((target) => targetMap.set(target.id, target));
   const targets = Array.from(targetMap.values());
+  const annotationById = new Map(annotations.map((annotation) => [annotation.id, annotation]));
   const donorAnnotations = annotations.filter((annotation) => annotation.kind === "donor");
   const receiverAnnotations = annotations.filter((annotation) => annotation.kind === "receiver");
-  const donorTargets = new Map(donorAnnotations.flatMap((annotation) => {
-    const target = targetForAnnotation(annotation, targets);
-    return target ? [[annotation.id, target] as const] : [];
-  }));
-  const receiverTargets = new Map(receiverAnnotations.flatMap((annotation) => {
-    const target = targetForAnnotation(annotation, targets);
-    return target ? [[annotation.id, target] as const] : [];
-  }));
+
+  function inheritedClassTarget(annotation: GrammarAnnotation) {
+    const visited = new Set<string>();
+    let parentId = annotation.parentAnnotationId;
+    while (parentId && !visited.has(parentId)) {
+      visited.add(parentId);
+      const parent = annotationById.get(parentId);
+      if (!parent) return undefined;
+      if (parent.kind === "word_class") {
+        return targetForAnnotation(parent, targets);
+      }
+      parentId = parent.parentAnnotationId;
+    }
+    return undefined;
+  }
+
+  function ensureRelationEndpoint(annotation: GrammarAnnotation) {
+    const existing = targetForAnnotation(annotation, targets);
+    if (existing) return existing;
+    const endpoint: WordClassTarget = {
+      id: `mixed-relation-endpoint-${annotation.id}`,
+      start: annotation.start,
+      end: annotation.end,
+      text: sentence.originalText.slice(annotation.start, annotation.end),
+      wordClass: annotationClass(annotation) ?? "noun",
+      isAnalysisTarget: false
+    };
+    targets.push(endpoint);
+    return endpoint;
+  }
+
+  const donorTargets = new Map(
+    donorAnnotations.flatMap((annotation) => {
+      const target = targetForAnnotation(annotation, targets) ?? inheritedClassTarget(annotation);
+      return target ? [[annotation.id, target] as const] : [];
+    })
+  );
+  const receiverTargets = new Map(
+    receiverAnnotations.map((annotation) => [annotation.id, ensureRelationEndpoint(annotation)] as const)
+  );
+
+  function descendsFrom(annotation: GrammarAnnotation, ancestorId: string) {
+    const visited = new Set<string>();
+    let parentId = annotation.linkedAnnotationId ?? annotation.parentAnnotationId;
+    while (parentId && !visited.has(parentId)) {
+      if (parentId === ancestorId) return true;
+      visited.add(parentId);
+      parentId = annotationById.get(parentId)?.parentAnnotationId;
+    }
+    return false;
+  }
 
   const generatedRelations = new Map<string, AgreementRelation>();
   donorAnnotations.forEach((donor) => {
     const donorTarget = donorTargets.get(donor.id);
-    if (!donorTarget) return;
-    const linkedReceivers = receiverAnnotations.filter((receiver) => {
-      const explicitLink = receiver.linkedAnnotationId ?? receiver.parentAnnotationId;
-      if (explicitLink) return explicitLink === donor.id;
-      return donorAnnotations.length === 1;
-    });
+    if (!donorTarget || donorTarget.isAnalysisTarget === false) return;
+    const linkedReceivers = receiverAnnotations.filter((receiver) =>
+      descendsFrom(receiver, donor.id) ||
+      (!(receiver.linkedAnnotationId ?? receiver.parentAnnotationId) && donorAnnotations.length === 1)
+    );
     const receiverIds = linkedReceivers
       .map((receiver) => receiverTargets.get(receiver.id)?.id)
-      .filter((id): id is string => Boolean(id));
+      .filter((id): id is string => Boolean(id) && id !== donorTarget.id);
     if (receiverIds.length === 0) return;
     generatedRelations.set(donor.id, {
       id: `mixed-agreement-${donor.id}`,
@@ -85,7 +128,11 @@ export function buildMixedWordClassSentence(sentence: Sentence): Sentence {
     });
   });
 
-  const relations = [...(sentence.agreementRelations ?? []), ...generatedRelations.values()];
+  const relationsById = new Map<string, AgreementRelation>();
+  [...(sentence.agreementRelations ?? []), ...generatedRelations.values()].forEach((relation) =>
+    relationsById.set(relation.id, relation)
+  );
+  const relations = Array.from(relationsById.values());
   const selectedWordClasses = Array.from(new Set([
     ...(sentence.selectedWordClasses ?? []),
     ...targets.filter((target) => target.isAnalysisTarget !== false).map((target) => target.wordClass)
