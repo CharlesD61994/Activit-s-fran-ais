@@ -229,8 +229,8 @@ export function WordClassReader({
     );
 
     return Math.min(
-      58,
-      38 + Math.max(1, Math.min(linkCount, 4)) * 5
+      46,
+      30 + Math.max(1, Math.min(linkCount, 4)) * 4
     );
   }, [relationTasks]);
 

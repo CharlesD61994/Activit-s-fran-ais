@@ -9224,3 +9224,26 @@ textarea {
   font-weight: inherit;
   text-decoration: none;
 }
+
+/* V84 — interligne compact du lecteur d’accords */
+.word-class-reader-text.has-agreement-relations {
+  padding-top: 6px !important;
+  padding-bottom: 8px;
+  line-height: 1.08;
+}
+
+.word-class-reader-text.has-agreement-relations .word-class-reader-token {
+  padding-top: var(--agreement-band-height, 38px);
+}
+
+@media (max-width: 760px) {
+  .word-class-reader-text.has-agreement-relations {
+    padding-top: 5px !important;
+    padding-bottom: 7px;
+    line-height: 1.06;
+  }
+
+  .word-class-reader-text.has-agreement-relations .word-class-reader-token {
+    padding-top: var(--agreement-band-height, 36px);
+  }
+}
