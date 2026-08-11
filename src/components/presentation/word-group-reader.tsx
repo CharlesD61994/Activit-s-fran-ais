@@ -1214,6 +1214,14 @@ export function WordGroupReader({
                     token.start < target.end && token.end >= target.end
                 ).length
               : 0;
+            const groupConfirmed =
+              token.isWord &&
+              targets.some(
+                (target) =>
+                  classifiedIds.includes(target.id) &&
+                  token.start < target.end &&
+                  token.end > target.start
+              );
             return (
               <span key={token.id}>
               {breakBefore && <br />}
@@ -1221,6 +1229,8 @@ export function WordGroupReader({
                 className={
                   token.isWord
                     ? `word-group-reader-token${
+                        groupConfirmed ? " group-confirmed" : ""
+                      }${
                         phase === "nucleus"
                           ? " nucleus-selectable"
                           : ""
@@ -1426,7 +1436,7 @@ export function WordGroupReader({
         </div>
       )}
 
-      {(!embedded || finishControl) && (
+      {(!embedded || (complete && finishControl)) && (
         <div className="interactive-reader-actions">
           {!embedded && (
             <Button
@@ -1438,7 +1448,7 @@ export function WordGroupReader({
               Recommencer
             </Button>
           )}
-          {finishControl}
+          {!embedded || complete ? finishControl : null}
         </div>
       )}
     </div>

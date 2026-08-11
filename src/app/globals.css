@@ -6475,6 +6475,10 @@ textarea {
   box-shadow: 0 0 0 .1em var(--secondary);
 }
 
+.word-group-reader-token.group-confirmed {
+  font-weight: 900;
+}
+
 .word-group-reader-token.nucleus-confirmed {
   color: #dc2626;
   font-weight: inherit;

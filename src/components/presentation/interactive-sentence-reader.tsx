@@ -618,6 +618,7 @@ export function InteractiveSentenceReader({
             boundaryMode={groupBoundaryMode}
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
             identifyNuclei={identifyGroupNuclei}
+            finishControl={hasRemainingGrammarWork ? undefined : finishControl}
             embedded
           />
         )
