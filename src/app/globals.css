@@ -10519,3 +10519,17 @@ textarea {
 .classroom-objective-progress > div > span { color: #ffd56b; font-weight: 900; }
 .classroom-objective-track { height: 8px; overflow: hidden; border: 1px solid rgb(255 255 255 / 22%); border-radius: 999px; background: rgb(0 0 0 / 19%); }
 .classroom-objective-track > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f0ad19, #ffe180); box-shadow: 0 0 12px rgb(255 203 68 / 48%); }
+
+
+/* V902 — organisation stable de l’intérieur des cartes d’activité */
+.classroom-mission-band { min-width: 0; overflow: hidden; }
+.classroom-mission-band .activity-type-badge { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.classroom-mission-band .assignment-status-pill { flex: 0 0 auto; max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.classroom-mission-body { min-width: 0; align-content: start; padding: 20px 18px 16px; }
+.classroom-mission-copy { min-width: 0; }
+.classroom-mission-footer { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "progress progress" "points action"; align-items: center; gap: 12px 16px; padding: 13px 18px 17px; border-top: 1px solid #e6edf4; background: #fbfdff; }
+.classroom-mission-progress { grid-area: progress; grid-template-columns: auto minmax(70px, 1fr); align-items: center; gap: 12px; }
+.classroom-mission-progress > span:first-child { white-space: nowrap; }
+.classroom-mission-points { grid-area: points; justify-self: start; min-width: 0; padding: 0; }
+.classroom-mission-footer > a { grid-area: action; justify-self: end; min-width: 0; }
+.classroom-mission-footer .button { min-width: 112px; padding-inline: 17px; white-space: nowrap; }
