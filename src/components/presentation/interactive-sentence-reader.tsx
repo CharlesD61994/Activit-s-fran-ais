@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lightbulb, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { GrammarExtensionReader } from "@/components/presentation/grammar-extension-reader";
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
@@ -645,19 +646,18 @@ export function InteractiveSentenceReader({
 
   return (
     <div className={`interactive-reader interactive-reader-${displayMode}`}>
-      <div className="interactive-reader-actions">
-        <Button variant="secondary" onClick={useHint}>
-          <Lightbulb size={18} />
-          Indice
-        </Button>
-        <Button variant="secondary" onClick={revealAll}>
-          Tout dévoiler
-        </Button>
-        <Button variant="secondary" onClick={restart}>
-          Recommencer
-        </Button>
+      {!correctionComplete && (
+        <>
+          <ReaderChromePortal slot="instruction"><div className="reader-chrome-instruction-copy"><strong>Corrige les erreurs dans la phrase.</strong><span>Clique sur la partie à corriger, puis entre ta réponse.</span></div></ReaderChromePortal>
+          <ReaderChromePortal slot="progress"><div className="reader-chrome-progress"><strong>{correctedIds.length}/{ordered.length} corrections</strong><span className="reader-chrome-progress-dots" aria-hidden="true">{ordered.map((correction) => <i key={correction.id} className={correctedIds.includes(correction.id) ? "done" : ""} />)}</span></div></ReaderChromePortal>
+        </>
+      )}
+      <ReaderChromePortal slot="actions">
+        <Button variant="secondary" onClick={useHint}><Lightbulb size={18} /> Indice</Button>
+        <Button variant="secondary" onClick={revealAll}>Tout dévoiler</Button>
+        <Button variant="secondary" onClick={restart}>Recommencer</Button>
         {!usesSharedRangeSurface && finishControl}
-      </div>
+      </ReaderChromePortal>
 
       {correctionComplete && usesSharedRangeSurface ? (
         usesNativeGroupPhase && !hybridGroupComplete ? (

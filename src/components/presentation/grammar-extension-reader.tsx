@@ -27,6 +27,7 @@ import type {
 } from "@/components/grammar/range-interaction-engine";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
+import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { bracketTokenMargins } from "@/components/grammar/range-mark-spacing";
 
 type Point = InteractionPoint;
@@ -516,20 +517,16 @@ export function GrammarExtensionReader({
   }
 
   if (!annotations.length || !steps.length) {
-    return <>{finishControl}</>;
+    return <ReaderChromePortal slot="actions">{finishControl}</ReaderChromePortal>;
   }
 
   return (
     <section className="grammar-extension-reader word-group-reader embedded">
       {!complete && step && (
-        <div className="word-group-reader-toolbar">
-          <div className="word-group-reader-instruction">
-            <strong>{instructionText()}</strong>
-            <span className="word-group-reader-counter">
-              {counterText()}
-            </span>
-          </div>
-        </div>
+        <>
+          <ReaderChromePortal slot="instruction"><div className="reader-chrome-instruction-copy"><strong>{instructionText()}</strong>{message && <span className="reader-chrome-feedback">{message}</span>}</div></ReaderChromePortal>
+          <ReaderChromePortal slot="progress"><div className="reader-chrome-progress"><strong>{counterText()}</strong><span className="reader-chrome-progress-dots" aria-hidden="true">{stepTargets.map((target) => <i key={target.id} className={solvedIds.includes(target.id) ? "done" : ""} />)}</span></div></ReaderChromePortal>
+        </>
       )}
 
       <div
@@ -660,10 +657,8 @@ export function GrammarExtensionReader({
           )}
         </div>
 
-      {message && (
-        <p className="word-group-reader-message">{message}</p>
-      )}
-      {complete && finishControl}
+      {complete && <ReaderChromePortal slot="instruction"><div className="reader-chrome-instruction-copy"><strong>Activité terminée!</strong></div></ReaderChromePortal>}
+      {complete && <ReaderChromePortal slot="actions">{finishControl}</ReaderChromePortal>}
     </section>
   );
 }

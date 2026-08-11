@@ -8,6 +8,7 @@ import {
 } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
@@ -1081,20 +1082,17 @@ export function WordGroupReader({
   ];
   return (
     <div className={`word-group-reader ${embedded ? "embedded" : ""}`}>
-      <div className="word-group-reader-toolbar">
-        <div className="word-group-reader-instruction">
-          <strong>
-            {instructionText()}
-          </strong>
-          {!complete && (
-            <span className="word-group-reader-counter">
-              {markingFunctions
-                ? `${functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length}/${functionTargets.length} fonctions encadrées`
-                : `${(identifyNuclei ? nucleusFoundIds : classifiedIds).length}/${targets.length} groupes complétés`}
-            </span>
-          )}
+      <ReaderChromePortal slot="instruction">
+        <div className="reader-chrome-instruction-copy"><strong>{instructionText()}</strong>{message && <span className="reader-chrome-feedback">{message}</span>}</div>
+      </ReaderChromePortal>
+      <ReaderChromePortal slot="progress">
+        <div className="reader-chrome-progress">
+          <strong>{markingFunctions ? functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length + "/" + functionTargets.length + " fonctions" : (identifyNuclei ? nucleusFoundIds : classifiedIds).length + "/" + targets.length + " groupes"}</strong>
+          <span className="reader-chrome-progress-dots" aria-hidden="true">
+            {Array.from({ length: Math.max(1, markingFunctions ? functionTargets.length : targets.length) }, (_, index) => <i key={index} className={index < (markingFunctions ? functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length : (identifyNuclei ? nucleusFoundIds : classifiedIds).length) ? "done" : ""} />)}
+          </span>
         </div>
-      </div>
+      </ReaderChromePortal>
 
       <div
         className={`word-group-drawing-surface phase-${phase}`}
@@ -1416,19 +1414,10 @@ export function WordGroupReader({
       )}
 
       {(!embedded || (complete && finishControl)) && (
-        <div className="interactive-reader-actions">
-          {!embedded && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={restart}
-            >
-              <RotateCcw size={18} />
-              Recommencer
-            </Button>
-          )}
+        <ReaderChromePortal slot="actions">
+          {!embedded && <Button type="button" variant="secondary" onClick={restart}><RotateCcw size={18} /> Recommencer</Button>}
           {!embedded || complete ? finishControl : null}
-        </div>
+        </ReaderChromePortal>
       )}
     </div>
   );

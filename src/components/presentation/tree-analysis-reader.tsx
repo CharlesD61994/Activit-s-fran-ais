@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { Minus, Pin, PinOff, Plus, RotateCcw } from "lucide-react";
+import { Minus, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import type { Sentence, TreeAnalysisInteraction, TreeAnalysisNode, WordClass, WordGroupType } from "@/types";
 
 const groupLabels: Record<WordGroupType, string> = { GN: "GN", GV: "GV", GAdj: "GAdj", GAdv: "GAdv", GPrep: "GPrép" };
@@ -98,13 +99,6 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const [drawingCurrent, setDrawingCurrent] = useState<{ x: number; y: number } | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [pointsPinned, setPointsPinned] = useState(true);
-  const [instructionsPinned, setInstructionsPinned] = useState(true);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("tree-reader-points-unpinned", !pointsPinned);
-    return () => document.documentElement.classList.remove("tree-reader-points-unpinned");
-  }, [pointsPinned]);
 
   const pagePhaseData = useMemo(() => documentPages.map((page) => {
     const owns = (pageId?: string) => (pageId ?? documentPages[0]?.id) === page.id;
@@ -135,7 +129,6 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
   const visibleTextBoxes = textBoxes.filter((box) => ownsCurrentPage(box.pageId));
   const visibleNodes = nodes.filter((node) => ownsCurrentPage(node.pageId));
   const visibleTables = tables.filter((table) => ownsCurrentPage(table.pageId));
-  const isComplete = steps.length > 0 && completed.length >= steps.length;
   const currentPage = documentPages.find((page) => page.id === currentPageId);
   const currentPageIndex = Math.max(0, documentPages.findIndex((page) => page.id === currentPageId));
   const showFullPortraitPage = currentPage?.orientation === "portrait";
@@ -260,16 +253,26 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
 
   return (
     <div className="tree-reader">
-      <div className={`tree-reader-sticky-header ${instructionsPinned ? "pinned" : "unpinned"} ${pointsPinned ? "with-pinned-points" : "without-pinned-points"}`}>
-        <div className="tree-reader-progress"><span style={{ width: `${steps.length ? completed.length / steps.length * 100 : 0}%` }} /></div>
-        <section className="tree-reader-instruction">
-          <span className="eyebrow">Étape {Math.min(completed.length + 1, steps.length || 1)} sur {steps.length || 1}</span>
-          <h2>{currentInteraction?.instruction ?? (currentNode ? (freeTreePhase ? "Identifie tous les groupes et toutes les classes de mots dans les rectangles." : "Identifie le rectangle actif.") : currentTable ? "Choisis la bonne réponse dans le tableau." : "Activité terminée!")}</h2>
-          <div className="tree-reader-control-buttons"><div className="tree-reader-zoom"><button type="button" onClick={() => setZoom((value) => Math.max(.6, value - .1))} aria-label="Réduire"><Minus size={16} /></button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)} %</button><button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Agrandir"><Plus size={16} /></button></div><button type="button" className={`tree-reader-pin-control ${pointsPinned ? "active" : ""}`} onClick={() => setPointsPinned((value) => !value)}>{pointsPinned ? <Pin size={16} /> : <PinOff size={16} />} Points/étapes</button><button type="button" className={`tree-reader-pin-control ${instructionsPinned ? "active" : ""}`} onClick={() => setInstructionsPinned((value) => !value)}>{instructionsPinned ? <Pin size={16} /> : <PinOff size={16} />} Instructions</button></div>
-          {currentInteraction && <strong className="tree-reader-draw-help">{currentInteraction.responseMode === "click" ? "Clique directement sur le mot demandé." : "Clique un premier coin, puis le coin opposé pour tracer ton encadrement."}</strong>}
-          {feedback && <p>{feedback}</p>}
-        </section>
-      </div>
+      <ReaderChromePortal slot="viewTools">
+        <div className="tree-reader-zoom">
+          <button type="button" onClick={() => setZoom((value) => Math.max(.6, value - .1))} aria-label="Réduire"><Minus size={16} /></button>
+          <button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)} %</button>
+          <button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Agrandir"><Plus size={16} /></button>
+        </div>
+      </ReaderChromePortal>
+      <ReaderChromePortal slot="instruction">
+        <div className="reader-chrome-instruction-copy">
+          <strong>{currentInteraction?.instruction ?? (currentNode ? (freeTreePhase ? "Identifie tous les groupes et toutes les classes de mots dans les rectangles." : "Identifie le rectangle actif.") : currentTable ? "Choisis la bonne réponse dans le tableau." : "Activité terminée!")}</strong>
+          {currentInteraction && <span>{currentInteraction.responseMode === "click" ? "Clique directement sur le mot demandé." : "Clique un premier coin, puis le coin opposé pour tracer ton encadrement."}</span>}
+          {feedback && <span className="reader-chrome-feedback">{feedback}</span>}
+        </div>
+      </ReaderChromePortal>
+      <ReaderChromePortal slot="progress">
+        <div className="reader-chrome-progress">
+          <strong>Étape {Math.min(completed.length + 1, steps.length || 1)} sur {steps.length || 1}</strong>
+          <div className="tree-reader-progress"><span style={{ width: `${steps.length ? completed.length / steps.length * 100 : 0}%` }} /></div>
+        </div>
+      </ReaderChromePortal>
 
       <div className="tree-reader-page-viewport"><div className={`tree-reader-page ${currentInteraction && currentInteraction.responseMode !== "click" ? "drawing" : ""} ${currentInteraction?.responseMode === "click" ? "clicking" : ""} ${showFullPortraitPage ? "portrait document-template" : ""}`} style={{ aspectRatio: showFullPortraitPage ? "8.5 / 11" : `1056 / ${visibleHeight}`, zoom }} onClick={handleDrawingClick} onMouseMove={(event) => { if (!drawingStart || currentInteraction?.responseMode === "click") return; const rect = event.currentTarget.getBoundingClientRect(); setDrawingCurrent({ x: (event.clientX - rect.left) / zoom, y: (event.clientY - rect.top) / zoom }); }}>
         {showFullPortraitPage && currentPage?.template === "teaching_document" && <>
@@ -306,7 +309,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
         {drawingStart && drawingCurrent && <div className="tree-reader-drawing-box" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
       </div></div>
 
-      <div className="interactive-reader-actions"><Button type="button" variant="secondary" onClick={restartActivity}><RotateCcw size={18} /> Recommencer</Button>{isComplete ? finishControl : null}</div>
+      <ReaderChromePortal slot="actions"><Button type="button" variant="secondary" onClick={restartActivity}><RotateCcw size={18} /> Recommencer</Button>{finishControl}</ReaderChromePortal>
     </div>
   );
 }

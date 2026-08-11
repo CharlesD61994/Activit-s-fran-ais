@@ -7,6 +7,7 @@ import type {
 } from "react";
 import { Check, CheckCircle2, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { wordClassLabels } from "@/lib/activity-types";
 import { buildRelationTasks } from "@/lib/word-class-relations";
 import { getAgreementWorkflowSettings } from "@/lib/grammar-workflow";
@@ -1251,80 +1252,38 @@ export function WordClassReader({
 
   return (
     <div className={`word-class-reader ${embedded ? "embedded" : ""}`}>
-      <div className="word-class-reader-toolbar">
-        <div className="word-class-reader-instruction-group">
-          <strong>{toolbarText}</strong>
-
+      <ReaderChromePortal slot="instruction">
+        <div className="reader-chrome-instruction-copy"><strong>{toolbarText}</strong>{message && <span className="reader-chrome-feedback">{message}</span>}</div>
+      </ReaderChromePortal>
+      <ReaderChromePortal slot="progress">
+        <div className="reader-chrome-progress">
           {currentTask ? (
-            <span
-              className={`word-class-reader-counter ${
-                currentAnswers.length ===
-                currentTask.expectedIds.length
-                  ? "complete"
-                  : ""
-              }`}
-            >
-              {currentAnswers.length}/{currentTask.expectedIds.length}{" "}
-              {currentTask.role === "donor"
-                ? "receveur"
-                : "donneur"}
-              {currentTask.expectedIds.length > 1 ? "s" : ""}
-            </span>
+            <strong>{currentAnswers.length}/{currentTask.expectedIds.length} {currentTask.role === "donor" ? "receveur" : "donneur"}{currentTask.expectedIds.length > 1 ? "s" : ""}</strong>
           ) : (
-            <span
-              className={`word-class-reader-counter ${
-                foundIds.length === analysisTargets.length
-                  ? "complete"
-                  : ""
-              }`}
-            >
-              {foundIds.length}/{analysisTargets.length} mot
-              {analysisTargets.length > 1 ? "s" : ""}
-            </span>
+            <strong>{foundIds.length}/{analysisTargets.length} mot{analysisTargets.length > 1 ? "s" : ""}</strong>
           )}
-
-          {currentTask && (
-            <div
-              className="agreement-ink-palette"
-              role="group"
-              aria-label="Couleur de la prochaine flèche"
-            >
+          <span className="reader-chrome-progress-dots" aria-hidden="true">
+            {Array.from({ length: Math.max(1, currentTask?.expectedIds.length ?? analysisTargets.length) }, (_, index) => (
+              <i key={index} className={index < (currentTask ? currentAnswers.length : foundIds.length) ? "done" : ""} />
+            ))}
+          </span>
+        </div>
+      </ReaderChromePortal>
+      <ReaderChromePortal slot="contextTools">
+        {currentTask && (
+          <div className="reader-context-tool-group">
+            <span>Couleur</span>
+            <div className="agreement-ink-palette" role="group" aria-label="Couleur de la prochaine flèche">
               {AGREEMENT_INK_COLORS.map((color) => (
-                <button
-                  type="button"
-                  key={color.value}
-                  className={
-                    agreementInkColor === color.value ? "selected" : ""
-                  }
-                  style={
-                    {
-                      "--agreement-ink-color": color.value
-                    } as CSSProperties
-                  }
-                  aria-label={color.label}
-                  aria-pressed={agreementInkColor === color.value}
-                  title={color.label}
-                  onClick={() => setAgreementInkColor(color.value)}
-                />
+                <button type="button" key={color.value} className={agreementInkColor === color.value ? "selected" : ""} style={{ "--agreement-ink-color": color.value } as CSSProperties} aria-label={color.label} aria-pressed={agreementInkColor === color.value} title={color.label} onClick={() => setAgreementInkColor(color.value)} />
               ))}
             </div>
-          )}
-          {agreementArrowsVisible && drawnAgreementArrows.length > 0 && (
-            <Button
-              type="button"
-              variant="secondary"
-              className="agreement-clear-arrows"
-              onClick={() => {
-                setAgreementArrowsVisible(false);
-              }}
-            >
-              <Trash2 size={16} />
-              Supprimer les flèches
-            </Button>
-          )}
-        </div>
-      </div>
-
+          </div>
+        )}
+        {agreementArrowsVisible && drawnAgreementArrows.length > 0 && (
+          <Button type="button" variant="secondary" className="agreement-clear-arrows" onClick={() => setAgreementArrowsVisible(false)}><Trash2 size={16} /> Supprimer les flèches</Button>
+        )}
+      </ReaderChromePortal>
       {complete && (
         <div className="word-class-complete-banner" role="status">
           <CheckCircle2 size={21} />
@@ -1491,20 +1450,10 @@ export function WordClassReader({
       )}
 
       {(!embedded || (complete && finishControl)) && (
-        <div className="interactive-reader-actions">
-          {!embedded && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={restart}
-            >
-              <RotateCcw size={18} />
-              Recommencer
-            </Button>
-          )}
-
+        <ReaderChromePortal slot="actions">
+          {!embedded && <Button type="button" variant="secondary" onClick={restart}><RotateCcw size={18} /> Recommencer</Button>}
           {!embedded || complete ? finishControl : null}
-        </div>
+        </ReaderChromePortal>
       )}
 
       {activeToken && (

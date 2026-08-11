@@ -7,15 +7,21 @@ import {
   ArrowLeft,
   CheckCircle2,
   Maximize,
+  Minimize,
+  Target,
   Trophy
 } from "lucide-react";
 import { InteractiveSentenceReader } from "@/components/presentation/interactive-sentence-reader";
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
 import { TreeAnalysisReader } from "@/components/presentation/tree-analysis-reader";
+import {
+  ReaderChromeProvider,
+  ReaderChromeTarget
+} from "@/components/presentation/reader-chrome";
+import { ClassroomPointsMedal } from "@/components/classroom-portal-ornaments";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/app-store";
-import { getWordClassAnalysisTargetCount } from "@/lib/activity-types";
 import { buildCompetitionStandings } from "@/lib/competition";
 import type { CompetitionResult, ScoreEvent, SentenceCorrection, WordClassTarget, WordGroupTarget } from "@/types";
 
@@ -88,6 +94,7 @@ export default function PresentationPage({
   const [wordGroupComplete, setWordGroupComplete] = useState(false);
   const [treeAnalysisComplete, setTreeAnalysisComplete] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const competitionTeams = useMemo(
     () => data.teams.filter((team) => team.groupId === groupId),
     [data.teams, groupId]
@@ -95,6 +102,14 @@ export default function PresentationPage({
   const storageKey = `competition-run-${groupId}-${competitionMode}-${competitionSourceId}`;
   const [competitionScores, setCompetitionScores] = useState<Record<string, number>>({});
   const [scoreInputs, setScoreInputs] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const handleFullscreenChange = () =>
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     if (!competitionActive || typeof window === "undefined") return;
@@ -492,6 +507,7 @@ export default function PresentationPage({
   }
 
   return (
+    <ReaderChromeProvider>
     <div className="reader-scene">
       <header className="reader-scene-header">
         <Link
@@ -508,13 +524,20 @@ export default function PresentationPage({
 
         <strong>{group.name}</strong>
 
-        <button
-          className="icon-control"
-          onClick={() => document.documentElement.requestFullscreen()}
-          aria-label="Plein écran"
-        >
-          <Maximize size={20} />
-        </button>
+        <div className="reader-scene-view-controls">
+          <ReaderChromeTarget slot="viewTools" className="reader-scene-context-view-tools" />
+          <button
+            className="icon-control"
+            onClick={() =>
+              isFullscreen
+                ? document.exitFullscreen()
+                : document.documentElement.requestFullscreen()
+            }
+            aria-label={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+          >
+            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+          </button>
+        </div>
       </header>
 
       <main
@@ -526,46 +549,22 @@ export default function PresentationPage({
             : ""
         }`}
       >
-        <section className="reader-title-panel">
-          <h1>{sentence.title}</h1>
-          {plannedSession && sequence.length > 1 && (
-            <span>
-              {isWordClassActivity || isWordGroupActivity || isTreeAnalysisActivity
-                ? "Activité"
-                : "Phrase"}{" "}
-              {sentenceIndex + 1}/{sequence.length}
-            </span>
-          )}
+        <section className="reader-command-ribbon">
+          <div className="reader-command-instruction">
+            <span className="reader-command-number"><Target size={25} /></span>
+            <div>
+              <span className="eyebrow">{sentence.title}</span>
+              <ReaderChromeTarget slot="instruction" className="reader-command-instruction-slot" />
+            </div>
+          </div>
+          <div className="reader-command-score">
+            <ClassroomPointsMedal compact />
+            <div>
+              <strong>{pendingTotal} point{pendingTotal === 1 ? "" : "s"}</strong>
+              <span>{finished ? "Enregistré" : "Pointage actuel"}</span>
+            </div>
+          </div>
         </section>
-
-        <div className="reader-meta-row">
-          <span className="reader-live-points">Points : {pendingTotal}</span>
-          {isTreeAnalysisActivity ? (
-            <span>{(sentence.treeAnalysisFlow?.orderedStepIds.length || ((sentence.treeAnalysisNodes?.length ?? 0) + (sentence.treeAnalysisInteractions?.length ?? 0) + (sentence.treeAnalysisTables?.length ?? 0)))} étape(s)</span>
-          ) : isWordClassActivity ? (
-            <span>
-              {getWordClassAnalysisTargetCount(sentence)} mot
-              {getWordClassAnalysisTargetCount(sentence) > 1
-                ? "s"
-                : ""} à trouver
-            </span>
-          ) : isWordGroupActivity ? (
-            <span>
-              {(sentence.wordGroupTargets ?? []).length} groupe
-              {(sentence.wordGroupTargets ?? []).length > 1 ? "s" : ""} à trouver
-            </span>
-          ) : sentence.showCorrectionCount !== false ? (
-            <span>
-              {sentence.corrections.length} correction
-              {sentence.corrections.length > 1 ? "s" : ""}
-            </span>
-          ) : null}
-          {finished && (
-            <span className="saved-score">
-              Enregistré
-            </span>
-          )}
-        </div>
 
         {isTreeAnalysisActivity ? (
           <TreeAnalysisReader
@@ -639,6 +638,12 @@ export default function PresentationPage({
           />
         )}
 
+        <section className="reader-command-dock">
+          <ReaderChromeTarget slot="progress" className="reader-command-progress-slot" />
+          <ReaderChromeTarget slot="contextTools" className="reader-command-context-slot" />
+          <ReaderChromeTarget slot="actions" className="reader-command-actions-slot" />
+        </section>
+
         {competitionActive && (
           <section className="competition-scoreboard">
             <div className="competition-scoreboard-title">
@@ -688,5 +693,6 @@ export default function PresentationPage({
       </main>
 
     </div>
+    </ReaderChromeProvider>
   );
 }
