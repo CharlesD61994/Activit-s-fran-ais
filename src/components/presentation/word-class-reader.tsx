@@ -48,6 +48,7 @@ type TargetRole = "donor" | "receiver";
 type AgreementArrow = {
   id: string;
   path: string;
+  tipPath: string;
 };
 
 function tokenize(text: string): WordToken[] {
@@ -402,47 +403,30 @@ export function WordClassReader({
 
   useLayoutEffect(() => {
     const container = textContainerRef.current;
-
     const answeredLinks = relationTasks.flatMap((task) =>
-      (relationAnswers[task.targetId] ?? []).map((answerId) => ({
-        task,
-        answerId
-      }))
+      (relationAnswers[task.targetId] ?? []).map((answerId) => ({ task, answerId }))
     );
 
     if (!container || answeredLinks.length === 0) {
-      setAgreementArrows((current) =>
-        current.length === 0 ? current : []
-      );
+      setAgreementArrows((current) => current.length === 0 ? current : []);
       setArrowCanvas((current) =>
-        current.width === 0 && current.height === 0
-          ? current
-          : { width: 0, height: 0 }
+        current.width === 0 && current.height === 0 ? current : { width: 0, height: 0 }
       );
       return;
     }
-
-    const activeContainer = container;
 
     let frameId = 0;
 
     function updateArrows() {
       window.cancelAnimationFrame(frameId);
-
       frameId = window.requestAnimationFrame(() => {
+        const activeContainer = textContainerRef.current;
+        if (!activeContainer) return;
         const containerRect = activeContainer.getBoundingClientRect();
-        const canvasWidth = Math.max(
-          activeContainer.clientWidth,
-          activeContainer.scrollWidth
-        );
-        const canvasHeight = Math.max(
-          activeContainer.clientHeight,
-          activeContainer.scrollHeight
-        );
-
+        const canvasWidth = Math.max(activeContainer.clientWidth, activeContainer.scrollWidth);
+        const canvasHeight = Math.max(activeContainer.clientHeight, activeContainer.scrollHeight);
         setArrowCanvas((current) =>
-          current.width === canvasWidth &&
-          current.height === canvasHeight
+          current.width === canvasWidth && current.height === canvasHeight
             ? current
             : { width: canvasWidth, height: canvasHeight }
         );
@@ -455,625 +439,118 @@ export function WordClassReader({
             bottom: rect.bottom - containerRect.top,
             width: rect.width,
             height: rect.height,
-            centerX:
-              rect.left -
-              containerRect.left +
-              rect.width / 2,
-            centerY:
-              rect.top -
-              containerRect.top +
-              rect.height / 2
+            centerX: rect.left - containerRect.left + rect.width / 2,
+            centerY: rect.top - containerRect.top + rect.height / 2
           };
         }
 
-        const visibleWords = Array.from(
-          activeContainer.querySelectorAll<HTMLElement>(
-            '.word-class-reader-token[data-word-token="true"]'
-          )
-        ).map((element) => ({
-          element,
-          rect: localRect(element.getBoundingClientRect())
-        }));
+        function glyphRect(element: HTMLElement) {
+          const textNode = Array.from(element.childNodes).find(
+            (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
+          );
+          if (!textNode) return localRect(element.getBoundingClientRect());
+          const range = document.createRange();
+          range.selectNodeContents(textNode);
+          const rect = range.getBoundingClientRect();
+          range.detach();
+          return localRect(rect.width > 0 ? rect : element.getBoundingClientRect());
+        }
 
-        const lines: Array<{
-          left: number;
-          right: number;
-          top: number;
-          bottom: number;
-          centerY: number;
-        }> = [];
+        const tokenRects = new Map<string, ReturnType<typeof localRect>>();
+        activeContainer
+          .querySelectorAll<HTMLElement>('.word-class-reader-token[data-target-id]')
+          .forEach((element) => {
+            const id = element.dataset.targetId;
+            if (id) tokenRects.set(id, glyphRect(element));
+          });
 
-        visibleWords
-          .sort((a, b) => a.rect.centerY - b.rect.centerY)
-          .forEach(({ rect }) => {
-            const line = lines.find(
-              (item) =>
-                Math.abs(item.centerY - rect.centerY) <
-                Math.max(10, rect.height * 0.35)
+        const lineBands: Array<{ top: number; bottom: number; centerY: number }> = [];
+        Array.from(tokenRects.values())
+          .sort((a, b) => a.centerY - b.centerY)
+          .forEach((rect) => {
+            const line = lineBands.find((candidate) =>
+              Math.abs(candidate.centerY - rect.centerY) < Math.max(8, rect.height * .7)
             );
-
             if (line) {
-              line.left = Math.min(line.left, rect.left);
-              line.right = Math.max(line.right, rect.right);
               line.top = Math.min(line.top, rect.top);
               line.bottom = Math.max(line.bottom, rect.bottom);
               line.centerY = (line.top + line.bottom) / 2;
             } else {
-              lines.push({
-                left: rect.left,
-                right: rect.right,
-                top: rect.top,
-                bottom: rect.bottom,
-                centerY: rect.centerY
-              });
+              lineBands.push({ top: rect.top, bottom: rect.bottom, centerY: rect.centerY });
             }
           });
+        lineBands.sort((a, b) => a.top - b.top);
 
-        lines.sort((a, b) => a.top - b.top);
-
-        const obstaclePaddingX = 10;
-        const obstaclePaddingY = 8;
-        const obstacles = lines.map((line) => ({
-          left: Math.max(0, line.left - obstaclePaddingX),
-          right: Math.min(
-            canvasWidth,
-            line.right + obstaclePaddingX
-          ),
-          top: Math.max(0, line.top - obstaclePaddingY),
-          bottom: Math.min(
-            canvasHeight,
-            line.bottom + obstaclePaddingY
-          )
-        }));
-
-        const cellSize = 10;
-        const cols = Math.max(
-          2,
-          Math.ceil(canvasWidth / cellSize)
-        );
-        const rows = Math.max(
-          2,
-          Math.ceil(canvasHeight / cellSize)
-        );
-
-        function toCell(x: number, y: number) {
-          return {
-            col: Math.max(
-              0,
-              Math.min(cols - 1, Math.round(x / cellSize))
-            ),
-            row: Math.max(
-              0,
-              Math.min(rows - 1, Math.round(y / cellSize))
-            )
-          };
+        function lineIndex(rect: ReturnType<typeof localRect>) {
+          return Math.max(0, lineBands.findIndex((line) =>
+            rect.centerY >= line.top - 4 && rect.centerY <= line.bottom + 4
+          ));
         }
 
-        function toPoint(col: number, row: number) {
-          return {
-            x: Math.min(
-              canvasWidth - 1,
-              col * cellSize
-            ),
-            y: Math.min(
-              canvasHeight - 1,
-              row * cellSize
-            )
-          };
-        }
+        const nextArrows = answeredLinks.flatMap(({ task, answerId }, linkIndex) => {
+          const donorId = task.role === "donor" ? task.targetId : answerId;
+          const receiverId = task.role === "donor" ? answerId : task.targetId;
+          const donor = tokenRects.get(donorId);
+          const receiver = tokenRects.get(receiverId);
+          if (!donor || !receiver) return [];
 
-        function isBlocked(
-          col: number,
-          row: number,
-          allowedCells: Set<string>
-        ) {
-          const key = `${col}:${row}`;
-          if (allowedCells.has(key)) return false;
+          const startX = donor.centerX;
+          const startY = donor.bottom + 3;
+          const endX = receiver.centerX;
+          const endY = receiver.bottom + 3;
+          const donorLine = lineIndex(donor);
+          const receiverLine = lineIndex(receiver);
+          const laneOffset = 13 + (linkIndex % 3) * 9;
+          let path: string;
 
-          const point = toPoint(col, row);
-
-          return obstacles.some(
-            (obstacle) =>
-              point.x >= obstacle.left &&
-              point.x <= obstacle.right &&
-              point.y >= obstacle.top &&
-              point.y <= obstacle.bottom
-          );
-        }
-
-        function nearestFreeCell(
-          initial: { col: number; row: number },
-          allowedCells: Set<string>
-        ) {
-          if (
-            !isBlocked(
-              initial.col,
-              initial.row,
-              allowedCells
-            )
-          ) {
-            return initial;
+          if (donorLine === receiverLine) {
+            const laneY = Math.min(
+              canvasHeight - 12,
+              Math.max(donor.bottom, receiver.bottom) + laneOffset
+            );
+            const horizontalPull = Math.max(16, Math.abs(endX - startX) * .22);
+            const direction = endX >= startX ? 1 : -1;
+            path = `M ${startX} ${startY} C ${startX} ${laneY}, ${startX + direction * horizontalPull} ${laneY}, ${(startX + endX) / 2} ${laneY} S ${endX} ${laneY}, ${endX} ${endY}`;
+          } else {
+            const railLane = linkIndex % 3;
+            const leftRail = 18 + railLane * 9;
+            const rightRail = canvasWidth - 18 - railLane * 9;
+            const railX =
+              Math.abs(startX - leftRail) + Math.abs(endX - leftRail) <=
+              Math.abs(startX - rightRail) + Math.abs(endX - rightRail)
+                ? leftRail
+                : rightRail;
+            const startLaneY = Math.min(canvasHeight - 14, donor.bottom + laneOffset);
+            const endLaneY = Math.min(canvasHeight - 14, receiver.bottom + laneOffset);
+            const radius = 10;
+            const startDirection = railX < startX ? -1 : 1;
+            const endDirection = railX < endX ? 1 : -1;
+            path = [
+              `M ${startX} ${startY}`,
+              `C ${startX} ${startLaneY}, ${startX} ${startLaneY}, ${startX + startDirection * radius} ${startLaneY}`,
+              `L ${railX - startDirection * radius} ${startLaneY}`,
+              `Q ${railX} ${startLaneY}, ${railX} ${startLaneY + radius}`,
+              `L ${railX} ${endLaneY - radius}`,
+              `Q ${railX} ${endLaneY}, ${railX + endDirection * radius} ${endLaneY}`,
+              `L ${endX - endDirection * radius} ${endLaneY}`,
+              `C ${endX} ${endLaneY}, ${endX} ${endLaneY}, ${endX} ${endY}`
+            ].join(" ");
           }
 
-          for (let radius = 1; radius <= 8; radius += 1) {
-            for (
-              let deltaRow = -radius;
-              deltaRow <= radius;
-              deltaRow += 1
-            ) {
-              for (
-                let deltaCol = -radius;
-                deltaCol <= radius;
-                deltaCol += 1
-              ) {
-                if (
-                  Math.abs(deltaCol) !== radius &&
-                  Math.abs(deltaRow) !== radius
-                ) {
-                  continue;
-                }
-
-                const col = initial.col + deltaCol;
-                const row = initial.row + deltaRow;
-
-                if (
-                  col < 0 ||
-                  row < 0 ||
-                  col >= cols ||
-                  row >= rows
-                ) {
-                  continue;
-                }
-
-                if (!isBlocked(col, row, allowedCells)) {
-                  return { col, row };
-                }
-              }
-            }
-          }
-
-          return initial;
-        }
-
-        function findPath(
-          startCell: { col: number; row: number },
-          endCell: { col: number; row: number },
-          allowedCells: Set<string>
-        ) {
-          const start = nearestFreeCell(
-            startCell,
-            allowedCells
-          );
-          const end = nearestFreeCell(
-            endCell,
-            allowedCells
-          );
-          const startKey = `${start.col}:${start.row}`;
-          const endKey = `${end.col}:${end.row}`;
-          const open = new Map<
-            string,
-            {
-              col: number;
-              row: number;
-              g: number;
-              f: number;
-            }
-          >();
-          const cameFrom = new Map<string, string>();
-          const gScore = new Map<string, number>();
-
-          function heuristic(
-            col: number,
-            row: number
-          ) {
-            return (
-              Math.abs(col - end.col) +
-              Math.abs(row - end.row)
-            );
-          }
-
-          open.set(startKey, {
-            ...start,
-            g: 0,
-            f: heuristic(start.col, start.row)
-          });
-          gScore.set(startKey, 0);
-
-          const directions = [
-            { col: 1, row: 0 },
-            { col: -1, row: 0 },
-            { col: 0, row: 1 },
-            { col: 0, row: -1 }
-          ];
-
-          while (open.size > 0) {
-            let currentKey = "";
-            let current:
-              | {
-                  col: number;
-                  row: number;
-                  g: number;
-                  f: number;
-                }
-              | undefined;
-
-            open.forEach((candidate, key) => {
-              if (!current || candidate.f < current.f) {
-                current = candidate;
-                currentKey = key;
-              }
-            });
-
-            if (!current) break;
-
-            if (currentKey === endKey) {
-              const cells = [currentKey];
-              let cursor = currentKey;
-
-              while (cameFrom.has(cursor)) {
-                cursor = cameFrom.get(cursor) as string;
-                cells.push(cursor);
-              }
-
-              cells.reverse();
-
-              return cells.map((key) => {
-                const [col, row] = key
-                  .split(":")
-                  .map(Number);
-                return toPoint(col, row);
-              });
-            }
-
-            open.delete(currentKey);
-
-            directions.forEach((direction) => {
-              const col = current!.col + direction.col;
-              const row = current!.row + direction.row;
-
-              if (
-                col < 0 ||
-                row < 0 ||
-                col >= cols ||
-                row >= rows ||
-                isBlocked(col, row, allowedCells)
-              ) {
-                return;
-              }
-
-              const neighborKey = `${col}:${row}`;
-              const tentativeG = current!.g + 1;
-
-              if (
-                tentativeG >=
-                (gScore.get(neighborKey) ??
-                  Number.POSITIVE_INFINITY)
-              ) {
-                return;
-              }
-
-              cameFrom.set(neighborKey, currentKey);
-              gScore.set(neighborKey, tentativeG);
-
-              const bendPenalty = cameFrom.has(currentKey)
-                ?
-                (() => {
-                  const previousKey =
-                    cameFrom.get(currentKey);
-                  if (!previousKey) return 0;
-
-                  const [previousCol, previousRow] =
-                    previousKey.split(":").map(Number);
-                  const previousDirection = {
-                    col: current!.col - previousCol,
-                    row: current!.row - previousRow
-                  };
-
-                  return (
-                    previousDirection.col !==
-                      direction.col ||
-                    previousDirection.row !==
-                      direction.row
-                  )
-                    ? 0.35
-                    : 0;
-                })()
-                : 0;
-
-              open.set(neighborKey, {
-                col,
-                row,
-                g: tentativeG,
-                f:
-                  tentativeG +
-                  heuristic(col, row) +
-                  bendPenalty
-              });
-            });
-          }
-
-          return [];
-        }
-
-        function simplifyPath(
-          points: Array<{ x: number; y: number }>
-        ) {
-          if (points.length <= 2) return points;
-
-          const simplified = [points[0]];
-
-          for (
-            let index = 1;
-            index < points.length - 1;
-            index += 1
-          ) {
-            const previous =
-              simplified[simplified.length - 1];
-            const current = points[index];
-            const next = points[index + 1];
-
-            const sameHorizontal =
-              previous.y === current.y &&
-              current.y === next.y;
-            const sameVertical =
-              previous.x === current.x &&
-              current.x === next.x;
-
-            if (!sameHorizontal && !sameVertical) {
-              simplified.push(current);
-            }
-          }
-
-          simplified.push(points[points.length - 1]);
-          return simplified;
-        }
-
-        function roundedPath(
-          points: Array<{ x: number; y: number }>,
-          radius = 7
-        ) {
-          if (points.length < 2) return "";
-
-          let path = `M ${points[0].x} ${points[0].y}`;
-
-          for (
-            let index = 1;
-            index < points.length - 1;
-            index += 1
-          ) {
-            const previous = points[index - 1];
-            const current = points[index];
-            const next = points[index + 1];
-            const incomingLength = Math.hypot(
-              current.x - previous.x,
-              current.y - previous.y
-            );
-            const outgoingLength = Math.hypot(
-              next.x - current.x,
-              next.y - current.y
-            );
-            const cornerRadius = Math.min(
-              radius,
-              incomingLength / 2,
-              outgoingLength / 2
-            );
-
-            const before = {
-              x:
-                current.x -
-                ((current.x - previous.x) /
-                  incomingLength) *
-                  cornerRadius,
-              y:
-                current.y -
-                ((current.y - previous.y) /
-                  incomingLength) *
-                  cornerRadius
-            };
-            const after = {
-              x:
-                current.x +
-                ((next.x - current.x) /
-                  outgoingLength) *
-                  cornerRadius,
-              y:
-                current.y +
-                ((next.y - current.y) /
-                  outgoingLength) *
-                  cornerRadius
-            };
-
-            path += ` L ${before.x} ${before.y}`;
-            path += ` Q ${current.x} ${current.y}, ${after.x} ${after.y}`;
-          }
-
-          const last = points[points.length - 1];
-          path += ` L ${last.x} ${last.y}`;
-          return path;
-        }
-
-        const nextArrows = answeredLinks.flatMap(
-          ({ task, answerId }, linkIndex) => {
-            const focusElement =
-              activeContainer.querySelector<HTMLElement>(
-                `[data-target-id="${task.targetId}"]`
-              );
-            const answerElement =
-              activeContainer.querySelector<HTMLElement>(
-                `[data-target-id="${answerId}"]`
-              );
-
-            if (!focusElement || !answerElement) return [];
-
-            const donorElement =
-              task.role === "donor"
-                ? focusElement
-                : answerElement;
-            const receiverElement =
-              task.role === "donor"
-                ? answerElement
-                : focusElement;
-            const donorId =
-              task.role === "donor"
-                ? task.targetId
-                : answerId;
-            const donorLabel =
-              activeContainer.querySelector<HTMLElement>(
-                `[data-target-label-id="${donorId}"]`
-              );
-
-            const donor = localRect(
-              (donorLabel ?? donorElement).getBoundingClientRect()
-            );
-            const receiver = localRect(
-              receiverElement.getBoundingClientRect()
-            );
-
-            const startPoint = {
-              x: donor.centerX,
-              y: Math.max(4, donor.top - 7)
-            };
-            const receiverGate = {
-              x: receiver.centerX,
-              y: Math.max(4, receiver.top - 24)
-            };
-            const receiverCurveEntry = {
-              x: receiver.centerX,
-              y: Math.max(4, receiver.top - 10)
-            };
-            const receiverTip = {
-              x: receiver.centerX,
-              y: receiver.top + Math.min(
-                8,
-                Math.max(4, receiver.height * 0.22)
-              )
-            };
-
-            const startCell = toCell(
-              startPoint.x,
-              startPoint.y
-            );
-            const gateCell = toCell(
-              receiverGate.x,
-              receiverGate.y
-            );
-            const allowedCells = new Set<string>();
-
-            for (let offset = -3; offset <= 3; offset += 1) {
-              allowedCells.add(
-                `${startCell.col}:${startCell.row + offset}`
-              );
-              allowedCells.add(
-                `${gateCell.col}:${gateCell.row + offset}`
-              );
-            }
-
-            const tipCell = toCell(
-              receiverTip.x,
-              receiverTip.y
-            );
-
-            const minReceiverRow = Math.min(
-              gateCell.row,
-              tipCell.row
-            );
-            const maxReceiverRow = Math.max(
-              gateCell.row,
-              tipCell.row
-            );
-
-            for (
-              let row = minReceiverRow;
-              row <= maxReceiverRow;
-              row += 1
-            ) {
-              for (let colOffset = -1; colOffset <= 1; colOffset += 1) {
-                allowedCells.add(
-                  `${gateCell.col + colOffset}:${row}`
-                );
-              }
-            }
-
-            const pathPoints = findPath(
-              startCell,
-              gateCell,
-              allowedCells
-            );
-
-            let routedPoints: Array<{ x: number; y: number }>;
-
-            if (pathPoints.length > 0) {
-              const shiftedPoints = pathPoints.map((point) => ({
-                x:
-                  point.x +
-                  ((linkIndex % 3) - 1) * 2,
-                y: point.y
-              }));
-
-              routedPoints = [
-                startPoint,
-                ...shiftedPoints,
-                receiverGate
-              ];
-            } else {
-              const lane = linkIndex % 4;
-              const leftRail = 10 + lane * 8;
-              const rightRail =
-                canvasWidth - 10 - lane * 8;
-              const railX =
-                Math.abs(startPoint.x - leftRail) +
-                  Math.abs(receiverGate.x - leftRail) <=
-                Math.abs(startPoint.x - rightRail) +
-                  Math.abs(receiverGate.x - rightRail)
-                  ? leftRail
-                  : rightRail;
-              const startLaneY = Math.max(
-                6,
-                startPoint.y - 18 - lane * 5
-              );
-              const gateLaneY = Math.max(
-                6,
-                receiverGate.y - 12 - lane * 5
-              );
-
-              routedPoints = [
-                startPoint,
-                { x: startPoint.x, y: startLaneY },
-                { x: railX, y: startLaneY },
-                { x: railX, y: gateLaneY },
-                { x: receiverGate.x, y: gateLaneY },
-                receiverGate
-              ];
-            }
-
-            const simplified = simplifyPath(routedPoints);
-            const mainPath = roundedPath(simplified, 7);
-            const finalCurve = ` M ${receiverGate.x} ${receiverGate.y}
-              C ${receiverGate.x} ${receiverCurveEntry.y},
-                ${receiverTip.x} ${receiverCurveEntry.y},
-                ${receiverTip.x} ${receiverTip.y}`;
-            const path = `${mainPath}${finalCurve}`;
-
-            return [{
-              id: `${task.targetId}-${answerId}`,
-              path
-            }];
-          }
-        );
+          const tipWidth = 5;
+          const tipDepth = 8;
+          return [{
+            id: `${task.targetId}-${answerId}`,
+            path,
+            tipPath: `M ${endX - tipWidth} ${endY + tipDepth} L ${endX} ${endY} L ${endX + tipWidth} ${endY + tipDepth}`
+          }];
+        });
 
         setAgreementArrows((current) => {
-          const unchanged =
-            current.length === nextArrows.length &&
-            current.every((arrow, index) => {
-              const next = nextArrows[index];
-
-              return (
-                next &&
-                arrow.id === next.id &&
-                arrow.path === next.path
-              );
-            });
-
+          const unchanged = current.length === nextArrows.length && current.every((arrow, index) => {
+            const next = nextArrows[index];
+            return next && arrow.id === next.id && arrow.path === next.path && arrow.tipPath === next.tipPath;
+          });
           return unchanged ? current : nextArrows;
         });
       });
@@ -1081,14 +558,14 @@ export function WordClassReader({
 
     updateArrows();
     window.addEventListener("resize", updateArrows);
-
-    if (document.fonts?.ready) {
-      document.fonts.ready.then(updateArrows);
-    }
+    const observer = new ResizeObserver(updateArrows);
+    observer.observe(container);
+    document.fonts?.ready.then(updateArrows);
 
     return () => {
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("resize", updateArrows);
+      observer.disconnect();
     };
   }, [relationAnswers, relationTasks]);
 
@@ -1364,7 +841,7 @@ export function WordClassReader({
 
       <div
         ref={textContainerRef}
-        className="word-class-reader-text"
+        className={`word-class-reader-text ${sentence.agreementRelationsEnabled ? "has-agreement-relations" : ""}`}
         aria-live="polite"
       >
         {agreementArrows.length > 0 && (
@@ -1376,26 +853,18 @@ export function WordClassReader({
             preserveAspectRatio="none"
             aria-hidden="true"
           >
-            <defs>
-              <marker
-                id="agreement-arrow-head"
-                markerWidth="8"
-                markerHeight="8"
-                refX="7"
-                refY="4"
-                orient="auto"
-              >
-                <path d="M0,0 L8,4 L0,8 Z" />
-              </marker>
-            </defs>
-
             {agreementArrows.map((arrow) => (
-              <path
-                className="agreement-arrow-path"
-                d={arrow.path}
-                markerEnd="url(#agreement-arrow-head)"
-                key={arrow.id}
-              />
+              <g className="agreement-arrow-group" key={arrow.id}>
+                <path
+                  className="agreement-arrow-path"
+                  d={arrow.path}
+                  pathLength={1}
+                />
+                <path
+                  className="agreement-arrow-tip"
+                  d={arrow.tipPath}
+                />
+              </g>
             ))}
           </svg>
         )}
