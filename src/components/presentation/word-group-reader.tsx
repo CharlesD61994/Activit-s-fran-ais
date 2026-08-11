@@ -12,6 +12,7 @@ import { useRangeTargetPositions } from "@/components/grammar/use-range-target-p
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
+import { bracketReserve } from "@/components/grammar/range-mark-spacing";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
 type Boundary = "left_bracket" | "right_bracket";
@@ -1081,6 +1082,10 @@ export function WordGroupReader({
       : `Mets le ${groupLabels[currentTarget?.groupType ?? "GN"]} entre crochets.`;
   }
 
+  const reservedBracketTargets = [
+    ...(boundaryMode === "brackets" ? targets : []),
+    ...(continuationBoundaryMode === "brackets" ? functionTargets : [])
+  ];
   return (
     <div className={`word-group-reader ${embedded ? "embedded" : ""}`}>
       <div className="word-group-reader-toolbar">
@@ -1195,6 +1200,18 @@ export function WordGroupReader({
         <div className="word-group-reader-text shared-grammar-reader-text">
           {tokens.map((token) => {
             const breakBefore = forcedLineBreaks.some((position) => position >= token.start && position < token.end);
+            const leftBoundaryCount = token.isWord
+              ? reservedBracketTargets.filter(
+                  (target) =>
+                    token.start <= target.start && token.end > target.start
+                ).length
+              : 0;
+            const rightBoundaryCount = token.isWord
+              ? reservedBracketTargets.filter(
+                  (target) =>
+                    token.start < target.end && token.end >= target.end
+                ).length
+              : 0;
             return (
               <span key={token.id}>
               {breakBefore && <br />}
@@ -1219,6 +1236,14 @@ export function WordGroupReader({
                 }
                 data-group-token-id={
                   token.isWord ? token.id : undefined
+                }
+                style={
+                  token.isWord
+                    ? {
+                        marginLeft: bracketReserve(leftBoundaryCount),
+                        marginRight: bracketReserve(rightBoundaryCount)
+                      }
+                    : undefined
                 }
                 onClick={
                   token.isWord && phase === "nucleus"

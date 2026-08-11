@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bracketSpacing } from "./range-mark-spacing";
+import { bracketReserve, bracketSpacing } from "./range-mark-spacing";
 
 describe("bracketSpacing", () => {
   it("keeps the normal gap when boundaries have enough room", () => {
@@ -15,5 +15,10 @@ describe("bracketSpacing", () => {
 
   it("always leaves a gap between a bracket and its word", () => {
     expect(bracketSpacing(10).gap).toBeGreaterThanOrEqual(1);
+  });
+
+  it("reserves layout space for every boundary before marks appear", () => {
+    expect(bracketReserve(1)).toBe(10);
+    expect(bracketReserve(2)).toBe(20);
   });
 });

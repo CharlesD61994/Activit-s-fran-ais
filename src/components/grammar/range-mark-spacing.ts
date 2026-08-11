@@ -27,3 +27,7 @@ export function bracketSpacing(availableSpace?: number) {
     gap
   };
 }
+export function bracketReserve(boundaryCount: number) {
+  return Math.max(0, boundaryCount) *
+    (DEFAULT_BRACKET_CAP + DEFAULT_TEXT_GAP);
+}
