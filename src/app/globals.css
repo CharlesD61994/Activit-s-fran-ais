@@ -8859,6 +8859,33 @@ textarea {
 .tree-reader-category button { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--secondary); color: inherit; cursor: pointer; }
 .tree-reader-category button.active { border-color: var(--primary); background: color-mix(in srgb,var(--primary) 14%,var(--surface)); }
 
+/* V95 — finitions du lecteur mixte : étiquettes et cibles de correction */
+.word-group-label-anchor,
+.word-group-label-anchor.contracted-result {
+  transform: translate(-50%, calc(-100% + 14px));
+}
+
+.interactive-code-box:not(.filled) {
+  display: inline-grid;
+  place-items: center;
+  width: 1.15em;
+  height: 1.15em;
+  min-width: 1.15em;
+  min-height: 1.15em;
+  padding: 0;
+  z-index: 5;
+  cursor: pointer !important;
+  pointer-events: auto;
+}
+
+.word-group-code-box:not(.filled) {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  cursor: pointer;
+}
 @page {
   size: letter landscape;
   margin: 0;

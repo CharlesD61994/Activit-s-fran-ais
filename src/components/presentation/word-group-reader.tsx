@@ -1200,13 +1200,15 @@ export function WordGroupReader({
         <div className="word-group-reader-text shared-grammar-reader-text">
           {tokens.map((token) => {
             const breakBefore = forcedLineBreaks.some((position) => position >= token.start && position < token.end);
-            const leftBoundaryCount = token.isWord
+            const measurableToken =
+              token.isWord || token.text.trim().length > 0;
+            const leftBoundaryCount = measurableToken
               ? reservedBracketTargets.filter(
                   (target) =>
                     token.start <= target.start && token.end > target.start
                 ).length
               : 0;
-            const rightBoundaryCount = token.isWord
+            const rightBoundaryCount = measurableToken
               ? reservedBracketTargets.filter(
                   (target) =>
                     token.start < target.end && token.end >= target.end
@@ -1235,10 +1237,10 @@ export function WordGroupReader({
                     : undefined
                 }
                 data-group-token-id={
-                  token.isWord ? token.id : undefined
+                  measurableToken ? token.id : undefined
                 }
                 style={
-                  token.isWord
+                  measurableToken
                     ? {
                         marginLeft: bracketReserve(leftBoundaryCount),
                         marginRight: bracketReserve(rightBoundaryCount)
@@ -1424,17 +1426,21 @@ export function WordGroupReader({
         </div>
       )}
 
-      <div className="interactive-reader-actions">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={restart}
-        >
-          <RotateCcw size={18} />
-          Recommencer
-        </Button>
-        {finishControl}
-      </div>
+      {(!embedded || finishControl) && (
+        <div className="interactive-reader-actions">
+          {!embedded && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={restart}
+            >
+              <RotateCcw size={18} />
+              Recommencer
+            </Button>
+          )}
+          {finishControl}
+        </div>
+      )}
     </div>
   );
 }
