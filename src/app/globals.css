@@ -10921,3 +10921,15 @@ textarea {
     padding-bottom: 34px;
   }
 }
+/* V906 — consignes et progression plus lisibles au tableau */
+.reader-chrome-instruction-copy > strong {
+  font-size: clamp(1.12rem, 1.6vw, 1.4rem);
+}
+
+.reader-chrome-instruction-copy > span:not(.reader-chrome-feedback) {
+  font-size: 1rem;
+}
+
+.reader-chrome-progress > strong {
+  font-size: 1.04rem;
+}
