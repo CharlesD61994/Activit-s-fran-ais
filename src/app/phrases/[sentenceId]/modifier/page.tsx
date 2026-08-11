@@ -26,7 +26,7 @@ export default function EditSentencePage({ params }: { params: Promise<{ sentenc
   const isWordClassActivity = sentence.activityType === "word_classes";
   const isWordGroupActivity = sentence.activityType === "word_groups";
   const isTreeAnalysisActivity = sentence.activityType === "tree_analysis";
-  const isMixedActivity = sentence.primaryObjective === "mixed_grammar";
+  const isMixedActivity = sentence.isMixedActivity || sentence.primaryObjective === "mixed_grammar";
 
   return (
     <div className="page">

@@ -6,13 +6,13 @@ import { Check, Copy, FileText, Pencil, Plus, Search, Tags, TextCursorInput, Tra
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SentenceRenderer } from "@/components/sentence-renderer";
+import { ActivityObjectiveBadges } from "@/components/activity-objective-badges";
 import { useAppStore } from "@/store/app-store";
 import {
   getWordClassActivityPointTotal,
   getWordClassAnalysisTargetCount
 } from "@/lib/activity-types";
 import type { ActivityType, SentenceDifficulty } from "@/types";
-import { getSecondaryObjectives, getSentenceObjective, grammarObjectiveLabels, grammarPhaseLabels } from "@/lib/grammar-workflow";
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -106,7 +106,6 @@ export default function SentencesPage() {
           const targetCount =
             getWordClassAnalysisTargetCount(sentence);
           const wordGroupCount = sentence.wordGroupTargets?.length ?? 0;
-          const secondaryObjectives = getSecondaryObjectives(sentence);
           const maxPoints = isWordClassActivity
             ? getWordClassActivityPointTotal(sentence)
             : isWordGroupActivity
@@ -122,16 +121,7 @@ export default function SentencesPage() {
                   <span className="eyebrow">
                     {level?.name ?? "Niveau inconnu"} · {difficultyLabels[sentence.difficulty]}
                   </span>
-                  <span className="activity-type-badge">
-                    {sentence.activityType === "tree_analysis"
-                      ? "Analyse en arbre"
-                      : grammarObjectiveLabels[getSentenceObjective(sentence)]}
-                  </span>
-                  {sentence.activityType !== "tree_analysis" && secondaryObjectives.length > 0 && (
-                    <span className="activity-secondary-badges">
-                      {secondaryObjectives.map((objective) => <span key={objective}>{grammarPhaseLabels[objective]}</span>)}
-                    </span>
-                  )}
+                  <ActivityObjectiveBadges sentence={sentence} />
                   <h2>{sentence.title}</h2>
                 </div>
                 <div className="row-actions">

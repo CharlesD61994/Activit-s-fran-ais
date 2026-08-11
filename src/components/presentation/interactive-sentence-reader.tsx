@@ -360,6 +360,33 @@ export function InteractiveSentenceReader({
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
+  const forcedGrammarLineBreaks = useMemo(() => {
+    if (layoutLines.length < 2) return [];
+
+    const startByKey = new Map<string, number>();
+    let offset = 0;
+    layoutTokens.forEach((token) => {
+      startByKey.set(token.key, offset);
+      offset += token.correction
+        ? token.correction.correctedText.length
+        : token.text.length;
+    });
+
+    return Array.from(
+      new Set(
+        layoutLines
+          .slice(1)
+          .map((line) =>
+            line
+              .map((key) => startByKey.get(key))
+              .find((value) => value !== undefined)
+          )
+          .filter(
+            (value): value is number => value !== undefined && value > 0
+          )
+      )
+    );
+  }, [layoutLines, layoutTokens]);
 
   useEffect(() => {
     const element = sentenceRef.current;
@@ -642,6 +669,7 @@ export function InteractiveSentenceReader({
             boundaryMode={groupBoundaryMode}
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
             identifyNuclei={identifyGroupNuclei}
+            forcedLineBreaks={forcedGrammarLineBreaks}
             finishControl={hasRemainingGrammarWork ? undefined : finishControl}
             embedded
           />
@@ -660,6 +688,7 @@ export function InteractiveSentenceReader({
             sentence={correctedGrammarSentence}
             excludedKinds={["group", "nucleus"]}
             initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus").map((annotation) => annotation.id)}
+            forcedLineBreaks={forcedGrammarLineBreaks}
             finishControl={finishControl}
           />
         )
@@ -670,7 +699,7 @@ export function InteractiveSentenceReader({
       )}
 
       {correctionComplete && !usesSharedRangeSurface && (
-        <GrammarExtensionReader sentence={correctedGrammarSentence} />
+        <GrammarExtensionReader sentence={correctedGrammarSentence} forcedLineBreaks={forcedGrammarLineBreaks} />
       )}
 
       {activeCorrection && (

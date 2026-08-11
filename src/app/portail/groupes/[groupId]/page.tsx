@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ActivityObjectiveBadges } from "@/components/activity-objective-badges";
 import { useAppStore } from "@/store/app-store";
 
 export default function StudentGroupPage({
@@ -133,9 +134,9 @@ export default function StudentGroupPage({
               <Card className="student-action-card featured">
                 <Play size={32} />
                 <div>
-                  <span className="student-card-label">Activité principale</span>
-                  <h2>Phrase du jour</h2>
-                  <p>{firstSentence.title}</p>
+                  <ActivityObjectiveBadges sentence={firstSentence} />
+                  <h2>{firstSentence.title}</h2>
+                  <p>Activité principale</p>
                 </div>
               </Card>
             </Link>

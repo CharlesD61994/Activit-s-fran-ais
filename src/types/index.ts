@@ -381,6 +381,7 @@ export type Sentence = {
   levelId: string;
   title: string;
   primaryObjective?: GrammarObjective;
+  isMixedActivity?: boolean;
   workflowPhases?: GrammarWorkflowPhase[];
   grammarAnnotations?: GrammarAnnotation[];
   originalText: string;

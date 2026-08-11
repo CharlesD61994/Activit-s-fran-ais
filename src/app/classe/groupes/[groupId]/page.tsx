@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ActivityObjectiveBadges } from "@/components/activity-objective-badges";
 import { useAppStore } from "@/store/app-store";
 import {
-  getActivityTypeLabel,
   getWordClassActivityPointTotal,
   getWordClassAnalysisTargetCount
 } from "@/lib/activity-types";
@@ -272,9 +272,7 @@ export default function ClassroomGroupPage({
             <Card className="classroom-activity-card" key={activity.id}>
               <div className="classroom-activity-card-content">
                 <div className="classroom-activity-card-topline">
-                  <span className="activity-type-badge">
-                  {getActivityTypeLabel(activity.activityType)}
-                  </span>
+                  <ActivityObjectiveBadges sentence={activity} />
                   <span className={`assignment-status-pill status-${activityStatus(activity)}`}>
                     {activityStatus(activity) === "in_progress" ? "En cours" : "À faire"}
                   </span>
@@ -327,9 +325,7 @@ export default function ClassroomGroupPage({
                   key={`completed-activity-${activity.id}`}
                 >
                   <div className="completed-item-main">
-                    <span className="activity-type-badge">
-                      {getActivityTypeLabel(activity.activityType)}
-                    </span>
+                    <ActivityObjectiveBadges sentence={activity} />
 
                     <strong>{activity.title}</strong>
 

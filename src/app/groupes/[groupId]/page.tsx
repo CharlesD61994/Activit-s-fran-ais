@@ -5,11 +5,11 @@ import Link from "next/link";
 import { ArrowLeft, BarChart3, BookOpenCheck, Pencil, Play, Trophy } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ActivityObjectiveBadges } from "@/components/activity-objective-badges";
 import { SentenceRenderer } from "@/components/sentence-renderer";
 import { TeamManager } from "@/components/team-manager";
 import { useAppStore } from "@/store/app-store";
 import {
-  getActivityTypeLabel,
   getWordClassActivityPointTotal,
   getWordClassAnalysisTargetCount
 } from "@/lib/activity-types";
@@ -208,9 +208,7 @@ export default function GroupPage({ params }: { params: Promise<{ groupId: strin
                   key={`archive-activity-${activity.id}`}
                 >
                   <div className="completed-item-main">
-                    <span className="activity-type-badge">
-                      {getActivityTypeLabel(activity.activityType)}
-                    </span>
+                    <ActivityObjectiveBadges sentence={activity} />
                     <strong>{activity.title}</strong>
 
                     <div className="completed-item-stats">

@@ -1585,6 +1585,7 @@ export function TreeAnalysisEditor({
                     {selectedTextBoxId === box.id && <span className="tree-analysis-text-resize" onPointerDown={(event) => startTextBoxResize(event, box)} />}
                     {selectedTextBoxId === box.id && <span className="tree-analysis-text-move-handle" title="Glisser pour déplacer" onPointerDown={(event) => { event.stopPropagation(); startItemDrag(event, "textbox", box); }} />}
                     <div
+                      key={`content-${box.id}-${box.annotations.map((annotation) => `${annotation.id}:${annotation.color ?? ""}:${annotation.framed ? 1 : 0}:${annotation.bold ? 1 : 0}`).join("|")}`}
                       className="tree-analysis-text-content"
                       data-placeholder="Écris ton texte ici…"
                       contentEditable
