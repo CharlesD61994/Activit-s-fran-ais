@@ -12,6 +12,10 @@ import {
 import { Card } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
 import { getCompletedSentenceIds, getWeeklyPoints } from "@/lib/stats";
+import {
+  ClassroomGroupEmblem,
+  ClassroomPointsMedal
+} from "@/components/classroom-portal-ornaments";
 
 export default function ClassePage() {
   const { data } = useAppStore();
@@ -92,9 +96,7 @@ export default function ClassePage() {
                 data-preview-theme={group.themeId}
               >
                 <div className="classroom-portal-group-card-main">
-                  <div className="classroom-portal-group-emblem">
-                    <span>{groupCode}</span>
-                  </div>
+                  <ClassroomGroupEmblem label={groupCode} />
 
                   <div className="classroom-portal-group-copy">
                     <span className="classroom-portal-card-label">
@@ -128,16 +130,13 @@ export default function ClassePage() {
                 </div>
 
                 <div className="classroom-portal-group-reward">
-                  <div className="classroom-portal-star">
-                    <Star size={22} fill="currentColor" />
-                  </div>
+                  <ClassroomPointsMedal compact />
                   <div>
                     <strong>{group.totalPoints} points</strong>
                     <span>
                       +{weeklyPoints} cette semaine · {completed} activités réalisées
                     </span>
                   </div>
-                  <span className="classroom-portal-enter">Ouvrir le groupe</span>
                 </div>
               </Card>
             </Link>

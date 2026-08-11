@@ -9,9 +9,9 @@ import {
   ChevronRight,
   Flag,
   Play,
-  RotateCcw,
   Sparkles,
   Star,
+  Target,
   Trophy,
   UsersRound,
   X
@@ -25,6 +25,10 @@ import {
 import { useAppStore } from "@/store/app-store";
 import { getWordClassActivityPointTotal } from "@/lib/activity-types";
 import { getWeeklyPoints } from "@/lib/stats";
+import {
+  ClassroomGroupEmblem,
+  ClassroomPointsMedal
+} from "@/components/classroom-portal-ornaments";
 
 type PortalTab = "activities" | "sessions" | "competition";
 
@@ -64,12 +68,6 @@ export default function ClassroomGroupPage({
   const activeActivities = activities.filter(
     (activity) =>
       !["completed", "archived"].includes(activityStatus(activity))
-  );
-  const continuingActivities = activeActivities.filter(
-    (activity) => activityStatus(activity) === "in_progress"
-  );
-  const newActivities = activeActivities.filter(
-    (activity) => activityStatus(activity) !== "in_progress"
   );
   const completedActivities = activities.filter(
     (activity) => activityStatus(activity) === "completed"
@@ -197,10 +195,7 @@ export default function ClassroomGroupPage({
       .reduce((sum, event) => sum + event.points, 0);
   }
 
-  function renderActivityCard(
-    activity: typeof activities[number],
-    featured = false
-  ) {
+  function renderActivityCard(activity: typeof activities[number]) {
     const status = activityStatus(activity);
     const totalPoints = activityPointTotal(activity);
     const score = activityScore(activity.id);
@@ -214,8 +209,7 @@ export default function ClassroomGroupPage({
       <Card
         className={
           "classroom-mission-card activity-theme-" +
-          objectiveKey +
-          (featured ? " featured" : "")
+          objectiveKey
         }
         key={activity.id}
       >
@@ -290,10 +284,13 @@ export default function ClassroomGroupPage({
         </Link>
 
         <div className="classroom-dashboard-identity">
-          <span className="classroom-dashboard-emblem">
-            {group.name.match(/\d+/)?.[0] ??
-              group.name.slice(0, 3).toUpperCase()}
-          </span>
+          <ClassroomGroupEmblem
+            label={
+              group.name.match(/\d+/)?.[0] ??
+              group.name.slice(0, 3).toUpperCase()
+            }
+            compact
+          />
           <div>
             <span className="classroom-portal-kicker">
               Tableau de classe
@@ -304,9 +301,7 @@ export default function ClassroomGroupPage({
         </div>
 
         <div className="classroom-dashboard-points">
-          <span className="classroom-dashboard-point-icon">
-            <Star size={30} fill="currentColor" />
-          </span>
+          <ClassroomPointsMedal />
           <div>
             <strong>{group.totalPoints} points</strong>
             <span>+{weeklyPoints} cette semaine</span>
@@ -349,44 +344,45 @@ export default function ClassroomGroupPage({
 
       {activeTab === "activities" && (
         <div className="classroom-dashboard-panel">
-          {continuingActivities.length > 0 && (
-            <section className="classroom-dashboard-section">
-              <div className="classroom-dashboard-section-heading">
-                <div>
-                  <span className="classroom-dashboard-section-icon">
-                    <RotateCcw size={21} />
-                  </span>
-                  <h2>À continuer</h2>
-                </div>
-                <span>{continuingActivities.length}</span>
-              </div>
-              <div className="classroom-mission-grid featured-grid">
-                {continuingActivities.map((activity) =>
-                  renderActivityCard(activity, true)
-                )}
-              </div>
-            </section>
-          )}
-
           <section className="classroom-dashboard-section">
             <div className="classroom-dashboard-section-heading">
               <div>
                 <span className="classroom-dashboard-section-icon">
                   <Sparkles size={21} />
                 </span>
-                <h2>
-                  {continuingActivities.length > 0
-                    ? "Nouvelles activités"
-                    : "Activités disponibles"}
-                </h2>
+                <h2>Activités</h2>
               </div>
-              <span>{newActivities.length}</span>
+              <span>{activeActivities.length}</span>
             </div>
 
             <div className="classroom-mission-grid">
-              {newActivities.map((activity) =>
-                renderActivityCard(activity)
-              )}
+              {activeActivities.slice(0, 2).map(renderActivityCard)}
+
+              <Card className="classroom-objective-card">
+                <div className="classroom-objective-pattern" aria-hidden="true" />
+                <div className="classroom-objective-heading">
+                  <span>Objectif de la semaine</span>
+                  <Target size={25} />
+                </div>
+                <div className="classroom-objective-symbol">
+                  <Target size={42} />
+                </div>
+                <div className="classroom-objective-copy">
+                  <h3>Atteindre 10 points</h3>
+                  <p>Chaque réussite fait avancer toute la classe.</p>
+                </div>
+                <div className="classroom-objective-progress">
+                  <div>
+                    <strong>{Math.min(weeklyPoints, 10)} / 10 points</strong>
+                    <span>{weeklyPoints >= 10 ? "Objectif atteint !" : "En progression"}</span>
+                  </div>
+                  <span className="classroom-objective-track">
+                    <span style={{ width: Math.min(100, weeklyPoints * 10) + "%" }} />
+                  </span>
+                </div>
+              </Card>
+
+              {activeActivities.slice(2).map(renderActivityCard)}
               {activeActivities.length === 0 && (
                 <Card className="classroom-dashboard-empty">
                   <BookOpen size={34} />
@@ -429,9 +425,7 @@ export default function ClassroomGroupPage({
                 </Card>
               ))}
               {completedActivities.length === 0 && (
-                <p className="completed-empty">
-                  Aucune activité terminée.
-                </p>
+                <p className="completed-empty">Aucune activité terminée.</p>
               )}
             </div>
           </details>
