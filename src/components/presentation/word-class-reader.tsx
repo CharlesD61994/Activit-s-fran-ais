@@ -120,9 +120,16 @@ function normalizeTargets(
 }
 
 
-function usesClassChoice(target: WordClassTarget, multipleClasses: boolean) {
-  return target.wordClassInteractionMode === "choose_class" ||
-    (!target.wordClassInteractionMode && multipleClasses);
+function usesClassChoice(
+  target: WordClassTarget,
+  multipleClasses: boolean,
+  hasExplicitClassModes: boolean
+) {
+  if (hasExplicitClassModes) {
+    return target.wordClassInteractionMode === "choose_class";
+  }
+
+  return multipleClasses;
 }
 
 function buildAgreementArrow(
@@ -179,60 +186,6 @@ function buildAgreementArrow(
     ].join(" ")
   };
 }
-type AgreementCollisionRect = {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-};
-
-function segmentIntersectsRect(
-  start: AgreementPoint,
-  end: AgreementPoint,
-  rect: AgreementCollisionRect
-) {
-  let minimum = 0;
-  let maximum = 1;
-  const deltaX = end.x - start.x;
-  const deltaY = end.y - start.y;
-  const boundaries: Array<[number, number]> = [
-    [-deltaX, start.x - rect.left],
-    [deltaX, rect.right - start.x],
-    [-deltaY, start.y - rect.top],
-    [deltaY, rect.bottom - start.y]
-  ];
-
-  for (const [direction, distance] of boundaries) {
-    if (direction === 0) {
-      if (distance < 0) return false;
-      continue;
-    }
-
-    const ratio = distance / direction;
-    if (direction < 0) {
-      if (ratio > maximum) return false;
-      minimum = Math.max(minimum, ratio);
-    } else {
-      if (ratio < minimum) return false;
-      maximum = Math.min(maximum, ratio);
-    }
-  }
-
-  return true;
-}
-
-function polylineIntersectsRect(
-  points: AgreementPoint[],
-  rect: AgreementCollisionRect
-) {
-  for (let index = 1; index < points.length; index += 1) {
-    if (segmentIntersectsRect(points[index - 1], points[index], rect)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 export function WordClassReader({
   sentence,
   persistenceKey,
@@ -267,7 +220,16 @@ export function WordClassReader({
     [allTargets, selectedClasses]
   );
 
-  const hasClassChoiceTargets = analysisTargets.some((target) => usesClassChoice(target, multipleClasses));
+  const hasExplicitClassModes = analysisTargets.some(
+    (target) => Boolean(target.wordClassInteractionMode)
+  );
+  const hasClassChoiceTargets = analysisTargets.some((target) =>
+    usesClassChoice(target, multipleClasses, hasExplicitClassModes)
+  );
+  const hasDirectFindTargets = analysisTargets.some(
+    (target) =>
+      !usesClassChoice(target, multipleClasses, hasExplicitClassModes)
+  );
 
   const relations = useMemo(
     () => sentence.agreementRelations ?? [],
@@ -292,8 +254,8 @@ export function WordClassReader({
     );
 
     return Math.min(
-      28,
-      20 + Math.max(1, Math.min(linkCount, 4)) * 2
+      36,
+      32 + Math.max(1, Math.min(linkCount, 4))
     );
   }, [relationTasks]);
 
@@ -352,7 +314,6 @@ export function WordClassReader({
     AgreementPoint[]
   >([]);
   const [agreementArrowsVisible, setAgreementArrowsVisible] = useState(true);
-  const [codeOffsetByTargetId, setCodeOffsetByTargetId] = useState<Record<string, number>>({});
   const [agreementInkColor, setAgreementInkColor] = useState<string>(
     DEFAULT_AGREEMENT_INK_COLOR
   );
@@ -512,7 +473,7 @@ export function WordClassReader({
         }
 
         if (
-          usesClassChoice(target, multipleClasses) &&
+          usesClassChoice(target, multipleClasses, hasExplicitClassModes) &&
           restoredClassPointIds.includes(target.id)
         ) {
           restoredPoints.push({
@@ -557,6 +518,7 @@ export function WordClassReader({
     }
   }, [
     analysisTargets,
+    hasExplicitClassModes,
     multipleClasses,
     persistenceKey,
     persistenceSignature,
@@ -721,103 +683,6 @@ export function WordClassReader({
     };
   }, []);
 
-  useLayoutEffect(() => {
-    const container = textContainerRef.current;
-    if (
-      !container ||
-      !agreementArrowsVisible ||
-      drawnAgreementArrows.length === 0 ||
-      arrowCanvas.width <= 0 ||
-      arrowCanvas.height <= 0
-    ) {
-      setCodeOffsetByTargetId((current) =>
-        Object.keys(current).length === 0 ? current : {}
-      );
-      return;
-    }
-
-    const containerRect = container.getBoundingClientRect();
-    const polylines = drawnAgreementArrows.map((arrow) =>
-      arrow.points.map((point) => ({
-        x: point.x * arrowCanvas.width,
-        y: point.y * arrowCanvas.height
-      }))
-    );
-    const occupied: AgreementCollisionRect[] = [];
-    const nextOffsets: Record<string, number> = {};
-    const candidates = [0, -32, 32, -56, 56, -80, 80];
-
-    container
-      .querySelectorAll<HTMLElement>("[data-target-label-id]")
-      .forEach((label) => {
-        const targetId = label.dataset.targetLabelId;
-        const token = label.closest<HTMLElement>(".word-class-reader-token");
-        const glyph = token?.querySelector<HTMLElement>("[data-word-glyph]");
-        if (!targetId || !glyph) return;
-
-        const glyphRect = glyph.getBoundingClientRect();
-        const width = Math.max(24, label.offsetWidth);
-        const height = Math.max(14, label.offsetHeight);
-        const centerX =
-          glyphRect.left - containerRect.left + container.scrollLeft +
-          glyphRect.width / 2;
-        const top =
-          glyphRect.top - containerRect.top + container.scrollTop -
-          height - 2;
-
-        let bestOffset = 0;
-        let bestScore = Number.POSITIVE_INFINITY;
-        let bestRect: AgreementCollisionRect | null = null;
-
-        candidates.forEach((offset) => {
-          const rect = {
-            left: centerX + offset - width / 2,
-            right: centerX + offset + width / 2,
-            top,
-            bottom: top + height
-          };
-          const expanded = {
-            left: rect.left - 5,
-            right: rect.right + 5,
-            top: rect.top - 4,
-            bottom: rect.bottom + 4
-          };
-          const arrowCollisions = polylines.filter((points) =>
-            polylineIntersectsRect(points, expanded)
-          ).length;
-          const labelCollisions = occupied.filter((other) =>
-            rect.left < other.right + 5 &&
-            rect.right > other.left - 5 &&
-            rect.top < other.bottom &&
-            rect.bottom > other.top
-          ).length;
-          const score = arrowCollisions * 1000 + labelCollisions * 100 + Math.abs(offset);
-
-          if (score < bestScore) {
-            bestScore = score;
-            bestOffset = offset;
-            bestRect = rect;
-          }
-        });
-
-        if (bestOffset !== 0) nextOffsets[targetId] = bestOffset;
-        if (bestRect) occupied.push(bestRect);
-      });
-
-    setCodeOffsetByTargetId((current) =>
-      JSON.stringify(current) === JSON.stringify(nextOffsets)
-        ? current
-        : nextOffsets
-    );
-  }, [
-    agreementArrowsVisible,
-    arrowCanvas.height,
-    arrowCanvas.width,
-    drawnAgreementArrows,
-    foundIds,
-    resolvedGenderIds,
-    resolvedNumberIds
-  ]);
 
   const classesComplete =
     analysisTargets.length > 0 &&
@@ -978,7 +843,7 @@ export function WordClassReader({
       onPoint(target, "find", 1, `find-${target.id}`);
     }
 
-    if (usesClassChoice(target, multipleClasses) && !classPointIds.includes(target.id)) {
+    if (usesClassChoice(target, multipleClasses, hasExplicitClassModes) && !classPointIds.includes(target.id)) {
       setClassPointIds((current) => [...current, target.id]);
       onPoint(target, "class", 1, `class-${target.id}`);
     }
@@ -1318,7 +1183,7 @@ export function WordClassReader({
     restoreRef.current?.([]);
   }
 
-  function grammaticalSuffix(target: WordClassTarget) {
+  function grammaticalDetails(target: WordClassTarget) {
     const values: string[] = [];
     if (resolvedGenderIds.includes(target.id) && target.grammaticalGender) {
       values.push(target.grammaticalGender === "feminine" ? "Fém." : "Masc.");
@@ -1326,13 +1191,14 @@ export function WordClassReader({
     if (resolvedNumberIds.includes(target.id) && target.grammaticalNumber) {
       values.push(target.grammaticalNumber === "singular" ? "Sing." : "Plur.");
     }
-    return values.length > 0 ? " (" + values.join(", ") + ")" : "";
+    return values.join(", ");
   }
 
-  const instruction = hasClassChoiceTargets
-    ? "Clique sur un mot, puis choisis sa classe."
-    :
-    selectedClasses.length === 1
+  const instruction = hasClassChoiceTargets && hasDirectFindTargets
+    ? "Clique sur les mots demandés. Pour certains mots, tu choisiras ensuite leur classe."
+    : hasClassChoiceTargets
+      ? "Clique sur un mot, puis choisis sa classe."
+      : selectedClasses.length === 1
       ? `Trouve tous les ${wordClassLabels[
           selectedClasses[0]
         ].toLocaleLowerCase("fr-CA")}s.`
@@ -1417,7 +1283,6 @@ export function WordClassReader({
               className="agreement-clear-arrows"
               onClick={() => {
                 setAgreementArrowsVisible(false);
-                setCodeOffsetByTargetId({});
               }}
             >
               <Trash2 size={16} />
@@ -1515,6 +1380,9 @@ export function WordClassReader({
           const focus =
             currentTask &&
             target?.id === currentTask.targetId;
+          const grammarDetails = target
+            ? grammaticalDetails(target)
+            : "";
 
           return (
             <button
@@ -1523,7 +1391,7 @@ export function WordClassReader({
                 found ? "found" : ""
               } ${relationSelected ? "agreement-colored" : ""} ${
                 answerConfirmed ? "answer-confirmed" : ""
-              } ${focus ? "agreement-focus" : ""}`}
+              } ${focus ? "agreement-focus" : ""} ${grammarDetails ? "has-grammar-details" : ""}`}
               key={token.id}
               style={
                 agreementColor
@@ -1539,11 +1407,15 @@ export function WordClassReader({
                 if (currentTask) return;
 
                 const clickedTarget = findTarget(token);
-                if (
-                  clickedTarget
-                    ? usesClassChoice(clickedTarget, multipleClasses)
-                    : hasClassChoiceTargets
-                ) {
+                const shouldChooseClass = clickedTarget
+                  ? usesClassChoice(
+                      clickedTarget,
+                      multipleClasses,
+                      hasExplicitClassModes
+                    )
+                  : !hasExplicitClassModes && hasClassChoiceTargets;
+
+                if (shouldChooseClass) {
                   openClassDialog(token);
                 } else {
                   validateSingleClass(token);
@@ -1553,11 +1425,17 @@ export function WordClassReader({
               <span className="word-class-reader-word" data-word-glyph="true">
                 {found && target && (
                 <span
-                  className="word-class-reader-label"
+                  className={`word-class-reader-label ${grammarDetails ? "has-grammar-details" : ""}`}
                   data-target-label-id={target.id}
-                  style={codeOffsetByTargetId[target.id] ? ({ "--word-class-label-offset": codeOffsetByTargetId[target.id] + "px" } as CSSProperties) : undefined}
                 >
-                  {wordClassLabels[target.wordClass]}{grammaticalSuffix(target)}
+                  <span className="word-class-reader-label-code">
+                    {wordClassLabels[target.wordClass]}
+                  </span>
+                  {grammarDetails && (
+                    <span className="word-class-reader-label-grammar">
+                      ({grammarDetails})
+                    </span>
+                  )}
                 </span>
               )}
               {token.text}

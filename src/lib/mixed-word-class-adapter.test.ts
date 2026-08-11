@@ -71,6 +71,12 @@ describe("buildMixedWordClassSentence", () => {
       grammaticalGender: "feminine",
       grammaticalNumber: "plural"
     });
+    expect(
+      adapted.wordClassTargets?.find((target) => target.id === "class-donor")
+    ).toMatchObject({
+      wordClass: "noun",
+      wordClassInteractionMode: "find_requested"
+    });
     expect(adapted.agreementRelations).toEqual([
       {
         id: "mixed-agreement-donor",
