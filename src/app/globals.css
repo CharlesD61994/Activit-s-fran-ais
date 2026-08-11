@@ -9212,3 +9212,15 @@ textarea {
     color: #21824b;
   }
 }
+
+/* V83 — la couleur appartient uniquement au receveur */
+.word-class-reader-token.found .word-class-reader-word,
+.word-class-reader-token.agreement-colored .word-class-reader-word {
+  font-weight: inherit;
+}
+
+.word-class-reader-token.agreement-colored {
+  color: var(--agreement-word-color, var(--primary));
+  font-weight: inherit;
+  text-decoration: none;
+}

@@ -522,29 +522,21 @@ export function WordClassReader({
     : [];
 
 
-  const persistentAgreementTargetIds = useMemo(() => {
-    const ids = new Set<string>();
-
-    Object.entries(relationAnswers).forEach(
-      ([taskTargetId, answerIds]) => {
-        if (answerIds.length > 0) ids.add(taskTargetId);
-        answerIds.forEach((answerId) => ids.add(answerId));
-      }
-    );
-
-    return ids;
-  }, [relationAnswers]);
-
   const agreementColorByTargetId = useMemo(() => {
     const colors = new Map<string, string>();
 
     drawnAgreementArrows.forEach((arrow) => {
-      colors.set(arrow.taskTargetId, arrow.color);
-      colors.set(arrow.answerId, arrow.color);
+      const task = taskMap.get(arrow.taskTargetId);
+      const receiverId =
+        task?.role === "donor"
+          ? arrow.answerId
+          : arrow.taskTargetId;
+
+      colors.set(receiverId, arrow.color);
     });
 
     return colors;
-  }, [drawnAgreementArrows]);
+  }, [drawnAgreementArrows, taskMap]);
 
   const currentTaskComplete = currentTask
     ? currentTask.expectedIds.every((id) =>
@@ -1029,7 +1021,11 @@ export function WordClassReader({
           1,
           `agreement-${currentTask.targetId}-${answerId}`
         );
-        showWordSuccess([currentTask.targetId, answerId]);
+        const receiverId =
+          currentTask.role === "donor"
+            ? answerId
+            : currentTask.targetId;
+        showWordSuccess([receiverId]);
         setMessage("");
       }
     } else if (pathLength < 24) {
@@ -1237,7 +1233,7 @@ export function WordClassReader({
             ? foundIds.includes(target.id)
             : false;
           const relationSelected = target
-            ? persistentAgreementTargetIds.has(target.id)
+            ? agreementColorByTargetId.has(target.id)
             : false;
           const agreementColor = target
             ? agreementColorByTargetId.get(target.id)
@@ -1254,7 +1250,7 @@ export function WordClassReader({
               type="button"
               className={`word-class-reader-token ${
                 found ? "found" : ""
-              } ${relationSelected ? "agreement-selected" : ""} ${
+              } ${relationSelected ? "agreement-colored" : ""} ${
                 answerConfirmed ? "answer-confirmed" : ""
               } ${focus ? "agreement-focus" : ""}`}
               key={token.id}
