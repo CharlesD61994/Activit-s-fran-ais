@@ -221,8 +221,11 @@ export default function PresentationPage({
         pointId?: string;
       }>
     ) => {
-      setPendingPoints(
-        points.map((point) => ({
+      setPendingPoints((current) => [
+        ...current.filter(
+          (point) => !["find", "class", "role", "agreement"].includes(point.stage)
+        ),
+        ...points.map((point) => ({
           correction: toSyntheticCorrection(
             point.target,
             point.pointId
@@ -231,7 +234,7 @@ export default function PresentationPage({
           points: point.points,
           pointId: point.pointId
         }))
-      );
+      ]);
     },
     []
   );
@@ -619,8 +622,10 @@ export default function PresentationPage({
             displayMode={isTextActivity ? "text" : "sentence"}
             correctionCodes={data.correctionCodes}
             onPoint={queuePoint}
+            onWordClassPoint={queueWordClassPoint}
             persistenceKey={readerPersistenceKey}
             onRestorePoints={restorePendingPoints}
+            onRestoreWordClassPoints={restoreWordClassPoints}
             finishControl={
               <Button
                 className="finish-button"

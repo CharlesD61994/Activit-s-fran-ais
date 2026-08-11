@@ -32,6 +32,7 @@ type Props = {
   onRestorePoints?: (points: RestoredPoint[]) => void;
   onCompleteChange?: (complete: boolean) => void;
   finishControl?: React.ReactNode;
+  embedded?: boolean;
 };
 
 type WordToken = {
@@ -92,7 +93,8 @@ export function WordClassReader({
   onPoint,
   onRestorePoints,
   onCompleteChange,
-  finishControl
+  finishControl,
+  embedded = false
 }: Props) {
   const selectedClasses = useMemo(
     () => sentence.selectedWordClasses ?? [],
@@ -1315,7 +1317,7 @@ export function WordClassReader({
       : instruction;
 
   return (
-    <div className="word-class-reader">
+    <div className={`word-class-reader ${embedded ? "embedded" : ""}`}>
       <div className="word-class-reader-toolbar">
         <div className="word-class-reader-instruction-group">
           <strong>{toolbarText}</strong>
@@ -1465,18 +1467,22 @@ export function WordClassReader({
         <p className="word-class-reader-message">{message}</p>
       )}
 
-      <div className="interactive-reader-actions">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={restart}
-        >
-          <RotateCcw size={18} />
-          Recommencer
-        </Button>
+      {(!embedded || (complete && finishControl)) && (
+        <div className="interactive-reader-actions">
+          {!embedded && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={restart}
+            >
+              <RotateCcw size={18} />
+              Recommencer
+            </Button>
+          )}
 
-        {finishControl}
-      </div>
+          {!embedded || complete ? finishControl : null}
+        </div>
+      )}
 
       {activeToken && (
         <div className="reader-dialog-backdrop">

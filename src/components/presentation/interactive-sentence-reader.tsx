@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lightbulb, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GrammarExtensionReader } from "@/components/presentation/grammar-extension-reader";
+import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
-import type { CorrectionCode, Sentence, SentenceCorrection, WordGroupTarget, WordGroupType } from "@/types";
+import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
+import type { CorrectionCode, Sentence, SentenceCorrection, WordClassTarget, WordGroupTarget, WordGroupType } from "@/types";
 
 type Props = {
   sentence: Sentence;
@@ -23,6 +25,20 @@ type Props = {
       correction: SentenceCorrection;
       stage: "click" | "word" | "code";
       points: number;
+    }>
+  ) => void;
+  onWordClassPoint?: (
+    target: WordClassTarget,
+    stage: "find" | "class" | "role" | "agreement",
+    points: number,
+    pointId?: string
+  ) => void;
+  onRestoreWordClassPoints?: (
+    points: Array<{
+      target: WordClassTarget;
+      stage: "find" | "class" | "role" | "agreement";
+      points: number;
+      pointId?: string;
     }>
   ) => void;
 };
@@ -93,7 +109,12 @@ function buildCorrectedGrammarSentence(sentence: Sentence, correctedText: string
       ...annotation,
       start: mapOriginalPosition(sentence, annotation.start, "start"),
       end: mapOriginalPosition(sentence, annotation.end, "end")
-    }))
+    })),
+    wordClassTargets: (sentence.wordClassTargets ?? []).map((target) => {
+      const start = mapOriginalPosition(sentence, target.start, "start");
+      const end = mapOriginalPosition(sentence, target.end, "end");
+      return { ...target, start, end, text: correctedText.slice(start, end) };
+    })
   };
 }
 
@@ -168,7 +189,9 @@ export function InteractiveSentenceReader({
   onPoint,
   finishControl,
   persistenceKey,
-  onRestorePoints
+  onRestorePoints,
+  onWordClassPoint = () => undefined,
+  onRestoreWordClassPoints
 }: Props) {
   const [correctedIds, setCorrectedIds] = useState<string[]>([]);
   const [codedIds, setCodedIds] = useState<string[]>([]);
@@ -182,6 +205,7 @@ export function InteractiveSentenceReader({
   const [message, setMessage] = useState("");
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
   const [hybridGroupComplete, setHybridGroupComplete] = useState(false);
+  const [, setHybridWordClassComplete] = useState(false);
   const sentenceRef = useRef<HTMLDivElement>(null);
   const restorePointsRef = useRef(onRestorePoints);
 
@@ -321,11 +345,18 @@ export function InteractiveSentenceReader({
   const correctedText = useMemo(() => buildCorrectedText(sentence), [sentence]);
   const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
   const correctedGrammarSentence = useMemo(() => buildCorrectedGrammarSentence(sentence, correctedText), [correctedText, sentence]);
-  const usesNativeGroupPhase = sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0;
-  const usesSharedRangeSurface = Boolean(usesNativeGroupPhase || (correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "function") && sentence.workflowPhases?.some((phase) => phase.kind === "functions" && phase.actions.some((action) => action.enabled)));
+  const hybridWordClassSentence = useMemo(() => buildMixedWordClassSentence(correctedGrammarSentence), [correctedGrammarSentence]);
+  const usesNativeGroupPhase = Boolean(sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0);
+  const usesNativeWordClassPhase = Boolean(
+    sentence.workflowPhases?.some((phase) =>
+      (phase.kind === "word_classes" || phase.kind === "agreements") && phase.actions.some((action) => action.enabled)
+    ) && (hybridWordClassSentence.wordClassTargets?.length ?? 0) > 0
+  );
+  const usesNativeFunctionPhase = Boolean((correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "function") && sentence.workflowPhases?.some((phase) => phase.kind === "functions" && phase.actions.some((action) => action.enabled)));
+  const usesSharedRangeSurface = Boolean(usesNativeGroupPhase || usesNativeWordClassPhase || usesNativeFunctionPhase);
   const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const identifyGroupNuclei = Boolean(sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) || sentence.workflowPhases?.find((phase) => phase.kind === "nuclei")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled));
-  const hasRemainingGrammarWork = Boolean((correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "word_class" || annotation.kind === "donor" || annotation.kind === "receiver"));
+  const hasRemainingGrammarWork = usesNativeWordClassPhase;
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
@@ -602,14 +633,7 @@ export function InteractiveSentenceReader({
       </div>
 
       {correctionComplete && usesSharedRangeSurface ? (
-        hybridGroupComplete && hasRemainingGrammarWork ? (
-          <GrammarExtensionReader
-            sentence={correctedGrammarSentence}
-            excludedKinds={["group", "nucleus", "function"]}
-            initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus" || annotation.kind === "function").map((annotation) => annotation.id)}
-            finishControl={finishControl}
-          />
-        ) : (
+        usesNativeGroupPhase && !hybridGroupComplete ? (
           <WordGroupReader
             sentence={{ ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets }}
             persistenceKey={persistenceKey ? `${persistenceKey}-groups` : undefined}
@@ -620,6 +644,23 @@ export function InteractiveSentenceReader({
             identifyNuclei={identifyGroupNuclei}
             finishControl={hasRemainingGrammarWork ? undefined : finishControl}
             embedded
+          />
+        ) : usesNativeWordClassPhase ? (
+          <WordClassReader
+            sentence={hybridWordClassSentence}
+            persistenceKey={persistenceKey ? `${persistenceKey}-word-classes` : undefined}
+            onPoint={onWordClassPoint}
+            onRestorePoints={onRestoreWordClassPoints}
+            onCompleteChange={setHybridWordClassComplete}
+            finishControl={finishControl}
+            embedded
+          />
+        ) : (
+          <GrammarExtensionReader
+            sentence={correctedGrammarSentence}
+            excludedKinds={["group", "nucleus"]}
+            initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus").map((annotation) => annotation.id)}
+            finishControl={finishControl}
           />
         )
       ) : (
