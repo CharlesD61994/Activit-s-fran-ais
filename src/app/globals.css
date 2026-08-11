@@ -9089,3 +9089,126 @@ textarea {
 .agreement-arrow-path.draft {
   stroke-width: 2.35;
 }
+
+/* V82 — densité, couleurs et confirmation des mots */
+.word-class-reader-text.has-agreement-relations {
+  padding-top: 10px !important;
+  padding-bottom: 14px;
+  line-height: 1.2;
+}
+
+.word-class-reader-text.has-agreement-relations .word-class-reader-token {
+  padding-top: var(--agreement-band-height, 48px);
+}
+
+.word-class-reader-label,
+.word-class-reader-text.has-agreement-relations .word-class-reader-label {
+  font-size: .34em;
+  font-weight: 950;
+  letter-spacing: .01em;
+}
+
+.word-class-reader-token.found .word-class-reader-word,
+.word-class-reader-token.agreement-selected .word-class-reader-word {
+  font-weight: 850;
+}
+
+.word-class-reader-token.agreement-selected {
+  color: var(--agreement-word-color, var(--primary));
+  text-decoration-color: var(
+    --agreement-word-color,
+    var(--primary)
+  );
+}
+
+.word-class-reader-token.answer-confirmed .word-class-reader-word {
+  animation: wordAnswerConfirmed .9s ease-out both;
+}
+
+@keyframes wordAnswerConfirmed {
+  0% {
+    color: #21824b;
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+
+  30% {
+    color: #21824b;
+    filter: drop-shadow(0 0 8px rgb(47 143 91 / .5));
+    transform: scale(1.065);
+  }
+
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+}
+
+.agreement-ink-palette {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.agreement-ink-palette button {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--agreement-ink-color);
+  box-shadow: 0 0 0 1px color-mix(
+    in srgb,
+    var(--agreement-ink-color) 55%,
+    var(--border)
+  );
+  cursor: pointer;
+  transition:
+    transform .14s ease,
+    box-shadow .14s ease;
+}
+
+.agreement-ink-palette button:hover {
+  transform: scale(1.1);
+}
+
+.agreement-ink-palette button.selected {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--agreement-ink-color);
+  transform: scale(1.08);
+}
+
+@media (max-width: 760px) {
+  .word-class-reader-text.has-agreement-relations {
+    padding-top: 8px !important;
+    padding-bottom: 12px;
+    line-height: 1.18;
+  }
+
+  .word-class-reader-text.has-agreement-relations .word-class-reader-token {
+    padding-top: var(--agreement-band-height, 46px);
+  }
+
+  .agreement-ink-palette {
+    gap: 7px;
+  }
+
+  .agreement-ink-palette button {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word-class-reader-token.answer-confirmed .word-class-reader-word {
+    animation: none;
+    color: #21824b;
+  }
+}

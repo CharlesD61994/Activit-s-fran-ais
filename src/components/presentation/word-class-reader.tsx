@@ -58,14 +58,27 @@ type DrawnAgreementArrow = {
   id: string;
   taskTargetId: string;
   answerId: string;
+  color: string;
   points: AgreementPoint[];
 };
 
 type AgreementArrow = {
   id: string;
+  color: string;
   path: string;
   tipPath: string;
 };
+
+const AGREEMENT_INK_COLORS = [
+  { value: "#315f84", label: "Bleu" },
+  { value: "#d93636", label: "Rouge" },
+  { value: "#2f8f5b", label: "Vert" },
+  { value: "#7a4bb3", label: "Violet" },
+  { value: "#d97706", label: "Orange" }
+] as const;
+
+const DEFAULT_AGREEMENT_INK_COLOR =
+  AGREEMENT_INK_COLORS[0].value;
 
 function tokenize(text: string): WordToken[] {
   return Array.from(
@@ -107,7 +120,8 @@ function normalizeTargets(
 
 function buildAgreementArrow(
   id: string,
-  points: AgreementPoint[]
+  points: AgreementPoint[],
+  color: string
 ): AgreementArrow | null {
   if (points.length < 2) return null;
 
@@ -145,6 +159,7 @@ function buildAgreementArrow(
 
   return {
     id,
+    color,
     path,
     tipPath: [
       `M ${(baseX + perpendicularX).toFixed(1)} ${(
@@ -213,7 +228,10 @@ export function WordClassReader({
       0
     );
 
-    return Math.min(112, 40 + Math.max(1, linkCount) * 14);
+    return Math.min(
+      58,
+      38 + Math.max(1, Math.min(linkCount, 4)) * 5
+    );
   }, [relationTasks]);
 
   const tokens = useMemo(
@@ -265,6 +283,12 @@ export function WordClassReader({
   const [draftAgreementPoints, setDraftAgreementPoints] = useState<
     AgreementPoint[]
   >([]);
+  const [agreementInkColor, setAgreementInkColor] = useState<string>(
+    DEFAULT_AGREEMENT_INK_COLOR
+  );
+  const [confirmedWordIds, setConfirmedWordIds] = useState<string[]>(
+    []
+  );
   const [arrowCanvas, setArrowCanvas] = useState({
     width: 0,
     height: 0
@@ -274,6 +298,7 @@ export function WordClassReader({
   const activeDrawingPointerRef = useRef<number | null>(null);
   const drawingStartTargetIdRef = useRef<string | null>(null);
   const draftAgreementPointsRef = useRef<AgreementPoint[]>([]);
+  const wordSuccessTimerRef = useRef<number | null>(null);
   const restoreRef = useRef(onRestorePoints);
   const completeRef = useRef(onCompleteChange);
 
@@ -284,6 +309,15 @@ export function WordClassReader({
   useEffect(() => {
     completeRef.current = onCompleteChange;
   }, [onCompleteChange]);
+
+  useEffect(
+    () => () => {
+      if (wordSuccessTimerRef.current !== null) {
+        window.clearTimeout(wordSuccessTimerRef.current);
+      }
+    },
+    []
+  );
 
   const persistenceSignature = useMemo(
     () =>
@@ -312,6 +346,7 @@ export function WordClassReader({
       setRolePointIds([]);
       setRelationAnswers({});
       setDrawnAgreementArrows([]);
+      setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
       setDraftAgreementPoints([]);
       draftAgreementPointsRef.current = [];
       setActiveRelationTargetId(null);
@@ -328,6 +363,7 @@ export function WordClassReader({
       setRolePointIds([]);
       setRelationAnswers({});
       setDrawnAgreementArrows([]);
+      setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
       setDraftAgreementPoints([]);
       draftAgreementPointsRef.current = [];
       setActiveRelationTargetId(null);
@@ -343,7 +379,10 @@ export function WordClassReader({
         rolePointIds?: string[];
         relationAnswers?: Record<string, string[]>;
         activeRelationTargetId?: string | null;
-        drawnAgreementArrows?: DrawnAgreementArrow[];
+        drawnAgreementArrows?: Array<
+          Omit<DrawnAgreementArrow, "color"> & { color?: string }
+        >;
+        agreementInkColor?: string;
       };
 
       const restoredFoundIds = saved.foundIds ?? [];
@@ -351,8 +390,12 @@ export function WordClassReader({
       const restoredResolvedRoleIds = saved.resolvedRoleIds ?? [];
       const restoredRolePointIds = saved.rolePointIds ?? [];
       const restoredRelationAnswers = saved.relationAnswers ?? {};
-      const restoredDrawnAgreementArrows =
-        saved.drawnAgreementArrows ?? [];
+      const restoredDrawnAgreementArrows = (
+        saved.drawnAgreementArrows ?? []
+      ).map((arrow) => ({
+        ...arrow,
+        color: arrow.color ?? DEFAULT_AGREEMENT_INK_COLOR
+      }));
 
       setFoundIds(restoredFoundIds);
       setClassPointIds(restoredClassPointIds);
@@ -360,6 +403,9 @@ export function WordClassReader({
       setRolePointIds(restoredRolePointIds);
       setRelationAnswers(restoredRelationAnswers);
       setDrawnAgreementArrows(restoredDrawnAgreementArrows);
+      setAgreementInkColor(
+        saved.agreementInkColor ?? DEFAULT_AGREEMENT_INK_COLOR
+      );
       setDraftAgreementPoints([]);
       draftAgreementPointsRef.current = [];
       setActiveRelationTargetId(
@@ -450,7 +496,8 @@ export function WordClassReader({
         rolePointIds,
         relationAnswers,
         activeRelationTargetId,
-        drawnAgreementArrows
+        drawnAgreementArrows,
+        agreementInkColor
       })
     );
   }, [
@@ -461,6 +508,7 @@ export function WordClassReader({
     persistenceKey,
     relationAnswers,
     drawnAgreementArrows,
+    agreementInkColor,
     resolvedRoleIds,
     rolePointIds
   ]);
@@ -474,13 +522,29 @@ export function WordClassReader({
     : [];
 
 
-  const persistentAgreementAnswerIds = useMemo(
-    () =>
-      new Set(
-        Object.values(relationAnswers).flat()
-      ),
-    [relationAnswers]
-  );
+  const persistentAgreementTargetIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    Object.entries(relationAnswers).forEach(
+      ([taskTargetId, answerIds]) => {
+        if (answerIds.length > 0) ids.add(taskTargetId);
+        answerIds.forEach((answerId) => ids.add(answerId));
+      }
+    );
+
+    return ids;
+  }, [relationAnswers]);
+
+  const agreementColorByTargetId = useMemo(() => {
+    const colors = new Map<string, string>();
+
+    drawnAgreementArrows.forEach((arrow) => {
+      colors.set(arrow.taskTargetId, arrow.color);
+      colors.set(arrow.answerId, arrow.color);
+    });
+
+    return colors;
+  }, [drawnAgreementArrows]);
 
   const currentTaskComplete = currentTask
     ? currentTask.expectedIds.every((id) =>
@@ -511,7 +575,8 @@ export function WordClassReader({
           arrow.points.map((point) => ({
             x: point.x * arrowCanvas.width,
             y: point.y * arrowCanvas.height
-          }))
+          })),
+          arrow.color
         );
 
         return rendered ? [rendered] : [];
@@ -520,8 +585,13 @@ export function WordClassReader({
   );
 
   const draftAgreementArrow = useMemo(
-    () => buildAgreementArrow("agreement-draft", draftAgreementPoints),
-    [draftAgreementPoints]
+    () =>
+      buildAgreementArrow(
+        "agreement-draft",
+        draftAgreementPoints,
+        agreementInkColor
+      ),
+    [agreementInkColor, draftAgreementPoints]
   );
 
   useLayoutEffect(() => {
@@ -587,6 +657,18 @@ export function WordClassReader({
     completeRef.current?.(complete);
   }, [complete]);
 
+  function showWordSuccess(ids: string[]) {
+    if (wordSuccessTimerRef.current !== null) {
+      window.clearTimeout(wordSuccessTimerRef.current);
+    }
+
+    setConfirmedWordIds(Array.from(new Set(ids)));
+    wordSuccessTimerRef.current = window.setTimeout(() => {
+      setConfirmedWordIds([]);
+      wordSuccessTimerRef.current = null;
+    }, 900);
+  }
+
   function findTarget(token: WordToken) {
     const exact = targetByRange.get(
       `${token.start}-${token.end}`
@@ -628,6 +710,7 @@ export function WordClassReader({
     setFoundIds((current) => [...current, target.id]);
     onPoint(target, "find", 1, `find-${target.id}`);
     setMessage("");
+    showWordSuccess([target.id]);
     startRoleOrContinue(target);
   }
 
@@ -670,6 +753,7 @@ export function WordClassReader({
 
     setActiveToken(null);
     setMessage("");
+    showWordSuccess([target.id]);
     startRoleOrContinue(target);
   }
 
@@ -681,6 +765,10 @@ export function WordClassReader({
     if (!task || !target) return;
 
     const correct = answer === task.role;
+
+    if (correct) {
+      showWordSuccess([roleTargetId]);
+    }
 
     if (correct && !rolePointIds.includes(roleTargetId)) {
       setRolePointIds((current) => [...current, roleTargetId]);
@@ -921,6 +1009,7 @@ export function WordClassReader({
             id,
             taskTargetId: currentTask.targetId,
             answerId,
+            color: agreementInkColor,
             points: points.map((point) => ({
               x: point.x / width,
               y: point.y / height
@@ -940,6 +1029,7 @@ export function WordClassReader({
           1,
           `agreement-${currentTask.targetId}-${answerId}`
         );
+        showWordSuccess([currentTask.targetId, answerId]);
         setMessage("");
       }
     } else if (pathLength < 24) {
@@ -972,6 +1062,8 @@ export function WordClassReader({
     setRolePointIds([]);
     setRelationAnswers({});
     setDrawnAgreementArrows([]);
+    setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
+    setConfirmedWordIds([]);
     clearDraftAgreementArrow();
     setActiveToken(null);
     setRoleTargetId(null);
@@ -1038,6 +1130,33 @@ export function WordClassReader({
               {analysisTargets.length > 1 ? "s" : ""}
             </span>
           )}
+
+          {currentTask && (
+            <div
+              className="agreement-ink-palette"
+              role="group"
+              aria-label="Couleur de la prochaine flèche"
+            >
+              {AGREEMENT_INK_COLORS.map((color) => (
+                <button
+                  type="button"
+                  key={color.value}
+                  className={
+                    agreementInkColor === color.value ? "selected" : ""
+                  }
+                  style={
+                    {
+                      "--agreement-ink-color": color.value
+                    } as CSSProperties
+                  }
+                  aria-label={color.label}
+                  aria-pressed={agreementInkColor === color.value}
+                  title={color.label}
+                  onClick={() => setAgreementInkColor(color.value)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1081,10 +1200,12 @@ export function WordClassReader({
                 <path
                   className="agreement-arrow-path frozen"
                   d={arrow.path}
+                  style={{ stroke: arrow.color }}
                 />
                 <path
                   className="agreement-arrow-tip frozen"
                   d={arrow.tipPath}
+                  style={{ stroke: arrow.color }}
                 />
               </g>
             ))}
@@ -1094,10 +1215,12 @@ export function WordClassReader({
                 <path
                   className="agreement-arrow-path draft"
                   d={draftAgreementArrow.path}
+                  style={{ stroke: draftAgreementArrow.color }}
                 />
                 <path
                   className="agreement-arrow-tip draft"
                   d={draftAgreementArrow.tipPath}
+                  style={{ stroke: draftAgreementArrow.color }}
                 />
               </g>
             )}
@@ -1114,7 +1237,13 @@ export function WordClassReader({
             ? foundIds.includes(target.id)
             : false;
           const relationSelected = target
-            ? persistentAgreementAnswerIds.has(target.id)
+            ? persistentAgreementTargetIds.has(target.id)
+            : false;
+          const agreementColor = target
+            ? agreementColorByTargetId.get(target.id)
+            : undefined;
+          const answerConfirmed = target
+            ? confirmedWordIds.includes(target.id)
             : false;
           const focus =
             currentTask &&
@@ -1126,9 +1255,16 @@ export function WordClassReader({
               className={`word-class-reader-token ${
                 found ? "found" : ""
               } ${relationSelected ? "agreement-selected" : ""} ${
-                focus ? "agreement-focus" : ""
-              }`}
+                answerConfirmed ? "answer-confirmed" : ""
+              } ${focus ? "agreement-focus" : ""}`}
               key={token.id}
+              style={
+                agreementColor
+                  ? ({
+                      "--agreement-word-color": agreementColor
+                    } as CSSProperties)
+                  : undefined
+              }
               data-word-token="true"
               data-target-id={target?.id}
               aria-pressed={found || relationSelected}
