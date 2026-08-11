@@ -13,6 +13,7 @@ import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeG
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { bracketReserve } from "@/components/grammar/range-mark-spacing";
+import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
 type Boundary = "left_bracket" | "right_bracket";
@@ -32,14 +33,6 @@ function isContractedNested(target?: WordGroupTarget | null) {
       (target.mode === "contracted_nested" ||
         target.contractedGnText?.trim())
   );
-}
-
-function functionInstructionLabel(label?: string) {
-  const value = label?.trim().toLocaleLowerCase("fr-CA");
-  if (!value) return "la fonction demandée";
-  if (value.startsWith("attribut")) return `l’${value}`;
-  if (value.startsWith("sujet") || value.startsWith("prédicat") || value.startsWith("complément")) return `le ${value}`;
-  return `la fonction « ${value} »`;
 }
 
 type RestoredPoint = {
@@ -1072,7 +1065,7 @@ export function WordGroupReader({
       return "Quel est le groupe enchâssé?";
     }
     if (markingFunctions) {
-      const functionName = functionInstructionLabel(currentFunctionLabel);
+      const functionName = grammarFunctionInstructionLabel(currentFunctionLabel);
       return continuationBoundaryMode === "frame"
         ? `Encadre ${functionName} avec un rectangle.`
         : `Mets ${functionName} entre crochets.`;

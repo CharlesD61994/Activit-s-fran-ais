@@ -74,7 +74,7 @@ const visualByKind: Record<
   GrammarAnnotation["visualEffect"]
 > = {
   group: { kind: "brackets" },
-  function: { kind: "brackets" },
+  function: { kind: "frame" },
   nucleus: { kind: "color", color: "#d93434" },
   word_class: { kind: "underline", color: "#2467d1" },
   donor: { kind: "highlight", color: "#fde68a" },
