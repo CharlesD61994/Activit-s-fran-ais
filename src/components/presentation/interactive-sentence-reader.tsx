@@ -325,6 +325,7 @@ export function InteractiveSentenceReader({
   const usesSharedRangeSurface = Boolean(usesNativeGroupPhase || (correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "function") && sentence.workflowPhases?.some((phase) => phase.kind === "functions" && phase.actions.some((action) => action.enabled)));
   const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const identifyGroupNuclei = Boolean(sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) || sentence.workflowPhases?.find((phase) => phase.kind === "nuclei")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled));
+  const hasRemainingGrammarWork = Boolean((correctedGrammarSentence.grammarAnnotations ?? []).some((annotation) => annotation.kind === "word_class" || annotation.kind === "donor" || annotation.kind === "receiver"));
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
@@ -611,7 +612,7 @@ export function InteractiveSentenceReader({
       </div>
 
       {correctionComplete && usesSharedRangeSurface ? (
-        hybridGroupComplete ? (
+        hybridGroupComplete && hasRemainingGrammarWork ? (
           <GrammarExtensionReader
             sentence={correctedGrammarSentence}
             excludedKinds={["group", "nucleus", "function"]}
