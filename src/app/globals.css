@@ -8956,15 +8956,32 @@ textarea {
   }
 }
 
-/* V79 — flèches d’accord tracées sous les mots */
+/* V80 — moteur de lignes pour les flèches d’accord */
+.word-class-reader-word {
+  position: relative;
+  display: inline-block;
+  line-height: 1.08;
+}
+
 .word-class-reader-label {
-  bottom: calc(100% - .45em);
+  bottom: calc(100% + 2px);
 }
 
 .word-class-reader-text.has-agreement-relations {
-  padding-top: 88px !important;
-  padding-bottom: 32px;
-  line-height: 2.14;
+  padding-top: 20px !important;
+  padding-bottom: 24px;
+  line-height: 1.48;
+}
+
+.word-class-reader-text.has-agreement-relations .word-class-reader-token {
+  margin-top: 0;
+  padding: var(--agreement-band-height, 72px) .035em 0;
+  line-height: 1;
+  vertical-align: baseline;
+}
+
+.word-class-reader-text.has-agreement-relations .word-class-reader-label {
+  bottom: calc(100% + 2px);
 }
 
 .word-class-reader-text.has-agreement-relations .agreement-found-indicator {
@@ -9012,14 +9029,14 @@ textarea {
 }
 
 @media (max-width: 760px) {
-  .word-class-reader-label {
-    bottom: calc(100% - .47em);
+  .word-class-reader-text.has-agreement-relations {
+    padding-top: 16px !important;
+    padding-bottom: 20px;
+    line-height: 1.42;
   }
 
-  .word-class-reader-text.has-agreement-relations {
-    padding-top: 76px !important;
-    padding-bottom: 26px;
-    line-height: 2.04;
+  .word-class-reader-text.has-agreement-relations .word-class-reader-token {
+    padding-top: var(--agreement-band-height, 68px);
   }
 
   .agreement-arrow-path,

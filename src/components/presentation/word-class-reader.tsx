@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { Check, CheckCircle2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { wordClassLabels } from "@/lib/activity-types";
@@ -137,6 +138,15 @@ export function WordClassReader({
       sentence.agreementRelationsEnabled
     ]
   );
+
+  const agreementBandHeight = useMemo(() => {
+    const linkCount = relationTasks.reduce(
+      (total, task) => total + task.expectedIds.length,
+      0
+    );
+
+    return Math.min(112, 40 + Math.max(1, linkCount) * 14);
+  }, [relationTasks]);
 
   const tokens = useMemo(
     () => tokenize(sentence.originalText),
@@ -461,7 +471,10 @@ export function WordClassReader({
           .querySelectorAll<HTMLElement>('.word-class-reader-token[data-target-id]')
           .forEach((element) => {
             const id = element.dataset.targetId;
-            if (id) tokenRects.set(id, glyphRect(element));
+            const glyph =
+              element.querySelector<HTMLElement>("[data-word-glyph]") ??
+              element;
+            if (id) tokenRects.set(id, glyphRect(glyph));
           });
         const labelRects = new Map<string, ReturnType<typeof localRect>>();
         activeContainer
@@ -505,9 +518,8 @@ export function WordClassReader({
           const { task, answerId, donorId, donor, receiver } = link;
           const donorLine = lineIndex(donor);
           const receiverLine = lineIndex(receiver);
-          const siblings = resolvedLinks
+          const lanePeers = resolvedLinks
             .filter((candidate) =>
-              candidate.donorId === donorId &&
               lineIndex(candidate.donor) === donorLine &&
               lineIndex(candidate.receiver) === receiverLine
             )
@@ -515,15 +527,34 @@ export function WordClassReader({
               Math.abs(a.receiver.centerX - a.donor.centerX) -
               Math.abs(b.receiver.centerX - b.donor.centerX)
             );
-          const laneRank = Math.max(0, siblings.findIndex((candidate) => candidate.answerId === answerId));
-          const startSpread = (laneRank - (siblings.length - 1) / 2) * 8;
+          const laneRank = Math.max(
+            0,
+            lanePeers.findIndex(
+              (candidate) =>
+                candidate.task.targetId === task.targetId &&
+                candidate.answerId === answerId
+            )
+          );
+          const donorPeers = lanePeers.filter(
+            (candidate) => candidate.donorId === donorId
+          );
+          const donorRank = Math.max(
+            0,
+            donorPeers.findIndex(
+              (candidate) =>
+                candidate.task.targetId === task.targetId &&
+                candidate.answerId === answerId
+            )
+          );
+          const startSpread =
+            (donorRank - (donorPeers.length - 1) / 2) * 8;
           const donorAnchor = labelRects.get(donorId) ?? donor;
           const receiverAnchor = labelRects.get(link.receiverId) ?? receiver;
           const startX = donorAnchor.centerX + startSpread;
           const startY = donorAnchor.top - 3;
           const endX = receiverAnchor.centerX;
           const endY = receiverAnchor.top - 3;
-          const laneOffset = 18 + laneRank * 15;
+          const laneOffset = 16 + laneRank * 13;
           let path: string;
           let finalControl = { x: endX, y: endY - 18 };
 
@@ -539,9 +570,9 @@ export function WordClassReader({
             };
             path = `M ${startX} ${startY} C ${startX} ${laneY}, ${finalControl.x} ${laneY}, ${endX} ${endY}`;
           } else {
-            const railLane = linkIndex % 3;
-            const leftRail = 18 + railLane * 9;
-            const rightRail = canvasWidth - 18 - railLane * 9;
+            const railLane = linkIndex % 6;
+            const leftRail = 10 + railLane * 7;
+            const rightRail = canvasWidth - 10 - railLane * 7;
             const railX =
               Math.abs(startX - leftRail) + Math.abs(endX - leftRail) <=
               Math.abs(startX - rightRail) + Math.abs(endX - rightRail)
@@ -871,6 +902,13 @@ export function WordClassReader({
       <div
         ref={textContainerRef}
         className={`word-class-reader-text ${sentence.agreementRelationsEnabled ? "has-agreement-relations" : ""}`}
+        style={
+          sentence.agreementRelationsEnabled
+            ? ({
+                "--agreement-band-height": `${agreementBandHeight}px`
+              } as CSSProperties)
+            : undefined
+        }
         aria-live="polite"
       >
         {agreementArrows.length > 0 && (
@@ -939,7 +977,8 @@ export function WordClassReader({
                 }
               }}
             >
-              {found && target && (
+              <span className="word-class-reader-word" data-word-glyph="true">
+                {found && target && (
                 <span
                   className="word-class-reader-label"
                   data-target-label-id={target.id}
@@ -948,14 +987,15 @@ export function WordClassReader({
                 </span>
               )}
               {token.text}
-              {relationSelected && (
-                <span
-                  className="agreement-found-indicator"
-                  aria-label="Bonne réponse"
-                >
-                  <Check size={13} />
-                </span>
-              )}
+                {relationSelected && (
+                  <span
+                    className="agreement-found-indicator"
+                    aria-label="Bonne réponse"
+                  >
+                    <Check size={13} />
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}
