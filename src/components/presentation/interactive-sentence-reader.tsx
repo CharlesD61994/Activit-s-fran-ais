@@ -202,6 +202,7 @@ export function InteractiveSentenceReader({
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
   const [hybridGroupComplete, setHybridGroupComplete] = useState(false);
   const [, setHybridWordClassComplete] = useState(false);
+  const [readerRevision, setReaderRevision] = useState(0);
   const sentenceRef = useRef<HTMLDivElement>(null);
   const restorePointsRef = useRef(onRestorePoints);
 
@@ -561,8 +562,15 @@ export function InteractiveSentenceReader({
     setClickedIds([]);
     setWordPointIds([]);
     setCodePointIds([]);
+    setHybridGroupComplete(false);
+    setHybridWordClassComplete(false);
+    setReaderRevision((current) => current + 1);
+    restorePointsRef.current?.([]);
+    onRestoreWordClassPoints?.([]);
     if (persistenceKey && typeof window !== "undefined") {
       window.sessionStorage.removeItem(persistenceKey);
+      window.sessionStorage.removeItem(`${persistenceKey}-groups`);
+      window.sessionStorage.removeItem(`${persistenceKey}-word-classes`);
     }
   }
 
@@ -666,6 +674,7 @@ export function InteractiveSentenceReader({
       {correctionComplete && usesSharedRangeSurface ? (
         usesNativeGroupPhase && !hybridGroupComplete ? (
           <WordGroupReader
+            key={`mixed-groups-${readerRevision}`}
             sentence={{ ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets }}
             persistenceKey={persistenceKey ? `${persistenceKey}-groups` : undefined}
             onPoint={() => undefined}
@@ -679,6 +688,7 @@ export function InteractiveSentenceReader({
           />
         ) : usesNativeWordClassPhase ? (
           <WordClassReader
+            key={`mixed-word-classes-${readerRevision}`}
             sentence={hybridWordClassSentence}
             persistenceKey={persistenceKey ? `${persistenceKey}-word-classes` : undefined}
             onPoint={onWordClassPoint}
@@ -689,6 +699,7 @@ export function InteractiveSentenceReader({
           />
         ) : (
           <GrammarExtensionReader
+            key={`mixed-grammar-${readerRevision}`}
             sentence={correctedGrammarSentence}
             excludedKinds={["group", "nucleus"]}
             initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus").map((annotation) => annotation.id)}
@@ -703,7 +714,7 @@ export function InteractiveSentenceReader({
       )}
 
       {correctionComplete && !usesSharedRangeSurface && (
-        <GrammarExtensionReader sentence={correctedGrammarSentence} forcedLineBreaks={forcedGrammarLineBreaks} />
+        <GrammarExtensionReader key={`mixed-extension-${readerRevision}`} sentence={correctedGrammarSentence} forcedLineBreaks={forcedGrammarLineBreaks} />
       )}
 
       {activeCorrection && (
