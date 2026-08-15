@@ -81,6 +81,18 @@ const AGREEMENT_INK_COLORS = [
 
 const ALL_WORD_CLASSES = Object.keys(wordClassLabels) as WordClass[];
 
+const wordClassPluralLabels: Record<WordClass, string> = {
+  noun: "noms",
+  determiner: "déterminants",
+  verb: "verbes",
+  preposition: "prépositions",
+  adverb: "adverbes",
+  adjective: "adjectifs",
+  pronoun: "pronoms",
+  conjunction: "conjonctions",
+  interjection: "interjections"
+};
+
 const DEFAULT_AGREEMENT_INK_COLOR =
   AGREEMENT_INK_COLORS[0].value;
 
@@ -1298,15 +1310,28 @@ export function WordClassReader({
     return values.join(", ");
   }
 
+  const unresolvedTargets = analysisTargets.filter(
+    (target) => !foundIds.includes(target.id)
+  );
+  const unresolvedDirectClasses = Array.from(new Set(
+    unresolvedTargets
+      .filter((target) => !usesClassChoice(target, multipleClasses, hasExplicitClassModes))
+      .map((target) => target.wordClass)
+  ));
+  const directClassNames = unresolvedDirectClasses.map(
+    (wordClass) => wordClassPluralLabels[wordClass]
+  );
   const instruction = hasClassChoiceTargets && hasDirectFindTargets
-    ? "Clique sur les mots demandés. Pour certains mots, tu choisiras ensuite leur classe."
+    ? directClassNames.length > 0
+      ? `Trouve les ${directClassNames.join(" et les ")}. Pour les autres mots demandés, choisis ensuite leur classe.`
+      : "Clique sur le prochain mot à analyser, puis choisis sa classe."
     : hasClassChoiceTargets
-      ? "Clique sur un mot, puis choisis sa classe."
-      : selectedClasses.length === 1
-      ? `Trouve tous les ${wordClassLabels[
-          selectedClasses[0]
-        ].toLocaleLowerCase("fr-CA")}s.`
-      : "Trouve les mots appartenant aux classes demandées.";
+      ? "Clique sur le prochain mot à analyser, puis choisis sa classe."
+      : directClassNames.length === 1
+        ? `Trouve tous les ${directClassNames[0]} dans la phrase.`
+        : directClassNames.length > 1
+          ? `Trouve les mots des classes suivantes : ${directClassNames.join(", ")}.`
+          : "Tous les mots demandés ont été trouvés.";
 
   const currentFocusTarget = currentTask
     ? targetMap.get(currentTask.targetId)

@@ -33,6 +33,7 @@ export function bracketReserve(boundaryCount: number) {
 }
 
 type RangeBoundary = { start: number; end: number };
+type IdentifiedRangeBoundary = RangeBoundary & { id: string };
 
 export function bracketTokenMargins(
   token: RangeBoundary,
@@ -44,6 +45,31 @@ export function bracketTokenMargins(
   ).length;
   const rightBoundaryCount = targets.filter(
     (target) =>
+      token.start < target.end && token.end >= target.end
+  ).length;
+
+  return {
+    marginLeft: bracketReserve(leftBoundaryCount),
+    marginRight: bracketReserve(rightBoundaryCount)
+  };
+}
+
+export function validatedBracketTokenMargins(
+  token: RangeBoundary,
+  targets: IdentifiedRangeBoundary[],
+  leftIds: string[],
+  rightIds: string[]
+) {
+  const leftSet = new Set(leftIds);
+  const rightSet = new Set(rightIds);
+  const leftBoundaryCount = targets.filter(
+    (target) =>
+      leftSet.has(target.id) &&
+      token.start <= target.start && token.end > target.start
+  ).length;
+  const rightBoundaryCount = targets.filter(
+    (target) =>
+      rightSet.has(target.id) &&
       token.start < target.end && token.end >= target.end
   ).length;
 

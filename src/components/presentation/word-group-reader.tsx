@@ -13,7 +13,7 @@ import { useRangeTargetPositions } from "@/components/grammar/use-range-target-p
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
-import { bracketTokenMargins } from "@/components/grammar/range-mark-spacing";
+import { validatedBracketTokenMargins } from "@/components/grammar/range-mark-spacing";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
@@ -645,7 +645,7 @@ export function WordGroupReader({
     const boundaryTargets = markingFunctions ? functionTargets : targets;
     const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
     const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
-    const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : currentTarget?.id;
+    const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : undefined;
     const completedGroupIds = identifyNuclei ? nucleusFoundIds : classifiedIds;
     const unavailableIds = Array.from(new Set([...completedGroupIds, ...(boundary === "left_bracket" ? foundLeftIds : foundRightIds)]));
     const otherBoundaryIds = boundary === "left_bracket" ? foundRightIds : foundLeftIds;
@@ -751,7 +751,7 @@ export function WordGroupReader({
     const boundaryTargets = markingFunctions ? functionTargets : targets;
     const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
     const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
-    const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : currentTarget?.id;
+    const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : undefined;
     const match = matchDrawnRange(start, end, boundaryTargets, Array.from(new Set([...foundLeftIds, ...foundRightIds])), requestedTargetId);
     setFrameStart(null);
     setFrameCurrent(null);
@@ -1050,7 +1050,7 @@ export function WordGroupReader({
     if (phase === "contracted_answer") {
       return "Écris le groupe enchâssé avec le déterminant décortiqué.";
     }
-    if (phase === "type") return "Quel est le type de ce groupe?";
+    if (phase === "type") return "Choisis maintenant le type du groupe que tu viens de délimiter.";
     if (phase === "nucleus") {
       return currentIsContracted
         ? "Clique sur le noyau du GN enchâssé."
@@ -1072,8 +1072,8 @@ export function WordGroupReader({
         : `Mets ${functionName} entre crochets.`;
     }
     return boundaryMode === "frame"
-      ? `Encadre le ${groupLabels[currentTarget?.groupType ?? "GN"]} avec un rectangle.`
-      : `Mets le ${groupLabels[currentTarget?.groupType ?? "GN"]} entre crochets.`;
+      ? "Encadre un groupe de mots avec un rectangle. Ensuite, indique son type."
+      : "Mets un groupe de mots entre crochets. Ensuite, indique son type.";
   }
 
   const reservedBracketTargets = [
@@ -1231,7 +1231,12 @@ export function WordGroupReader({
                 }
                 style={
                   measurableToken
-                    ? bracketTokenMargins(token, reservedBracketTargets)
+                    ? validatedBracketTokenMargins(
+                        token,
+                        reservedBracketTargets,
+                        [...leftFoundIds, ...functionLeftIds],
+                        [...rightFoundIds, ...functionRightIds]
+                      )
                     : undefined
                 }
                 onClick={
