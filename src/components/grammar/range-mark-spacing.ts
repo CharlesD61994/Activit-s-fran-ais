@@ -1,8 +1,8 @@
 const DEFAULT_BRACKET_CAP = 6;
 const DEFAULT_TEXT_GAP = 4;
 const MIN_BRACKET_CAP = 3;
-const MIN_TEXT_GAP = 1;
-const MIN_BRACKET_SEPARATION = 2;
+const MIN_TEXT_GAP = 2;
+const MIN_BRACKET_SEPARATION = 6;
 
 export function bracketSpacing(availableSpace?: number) {
   const defaultFootprint =

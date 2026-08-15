@@ -172,6 +172,12 @@ export function GrammarExtensionReader({
       (annotation.visualEffect?.kind === "frame" ||
         (!annotation.visualEffect && annotation.kind === "function"))
   );
+  const needsFrameRoom =
+    steps.some((item) => item.action.responseMode === "frame") ||
+    annotations.some((annotation) => annotation.visualEffect?.kind === "frame");
+  const needsBracketRoom =
+    steps.some((item) => item.action.responseMode === "brackets") ||
+    annotations.some((annotation) => annotation.visualEffect?.kind === "brackets");
   const partialBracketTargets = expected.filter(
     (annotation) =>
       !solvedIds.includes(annotation.id) &&
@@ -537,7 +543,7 @@ export function GrammarExtensionReader({
       )}
 
       <div
-          className={`word-group-drawing-surface grammar-extension-surface phase-${responseMode}`}
+          className={`word-group-drawing-surface grammar-extension-surface reader-mark-layout phase-${responseMode} ${needsFrameRoom ? "has-frame-marks" : ""} ${needsBracketRoom ? "has-bracket-marks" : ""}`}
           ref={surfaceRef}
         >
           <RangeMarksLayer

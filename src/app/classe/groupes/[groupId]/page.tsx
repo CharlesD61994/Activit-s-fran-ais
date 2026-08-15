@@ -405,7 +405,6 @@ export default function ClassroomGroupPage({
                     {Math.min(weeklyPoints, objectiveTargetPoints)} / {objectiveTargetPoints} points
                   </strong>
                 </div>
-                <span className="classroom-objective-action">Atteindre</span>
                 <button
                   type="button"
                   className="classroom-objective-edit-trigger"

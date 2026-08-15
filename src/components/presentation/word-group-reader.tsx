@@ -1090,7 +1090,15 @@ export function WordGroupReader({
       </ReaderChromePortal>
 
       <div
-        className={`word-group-drawing-surface phase-${phase}`}
+        className={`word-group-drawing-surface reader-mark-layout phase-${phase} ${
+          boundaryMode === "frame" || continuationBoundaryMode === "frame"
+            ? "has-frame-marks"
+            : ""
+        } ${
+          boundaryMode === "brackets" || continuationBoundaryMode === "brackets"
+            ? "has-bracket-marks"
+            : ""
+        } has-above-marks`}
         ref={surfaceRef}
       >
         <RangeMarksLayer targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>

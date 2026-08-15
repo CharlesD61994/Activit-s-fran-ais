@@ -12,9 +12,9 @@ describe("bracketSpacing", () => {
 
   it("shrinks both brackets instead of merging adjacent boundaries", () => {
     const spacing = bracketSpacing(18);
-    expect(spacing.cap).toBe(6);
+    expect(spacing.cap).toBe(4);
     expect(spacing.gap).toBe(2);
-    expect((spacing.cap + spacing.gap) * 2 + 2).toBeLessThanOrEqual(18);
+    expect((spacing.cap + spacing.gap) * 2 + 6).toBeLessThanOrEqual(18);
   });
 
   it("always leaves a gap between a bracket and its word", () => {

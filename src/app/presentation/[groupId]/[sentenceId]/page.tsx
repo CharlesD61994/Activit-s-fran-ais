@@ -90,10 +90,12 @@ export default function PresentationPage({
   const readerPersistenceKey = `reader-progress-${groupId}-${plannedSessionId ?? "single"}-${sentenceId}-${competitionSourceId ?? "normal"}`;
   const [pendingPoints, setPendingPoints] = useState<PendingPoint[]>([]);
   const [finished, setFinished] = useState(false);
-  const [wordClassComplete, setWordClassComplete] = useState(false);
-  const [wordGroupComplete, setWordGroupComplete] = useState(false);
-  const [treeAnalysisComplete, setTreeAnalysisComplete] = useState(false);
+  const [, setWordClassComplete] = useState(false);
+  const [, setWordGroupComplete] = useState(false);
+  const [, setTreeAnalysisComplete] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [readerRunRevision, setReaderRunRevision] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const competitionTeams = useMemo(
     () => data.teams.filter((team) => team.groupId === groupId),
@@ -455,6 +457,31 @@ export default function PresentationPage({
     );
   }
 
+  function handleReaderComplete(
+    complete: boolean,
+    setComplete: (value: boolean) => void
+  ) {
+    setComplete(complete);
+    if (complete) setShowCompletionDialog(true);
+  }
+
+  function restartActivity() {
+    if (typeof window !== "undefined") {
+      [
+        readerPersistenceKey,
+        `${readerPersistenceKey}-groups`,
+        `${readerPersistenceKey}-word-classes`
+      ].forEach((key) => window.sessionStorage.removeItem(key));
+    }
+    setPendingPoints([]);
+    setFinished(false);
+    setWordClassComplete(false);
+    setWordGroupComplete(false);
+    setTreeAnalysisComplete(false);
+    setShowCompletionDialog(false);
+    setReaderRunRevision((current) => current + 1);
+  }
+
   const standings = buildStandings();
 
   if (showPodium) {
@@ -566,16 +593,13 @@ export default function PresentationPage({
           </div>
         </section>
 
+        <section className="reader-activity-surface" key={readerRunRevision}>
         {isTreeAnalysisActivity ? (
           <TreeAnalysisReader
             sentence={sentence}
             persistenceKey={readerPersistenceKey}
-            onCompleteChange={setTreeAnalysisComplete}
-            finishControl={
-              <Button className="finish-button" onClick={finishSentence} disabled={finished || !treeAnalysisComplete}>
-                <CheckCircle2 size={20} />
-                {finished ? "Terminé" : "Terminer"}
-              </Button>
+            onCompleteChange={(complete) =>
+              handleReaderComplete(complete, setTreeAnalysisComplete)
             }
           />
         ) : isWordGroupActivity ? (
@@ -585,16 +609,8 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onPoint={queueWordGroupPoint}
             onRestorePoints={restoreWordGroupPoints}
-            onCompleteChange={setWordGroupComplete}
-            finishControl={
-              <Button
-                className="finish-button"
-                onClick={finishSentence}
-                disabled={finished || !wordGroupComplete}
-              >
-                <CheckCircle2 size={20} />
-                {finished ? "Terminé" : "Terminer"}
-              </Button>
+            onCompleteChange={(complete) =>
+              handleReaderComplete(complete, setWordGroupComplete)
             }
           />
         ) : isWordClassActivity ? (
@@ -603,16 +619,8 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onPoint={queueWordClassPoint}
             onRestorePoints={restoreWordClassPoints}
-            onCompleteChange={setWordClassComplete}
-            finishControl={
-              <Button
-                className="finish-button"
-                onClick={finishSentence}
-                disabled={finished || !wordClassComplete}
-              >
-                <CheckCircle2 size={20} />
-                {finished ? "Terminé" : "Terminer"}
-              </Button>
+            onCompleteChange={(complete) =>
+              handleReaderComplete(complete, setWordClassComplete)
             }
           />
         ) : (
@@ -625,18 +633,12 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onRestorePoints={restorePendingPoints}
             onRestoreWordClassPoints={restoreWordClassPoints}
-            finishControl={
-              <Button
-                className="finish-button"
-                onClick={finishSentence}
-                disabled={finished}
-              >
-                <CheckCircle2 size={20} />
-                {finished ? "Terminé" : "Terminer"}
-              </Button>
-            }
+            onCompleteChange={(complete) => {
+              if (complete) setShowCompletionDialog(true);
+            }}
           />
         )}
+        </section>
 
         <section className="reader-command-dock">
           <ReaderChromeTarget slot="progress" className="reader-command-progress-slot" />
@@ -689,6 +691,21 @@ export default function PresentationPage({
               ))}
             </div>
           </section>
+        )}
+
+        {showCompletionDialog && (
+          <div className="reader-dialog-backdrop">
+            <div className="reader-dialog reader-completion-dialog" role="dialog" aria-modal="true" aria-labelledby="reader-completion-title">
+              <CheckCircle2 size={48} aria-hidden="true" />
+              <span className="eyebrow">Activité terminée</span>
+              <h2 id="reader-completion-title">Bravo, l’activité est terminée!</h2>
+              <p>Les réponses et le pointage sont prêts à être enregistrés.</p>
+              <div className="reader-completion-actions">
+                <Button onClick={finishSentence}>Quitter</Button>
+                <Button variant="secondary" onClick={restartActivity}>Recommencer</Button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 

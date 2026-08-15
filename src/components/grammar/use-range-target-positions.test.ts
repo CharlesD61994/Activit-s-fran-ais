@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildRangeSegments,
+  fitRectToGlyphHeight,
   isMeasurableRangeToken
 } from "./use-range-target-positions";
 
@@ -11,6 +12,23 @@ describe("isMeasurableRangeToken", () => {
 
   it("does not use whitespace as a bracket boundary", () => {
     expect(isMeasurableRangeToken({ id: "space", text: " ", start: 6, end: 7, isWord: false })).toBe(false);
+  });
+});
+
+describe("fitRectToGlyphHeight", () => {
+  it("keeps added line spacing outside the visual frame", () => {
+    expect(
+      fitRectToGlyphHeight(
+        { left: 0, right: 100, top: 20, bottom: 100, height: 80 },
+        50
+      )
+    ).toEqual({
+      left: 0,
+      right: 100,
+      top: 33,
+      bottom: 87,
+      height: 54
+    });
   });
 });
 

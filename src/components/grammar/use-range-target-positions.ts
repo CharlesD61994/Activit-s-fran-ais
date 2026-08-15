@@ -40,6 +40,20 @@ type RectMetrics = {
   height: number;
 };
 
+export function fitRectToGlyphHeight(
+  rect: RectMetrics,
+  fontSize: number
+): RectMetrics {
+  const glyphHeight = Math.min(rect.height, Math.max(1, fontSize * 1.08));
+  const verticalInset = (rect.height - glyphHeight) / 2;
+  return {
+    ...rect,
+    top: rect.top + verticalInset,
+    bottom: rect.bottom - verticalInset,
+    height: glyphHeight
+  };
+}
+
 export function isMeasurableRangeToken(token: RangeToken) {
   return token.isWord || token.text.trim().length > 0;
 }
@@ -106,7 +120,16 @@ export function useRangeTargetPositions(
           .filter((element): element is HTMLElement => Boolean(element));
         if (!elements.length) return;
 
-        const rects = elements.map((element) => element.getBoundingClientRect());
+        const rects = elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          const fontSize = Number.parseFloat(
+            window.getComputedStyle(element).fontSize
+          );
+          return fitRectToGlyphHeight(
+            rect,
+            Number.isFinite(fontSize) ? fontSize : rect.height
+          );
+        });
         const first = rects[0];
         const last = rects[rects.length - 1];
         const minLeft = Math.min(...rects.map((rect) => rect.left));

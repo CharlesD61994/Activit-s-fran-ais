@@ -42,6 +42,7 @@ type Props = {
       pointId?: string;
     }>
   ) => void;
+  onCompleteChange?: (complete: boolean) => void;
 };
 
 
@@ -187,7 +188,8 @@ export function InteractiveSentenceReader({
   persistenceKey,
   onRestorePoints,
   onWordClassPoint = () => undefined,
-  onRestoreWordClassPoints
+  onRestoreWordClassPoints,
+  onCompleteChange
 }: Props) {
   const [correctedIds, setCorrectedIds] = useState<string[]>([]);
   const [codedIds, setCodedIds] = useState<string[]>([]);
@@ -201,7 +203,8 @@ export function InteractiveSentenceReader({
   const [message, setMessage] = useState("");
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
   const [hybridGroupComplete, setHybridGroupComplete] = useState(false);
-  const [, setHybridWordClassComplete] = useState(false);
+  const [hybridWordClassComplete, setHybridWordClassComplete] = useState(false);
+  const [hybridExtensionComplete, setHybridExtensionComplete] = useState(false);
   const [readerRevision, setReaderRevision] = useState(0);
   const sentenceRef = useRef<HTMLDivElement>(null);
   const restorePointsRef = useRef(onRestorePoints);
@@ -355,6 +358,17 @@ export function InteractiveSentenceReader({
   const identifyGroupNuclei = Boolean(sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) || sentence.workflowPhases?.find((phase) => phase.kind === "nuclei")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled));
   const hasRemainingGrammarWork = usesNativeWordClassPhase;
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
+  const activityComplete = correctionComplete && (
+    usesNativeGroupPhase
+      ? hybridGroupComplete && (!usesNativeWordClassPhase || hybridWordClassComplete)
+      : usesNativeWordClassPhase
+        ? hybridWordClassComplete
+        : hybridExtensionComplete
+  );
+
+  useEffect(() => {
+    onCompleteChange?.(activityComplete);
+  }, [activityComplete, onCompleteChange]);
 
   const layoutTokens = useMemo(() => buildLayoutTokens(sentence), [sentence]);
   const forcedGrammarLineBreaks = useMemo(() => {
@@ -653,7 +667,7 @@ export function InteractiveSentenceReader({
       : layoutTokens.map(renderToken);
 
   return (
-    <div className={`interactive-reader interactive-reader-${displayMode}`}>
+    <div className={`interactive-reader interactive-reader-${displayMode} ${requiresCorrectionCodes ? "has-above-marks" : ""}`}>
       {!correctionComplete && (
         <>
           <ReaderChromePortal slot="instruction"><div className="reader-chrome-instruction-copy"><strong>Corrige les erreurs dans la phrase.</strong><span>Clique sur la partie à corriger, puis entre ta réponse.</span></div></ReaderChromePortal>
@@ -700,7 +714,7 @@ export function InteractiveSentenceReader({
             excludedKinds={["group", "nucleus"]}
             initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus").map((annotation) => annotation.id)}
             forcedLineBreaks={forcedGrammarLineBreaks}
-            finishControl={finishControl}
+            onCompleteChange={setHybridExtensionComplete}
           />
         )
       ) : (
@@ -710,7 +724,12 @@ export function InteractiveSentenceReader({
       )}
 
       {correctionComplete && !usesSharedRangeSurface && (
-        <GrammarExtensionReader key={`mixed-extension-${readerRevision}`} sentence={correctedGrammarSentence} forcedLineBreaks={forcedGrammarLineBreaks} />
+        <GrammarExtensionReader
+          key={`mixed-extension-${readerRevision}`}
+          sentence={correctedGrammarSentence}
+          forcedLineBreaks={forcedGrammarLineBreaks}
+          onCompleteChange={setHybridExtensionComplete}
+        />
       )}
 
       {activeCorrection && (
