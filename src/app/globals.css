@@ -1824,7 +1824,7 @@ textarea {
 .reader-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  z-index: 240;
   display: grid;
   place-items: center;
   padding: 20px;
@@ -10505,25 +10505,21 @@ textarea {
 .classroom-mission-band .assignment-status-pill { border-color: rgb(255 255 255 / 42%); background: rgb(255 255 255 / 18%); color: #fff; backdrop-filter: blur(5px); }
 .classroom-mission-card { transition: transform .17s ease, box-shadow .17s ease; }
 .classroom-mission-card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgb(15 55 88 / 13%); }
-.classroom-objective-card { position: relative; isolation: isolate; grid-column: 3; grid-row: 1; min-height: 270px; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; gap: 13px; padding: 17px 19px 18px; border: 2px solid #edc155; border-radius: 18px; background: radial-gradient(circle at 92% 14%, rgb(255 202 71 / 18%), transparent 10rem), linear-gradient(145deg, #071f38, #103f68 72%, #175782); color: #fff; box-shadow: 0 15px 31px rgb(5 35 61 / 24%); }
+.classroom-objective-card { position: relative; isolation: isolate; grid-column: 3; grid-row: 1; min-height: 270px; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; gap: 8px; padding: 17px 19px 18px; border: 2px solid #edc155; border-radius: 18px; background: radial-gradient(circle at 50% 50%, rgb(255 202 71 / 14%), transparent 9rem), linear-gradient(145deg, #071f38, #103f68 72%, #175782); color: #fff; box-shadow: 0 15px 31px rgb(5 35 61 / 24%); }
 .classroom-objective-card::after { content: ""; position: absolute; inset: 5px; z-index: -1; border: 1px solid rgb(255 218 121 / 38%); border-radius: 13px; pointer-events: none; }
 .classroom-objective-pattern { position: absolute; inset: 0; z-index: -2; opacity: .18; background-image: radial-gradient(circle, #fff 1.4px, transparent 1.6px); background-size: 22px 22px; mask-image: linear-gradient(110deg, transparent 6%, #000 58%, transparent 100%); }
 .classroom-objective-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #ffd56b; font-size: .73rem; font-weight: 950; letter-spacing: .095em; text-transform: uppercase; }
-.classroom-objective-wheel { --objective-progress: 0deg; position: absolute; top: 50%; right: 20px; width: 108px; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(from -90deg, #ffe27b 0deg, #f3ae22 var(--objective-progress), rgb(255 255 255 / 13%) var(--objective-progress), rgb(255 255 255 / 13%) 360deg); box-shadow: 0 0 0 1px rgb(255 221 132 / 38%), 0 12px 28px rgb(0 0 0 / 24%), 0 0 27px rgb(255 193 48 / 20%); transform: translateY(-48%); transition: transform .25s ease, filter .25s ease; }
+.classroom-objective-center { align-self: center; justify-self: center; display: grid; justify-items: center; gap: 8px; }
+.classroom-objective-wheel { --objective-progress: 0deg; position: relative; width: 116px; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(from -90deg, #ffe27b 0deg, #f3ae22 var(--objective-progress), rgb(255 255 255 / 13%) var(--objective-progress), rgb(255 255 255 / 13%) 360deg); box-shadow: 0 0 0 1px rgb(255 221 132 / 38%), 0 12px 28px rgb(0 0 0 / 24%), 0 0 27px rgb(255 193 48 / 20%); transition: transform .25s ease, filter .25s ease; }
 .classroom-objective-wheel::before { content: ""; position: absolute; inset: 10px; border-radius: inherit; background: radial-gradient(circle at 38% 28%, #245f8c, #0b3153 64%, #071e36); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 15%), inset 0 -10px 20px rgb(0 0 0 / 22%); }
 .classroom-objective-wheel-ticks { position: absolute; inset: 3px; border-radius: inherit; background: repeating-conic-gradient(from -90deg, transparent 0 9deg, rgb(7 31 56 / 68%) 9deg 11deg); mask: radial-gradient(circle, transparent 0 47px, #000 48px 100%); opacity: .82; }
 .classroom-objective-wheel-core { position: relative; z-index: 1; display: grid; place-items: center; gap: 0; color: #ffd866; line-height: 1; text-shadow: 0 2px 8px rgb(0 0 0 / 30%); }
 .classroom-objective-wheel-core strong { color: #fff; font-size: .82rem; letter-spacing: -.02em; }
 .classroom-objective-wheel.is-complete { animation: objectiveWheelComplete 2.2s ease-in-out infinite; filter: drop-shadow(0 0 9px rgb(255 211 91 / 42%)); }
-.classroom-objective-card:hover .classroom-objective-wheel { transform: translateY(-48%) rotate(3deg) scale(1.045); }
+.classroom-objective-card:hover .classroom-objective-wheel { transform: rotate(3deg) scale(1.045); }
 @keyframes objectiveWheelComplete { 0%, 100% { box-shadow: 0 0 0 1px rgb(255 221 132 / 42%), 0 10px 25px rgb(0 0 0 / 22%), 0 0 18px rgb(255 205 64 / 22%); } 50% { box-shadow: 0 0 0 3px rgb(255 233 165 / 56%), 0 10px 25px rgb(0 0 0 / 22%), 0 0 32px rgb(255 205 64 / 48%); } }
-.classroom-objective-copy { align-self: center; max-width: calc(100% - 125px); }
-.classroom-objective-copy h3 { margin: 0 0 7px; color: #fff; font-size: 1.42rem; line-height: 1.05; letter-spacing: -.035em; }
-.classroom-objective-copy p { margin: 0; color: rgb(255 255 255 / 72%); font-size: .78rem; line-height: 1.4; }
-.classroom-objective-progress { display: grid; gap: 4px; padding-top: 9px; border-top: 1px solid rgb(255 255 255 / 15%); }
-.classroom-objective-progress > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .72rem; }
-.classroom-objective-progress strong { color: #fff; }
-.classroom-objective-progress > div > span { color: #ffd56b; font-weight: 900; }
+.classroom-objective-count { color: #fff; font-size: .78rem; }
+.classroom-objective-action { align-self: end; justify-self: start; color: #fff; font-size: 1.08rem; font-weight: 900; }
 .classroom-objective-track { height: 8px; overflow: hidden; border: 1px solid rgb(255 255 255 / 22%); border-radius: 999px; background: rgb(0 0 0 / 19%); }
 .classroom-objective-track > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f0ad19, #ffe180); box-shadow: 0 0 12px rgb(255 203 68 / 48%); }
 
@@ -10941,27 +10937,14 @@ textarea {
   font-size: 1.04rem;
 }
 
-/* La correction réserve dès le départ la largeur visuelle de ses deux variantes. */
 .interactive-segment {
-  display: inline-grid;
+  display: inline-block;
+  margin-inline: 0;
   vertical-align: baseline;
 }
 
-.interactive-segment > .interactive-segment-sizer,
 .interactive-segment > .interactive-word {
-  grid-area: 1 / 1;
-}
-
-.interactive-segment-sizer {
-  display: inline-grid;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.interactive-segment-sizer > span {
-  grid-area: 1 / 1;
-  width: max-content;
-  padding-inline: .03em;
+  padding-inline: 0;
 }
 /* V907 — objectif hebdomadaire modifiable dans le portail élève */
 .classroom-objective-card {
@@ -10984,10 +10967,6 @@ textarea {
   position: relative;
   z-index: 1;
   pointer-events: none;
-}
-
-.classroom-objective-card > .classroom-objective-wheel {
-  position: absolute;
 }
 
 .classroom-objective-edit-label {

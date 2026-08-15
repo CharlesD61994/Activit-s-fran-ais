@@ -600,10 +600,6 @@ export function InteractiveSentenceReader({
           hinted && !corrected ? "hinted" : ""
         ].filter(Boolean).join(" ")}
       >
-        <span className="interactive-segment-sizer" aria-hidden="true">
-          <span>{correction.originalText || "·"}</span>
-          <span>{correction.correctedText || "·"}</span>
-        </span>
         {corrected && (
           <button
             type="button"

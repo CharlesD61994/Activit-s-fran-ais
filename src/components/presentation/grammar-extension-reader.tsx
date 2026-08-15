@@ -28,7 +28,6 @@ import type {
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
-import { bracketTokenMargins } from "@/components/grammar/range-mark-spacing";
 
 type Point = InteractionPoint;
 type Boundary = "left" | "right";
@@ -160,22 +159,6 @@ export function GrammarExtensionReader({
   const solvedStepCount = stepTargets.filter((annotation) =>
     solvedIds.includes(annotation.id)
   ).length;
-
-  const workflowBracketKinds = useMemo(
-    () =>
-      new Set(
-        steps
-          .filter((item) => item.action.responseMode === "brackets")
-          .map((item) => item.kind)
-      ),
-    [steps]
-  );
-  const reservedBracketTargets = annotations.filter(
-    (annotation) =>
-      annotation.visualEffect?.kind === "brackets" ||
-      (!annotation.visualEffect && annotation.kind === "group") ||
-      workflowBracketKinds.has(annotation.kind)
-  );
 
   const solvedBracketTargets = annotations.filter(
     (annotation) =>
@@ -502,6 +485,30 @@ export function GrammarExtensionReader({
       return `Clique sur ${functionName}.`;
     }
 
+    if (step.kind === "word_class") {
+      return currentTarget?.label
+        ? `Clique sur le mot qui est un ${currentTarget.label}.`
+        : "Clique sur le mot correspondant à la classe demandée.";
+    }
+    if (step.kind === "nucleus") {
+      return "Clique sur le noyau du groupe demandé.";
+    }
+    if (step.kind === "donor") {
+      return "Clique sur le mot qui donne son accord.";
+    }
+    if (step.kind === "receiver") {
+      return "Clique sur le mot qui reçoit l’accord.";
+    }
+    if (step.kind === "group") {
+      if (responseMode === "frame") {
+        return "Encadre le groupe demandé en dessinant un rectangle.";
+      }
+      if (responseMode === "brackets") {
+        return "Mets le groupe demandé entre crochets.";
+      }
+      return "Clique sur le groupe demandé.";
+    }
+
     if (responseMode === "frame") {
       return `${grammarActionLabels[step.action.kind]} en dessinant un rectangle.`;
     }
@@ -563,12 +570,7 @@ export function GrammarExtensionReader({
               );
               const measurable =
                 token.isWord || token.text.trim().length > 0;
-              const style = {
-                ...tokenStyle(token.start, token.end),
-                ...(measurable
-                  ? bracketTokenMargins(token, reservedBracketTargets)
-                  : {})
-              };
+              const style = tokenStyle(token.start, token.end);
 
               return (
                 <span key={token.id}>

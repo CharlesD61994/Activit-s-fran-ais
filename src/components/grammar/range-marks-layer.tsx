@@ -32,18 +32,18 @@ export function RangeMarksLayer({
             return null;
           }
 
-          return (
+          return position.segments.map((segment, index) => (
             <span
-              key={`frame-${target.id}`}
+              key={`frame-${target.id}-${index}`}
               className="word-group-confirmed-frame"
               style={{
-                left: position.x - position.width / 2 - 7,
-                top: position.y - 4,
-                width: position.width + 14,
-                height: position.height + 8
+                left: segment.x - 5,
+                top: segment.y - 3,
+                width: segment.width + 10,
+                height: segment.height + 6
               }}
             />
-          );
+          ));
         })}
       </>
     );

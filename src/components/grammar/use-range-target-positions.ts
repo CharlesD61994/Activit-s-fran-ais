@@ -1,20 +1,158 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
-export type RangePosition = { x: number; y: number; width: number; height: number; startX: number; startY: number; startHeight: number; endX: number; endY: number; endHeight: number };
+
+export type RangeSegment = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type RangePosition = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  startX: number;
+  startY: number;
+  startHeight: number;
+  endX: number;
+  endY: number;
+  endHeight: number;
+  segments: RangeSegment[];
+};
+
 type RangeTarget = { id: string; start: number; end: number };
-type RangeToken = { id: string; text: string; start: number; end: number; isWord: boolean };
+type RangeToken = {
+  id: string;
+  text: string;
+  start: number;
+  end: number;
+  isWord: boolean;
+};
+type RectMetrics = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  height: number;
+};
+
 export function isMeasurableRangeToken(token: RangeToken) {
   return token.isWord || token.text.trim().length > 0;
 }
-export function useRangeTargetPositions(surfaceRef: RefObject<HTMLElement | null>, targets: RangeTarget[], tokens: RangeToken[], tokenAttribute: string) {
+
+export function buildRangeSegments(
+  rects: RectMetrics[],
+  surface: Pick<RectMetrics, "left" | "top">
+) {
+  const lines: RectMetrics[][] = [];
+
+  rects.forEach((rect) => {
+    const line = lines.find(
+      (candidate) =>
+        Math.abs(candidate[0].top - rect.top) <
+        Math.min(candidate[0].height, rect.height) * .5
+    );
+    if (line) line.push(rect);
+    else lines.push([rect]);
+  });
+
+  return lines.map((line) => {
+    const left = Math.min(...line.map((rect) => rect.left));
+    const right = Math.max(...line.map((rect) => rect.right));
+    const top = Math.min(...line.map((rect) => rect.top));
+    const bottom = Math.max(...line.map((rect) => rect.bottom));
+    return {
+      x: left - surface.left,
+      y: top - surface.top,
+      width: right - left,
+      height: bottom - top
+    };
+  });
+}
+
+export function useRangeTargetPositions(
+  surfaceRef: RefObject<HTMLElement | null>,
+  targets: RangeTarget[],
+  tokens: RangeToken[],
+  tokenAttribute: string
+) {
   const [positions, setPositions] = useState<Record<string, RangePosition>>({});
+
   useEffect(() => {
-    const surface = surfaceRef.current; if (!surface) return;
-    const update = () => { const surfaceRect = surface.getBoundingClientRect(); const next: Record<string, RangePosition> = {};
-      targets.forEach((target) => { const elements = tokens.filter((token) => isMeasurableRangeToken(token) && token.start < target.end && token.end > target.start).map((token) => surface.querySelector<HTMLElement>(`[${tokenAttribute}="${token.id}"]`)).filter((element): element is HTMLElement => Boolean(element)); if (!elements.length) return; const rects = elements.map((element) => element.getBoundingClientRect()); const first = rects[0], last = rects[rects.length - 1]; const minLeft = Math.min(...rects.map((rect) => rect.left)); const maxRight = Math.max(...rects.map((rect) => rect.right)); const minTop = Math.min(...rects.map((rect) => rect.top)); const maxBottom = Math.max(...rects.map((rect) => rect.bottom)); const sameLine = Math.abs(first.top - last.top) < Math.min(first.height, last.height) * .5; next[target.id] = { x: sameLine ? (first.left + last.right) / 2 - surfaceRect.left : (first.left + first.right) / 2 - surfaceRect.left, y: first.top - surfaceRect.top, width: maxRight - minLeft, height: maxBottom - minTop, startX: first.left - surfaceRect.left, startY: first.top - surfaceRect.top, startHeight: first.height, endX: last.right - surfaceRect.left, endY: last.top - surfaceRect.top, endHeight: last.height }; }); setPositions(next); };
-    const frame = window.requestAnimationFrame(update); const observer = new ResizeObserver(update); observer.observe(surface); surface.querySelectorAll<HTMLElement>(`[${tokenAttribute}]`).forEach((element) => observer.observe(element)); const fontsReady = document.fonts?.ready.then(update); window.addEventListener("resize", update);
-    return () => { window.cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener("resize", update); void fontsReady; };
+    const surface = surfaceRef.current;
+    if (!surface) return;
+
+    const update = () => {
+      const surfaceRect = surface.getBoundingClientRect();
+      const next: Record<string, RangePosition> = {};
+
+      targets.forEach((target) => {
+        const elements = tokens
+          .filter(
+            (token) =>
+              isMeasurableRangeToken(token) &&
+              token.start < target.end &&
+              token.end > target.start
+          )
+          .map((token) =>
+            surface.querySelector<HTMLElement>(
+              `[${tokenAttribute}="${token.id}"]`
+            )
+          )
+          .filter((element): element is HTMLElement => Boolean(element));
+        if (!elements.length) return;
+
+        const rects = elements.map((element) => element.getBoundingClientRect());
+        const first = rects[0];
+        const last = rects[rects.length - 1];
+        const minLeft = Math.min(...rects.map((rect) => rect.left));
+        const maxRight = Math.max(...rects.map((rect) => rect.right));
+        const minTop = Math.min(...rects.map((rect) => rect.top));
+        const maxBottom = Math.max(...rects.map((rect) => rect.bottom));
+        const sameLine =
+          Math.abs(first.top - last.top) <
+          Math.min(first.height, last.height) * .5;
+
+        next[target.id] = {
+          x: sameLine
+            ? (first.left + last.right) / 2 - surfaceRect.left
+            : (first.left + first.right) / 2 - surfaceRect.left,
+          y: first.top - surfaceRect.top,
+          width: maxRight - minLeft,
+          height: maxBottom - minTop,
+          startX: first.left - surfaceRect.left,
+          startY: first.top - surfaceRect.top,
+          startHeight: first.height,
+          endX: last.right - surfaceRect.left,
+          endY: last.top - surfaceRect.top,
+          endHeight: last.height,
+          segments: buildRangeSegments(rects, surfaceRect)
+        };
+      });
+
+      setPositions(next);
+    };
+
+    const frame = window.requestAnimationFrame(update);
+    const observer = new ResizeObserver(update);
+    observer.observe(surface);
+    surface
+      .querySelectorAll<HTMLElement>(`[${tokenAttribute}]`)
+      .forEach((element) => observer.observe(element));
+    const fontsReady = document.fonts?.ready.then(update);
+    window.addEventListener("resize", update);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+      void fontsReady;
+    };
   }, [surfaceRef, targets, tokenAttribute, tokens]);
+
   return positions;
 }

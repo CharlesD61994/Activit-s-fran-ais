@@ -13,7 +13,6 @@ import { useRangeTargetPositions } from "@/components/grammar/use-range-target-p
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
-import { validatedBracketTokenMargins } from "@/components/grammar/range-mark-spacing";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
@@ -1076,10 +1075,6 @@ export function WordGroupReader({
       : "Mets un groupe de mots entre crochets. Ensuite, indique son type.";
   }
 
-  const reservedBracketTargets = [
-    ...(boundaryMode === "brackets" ? targets : []),
-    ...(continuationBoundaryMode === "brackets" ? functionTargets : [])
-  ];
   return (
     <div className={`word-group-reader ${embedded ? "embedded" : ""}`}>
       <ReaderChromePortal slot="instruction">
@@ -1228,16 +1223,6 @@ export function WordGroupReader({
                 }
                 data-group-token-id={
                   measurableToken ? token.id : undefined
-                }
-                style={
-                  measurableToken
-                    ? validatedBracketTokenMargins(
-                        token,
-                        reservedBracketTargets,
-                        [...leftFoundIds, ...functionLeftIds],
-                        [...rightFoundIds, ...functionRightIds]
-                      )
-                    : undefined
                 }
                 onClick={
                   token.isWord && phase === "nucleus"
