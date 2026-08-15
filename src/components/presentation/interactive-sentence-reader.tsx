@@ -7,6 +7,7 @@ import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { GrammarExtensionReader } from "@/components/presentation/grammar-extension-reader";
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
+import { resolveCorrectionBounds } from "@/lib/correction-ranges";
 import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
 import type { CorrectionCode, Sentence, SentenceCorrection, WordClassTarget, WordGroupTarget, WordGroupType } from "@/types";
 
@@ -55,10 +56,19 @@ type LayoutToken = {
 
 const hybridGroupTypes = new Set<WordGroupType>(["GN", "GV", "GAdj", "GAdv", "GPrep"]);
 
+function normalizedCorrections(sentence: Sentence) {
+  return sentence.corrections
+    .map((correction) => ({
+      ...correction,
+      ...resolveCorrectionBounds(sentence.originalText, correction)
+    }))
+    .sort((a, b) => a.start - b.start);
+}
+
 function buildCorrectedText(sentence: Sentence) {
   let cursor = 0;
   let result = "";
-  [...sentence.corrections].sort((a, b) => a.start - b.start).forEach((correction) => {
+  normalizedCorrections(sentence).forEach((correction) => {
     result += sentence.originalText.slice(cursor, correction.start) + correction.correctedText;
     cursor = correction.end;
   });
@@ -67,7 +77,7 @@ function buildCorrectedText(sentence: Sentence) {
 
 function mapOriginalPosition(sentence: Sentence, position: number, affinity: "start" | "end" = "start") {
   let delta = 0;
-  for (const correction of [...sentence.corrections].sort((a, b) => a.start - b.start)) {
+  for (const correction of normalizedCorrections(sentence)) {
     if (position >= correction.end) {
       delta += correction.correctedText.length - (correction.end - correction.start);
       continue;
@@ -133,7 +143,7 @@ function splitTextPreservingLayout(text: string): Array<{
 }
 
 function buildLayoutTokens(sentence: Sentence): LayoutToken[] {
-  const corrections = [...sentence.corrections].sort((a, b) => a.start - b.start);
+  const corrections = normalizedCorrections(sentence);
   const tokens: LayoutToken[] = [];
   let cursor = 0;
 

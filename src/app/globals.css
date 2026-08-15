@@ -5505,50 +5505,6 @@ textarea {
   color: var(--primary);
 }
 
-.word-class-complete-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 11px 14px;
-  border: 1px solid color-mix(
-    in srgb,
-    var(--primary) 45%,
-    var(--border)
-  );
-  border-radius: 13px;
-  background: color-mix(
-    in srgb,
-    var(--primary) 8%,
-    var(--surface)
-  );
-  color: var(--primary);
-  animation: wordClassCompleteIn .28s ease both;
-}
-
-.word-class-complete-banner strong,
-.word-class-complete-banner span {
-  display: block;
-}
-
-.word-class-complete-banner span {
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: .8rem;
-}
-
-@keyframes wordClassCompleteIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .word-class-reader-token {
   transition:
     color .16s ease,
@@ -5648,11 +5604,6 @@ textarea {
     grid-column: auto;
   }
 
-  .word-class-complete-banner {
-    align-items: flex-start;
-    justify-content: flex-start;
-  }
-
   .word-class-selection-summary {
     align-items: flex-start;
     flex-direction: column;
@@ -5742,10 +5693,6 @@ textarea {
   text-decoration-thickness: 2px;
   text-underline-offset: .13em;
   text-decoration-color: var(--primary);
-}
-
-.word-class-complete-banner {
-  padding: 9px 12px;
 }
 
 .agreement-receiver-grid {
@@ -6413,26 +6360,6 @@ textarea {
   color: var(--primary);
   cursor: crosshair;
   touch-action: none;
-}
-
-.word-group-reader-message {
-  margin: 0;
-  min-height: 24px;
-  color: var(--warning);
-  font-weight: 800;
-  text-align: center;
-}
-
-.word-group-reader-complete {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 9px 12px;
-  border-radius: 12px;
-  background: var(--secondary);
-  color: var(--primary);
-  font-weight: 800;
 }
 
 @media (max-width: 760px) {
@@ -10904,44 +10831,47 @@ textarea {
   padding-bottom: 112px;
 }
 
-/* Une même feuille blanche accueille toutes les mécaniques du lecteur. */
-.reader-activity-surface {
-  width: min(1460px, 100%);
-  min-height: clamp(310px, calc(100vh - 300px), 610px);
-  margin: 0 auto;
-  display: grid;
-  align-content: center;
-  overflow: visible;
+/* La géométrie est choisie une fois pour toute l’activité. Le conteneur ne
+ * dessine rien : chaque mécanique conserve uniquement sa propre feuille. */
+.reader-activity-flow {
+  display: contents;
+}
+
+.reader-activity-flow .shared-grammar-reader-text {
+  font-weight: 900;
+}
+
+.reader-activity-flow.geometry-plain .shared-grammar-reader-text {
+  line-height: 1.48;
+}
+
+.reader-activity-flow.geometry-brackets .shared-grammar-reader-text {
+  line-height: 1.64;
+}
+
+.reader-activity-flow.geometry-frames .shared-grammar-reader-text {
+  line-height: 1.76;
+}
+
+.reader-activity-flow.geometry-above .shared-grammar-reader-text {
+  padding-top: 48px;
+}
+
+/* Les surfaces qui étaient transparentes dans Mixte redeviennent les cartes
+ * adaptatives natives, sans carte supplémentaire autour d’elles. */
+.reader-scene .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text,
+.reader-scene .word-group-reader.embedded .word-group-drawing-surface,
+.reader-scene .grammar-extension-reader .grammar-extension-surface {
+  min-height: 0;
   border: 1px solid #cfdeea;
-  border-radius: 22px;
+  border-radius: 20px;
   background: #fff;
-  box-shadow: 0 12px 28px rgb(17 58 88 / 8%);
+  box-shadow: 0 10px 24px rgb(17 58 88 / 7%);
 }
 
-.reader-activity-surface > * {
-  min-width: 0;
-}
-
-/*
- * Les marques sont superposées et ne changent jamais la largeur du texte.
- * Seule la hauteur de ligne est réservée selon ce qui peut apparaître autour
- * des mots, afin que cadres, crochets et étiquettes ne se chevauchent pas.
- */
-.reader-mark-layout.has-bracket-marks .shared-grammar-reader-text {
-  line-height: 1.58;
-}
-
-.reader-mark-layout.has-frame-marks .shared-grammar-reader-text {
-  line-height: 1.72;
-}
-
-.reader-mark-layout.has-above-marks .shared-grammar-reader-text {
-  padding-top: 54px;
-}
-
-.interactive-reader.has-above-marks .shared-grammar-reader-text {
-  line-height: 1.56;
-  padding-top: 46px;
+.reader-scene .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text {
+  width: min(1460px, 100%);
+  margin-inline: auto;
 }
 
 .reader-command-dock {

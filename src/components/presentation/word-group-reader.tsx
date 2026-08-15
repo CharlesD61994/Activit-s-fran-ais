@@ -6,7 +6,7 @@ import {
   useRef,
   useState
 } from "react";
-import { CheckCircle2, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
@@ -1090,15 +1090,7 @@ export function WordGroupReader({
       </ReaderChromePortal>
 
       <div
-        className={`word-group-drawing-surface reader-mark-layout phase-${phase} ${
-          boundaryMode === "frame" || continuationBoundaryMode === "frame"
-            ? "has-frame-marks"
-            : ""
-        } ${
-          boundaryMode === "brackets" || continuationBoundaryMode === "brackets"
-            ? "has-bracket-marks"
-            : ""
-        } has-above-marks`}
+        className={`word-group-drawing-surface phase-${phase}`}
         ref={surfaceRef}
       >
         <RangeMarksLayer targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>
@@ -1395,21 +1387,6 @@ export function WordGroupReader({
           </div>
         )}
       </div>
-
-      {message && (
-        <p className="word-group-reader-message">{message}</p>
-      )}
-
-      {complete && (
-        <div className="word-group-reader-complete">
-          <CheckCircle2 size={20} />
-          <span>
-            {functionTargets.length > 0
-              ? "Tous les groupes et toutes les fonctions ont été correctement identifiés."
-              : "Tous les groupes ont été correctement identifiés."}
-          </span>
-        </div>
-      )}
 
       {(!embedded || (complete && finishControl)) && (
         <ReaderChromePortal slot="actions">

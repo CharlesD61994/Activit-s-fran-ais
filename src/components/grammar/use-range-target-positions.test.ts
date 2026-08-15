@@ -16,7 +16,7 @@ describe("isMeasurableRangeToken", () => {
 });
 
 describe("fitRectToGlyphHeight", () => {
-  it("keeps added line spacing outside the visual frame", () => {
+  it("keeps line spacing outside the visual frame", () => {
     expect(
       fitRectToGlyphHeight(
         { left: 0, right: 100, top: 20, bottom: 100, height: 80 },

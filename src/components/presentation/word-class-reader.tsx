@@ -5,7 +5,7 @@ import type {
   CSSProperties,
   PointerEvent as ReactPointerEvent
 } from "react";
-import { Check, CheckCircle2, RotateCcw, Trash2, X } from "lucide-react";
+import { Check, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { wordClassLabels } from "@/lib/activity-types";
@@ -1379,16 +1379,6 @@ export function WordClassReader({
           <Button type="button" variant="secondary" className="agreement-clear-arrows" onClick={() => setAgreementArrowsVisible(false)}><Trash2 size={16} /> Supprimer les flèches</Button>
         )}
       </ReaderChromePortal>
-      {complete && (
-        <div className="word-class-complete-banner" role="status">
-          <CheckCircle2 size={21} />
-          <div>
-            <strong>Toutes les réponses ont été trouvées.</strong>
-            <span>Tu peux maintenant terminer l’activité.</span>
-          </div>
-        </div>
-      )}
-
       <div
         ref={textContainerRef}
         className={`word-class-reader-text ${relationTasks.length > 0 ? "has-agreement-relations" : ""} ${currentTask ? "drawing-agreement" : ""}`}

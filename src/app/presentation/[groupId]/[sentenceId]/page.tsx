@@ -157,6 +157,40 @@ export default function PresentationPage({
   const isWordClassActivity = sentence?.activityType === "word_classes";
   const isWordGroupActivity = sentence?.activityType === "word_groups";
   const isTreeAnalysisActivity = sentence?.activityType === "tree_analysis";
+  const readerActions = sentence?.workflowPhases?.flatMap((phase) =>
+    phase.actions.filter((action) => action.enabled)
+  ) ?? [];
+  const readerAnnotations = sentence?.grammarAnnotations ?? [];
+  const readerUsesFrames =
+    readerActions.some((action) => action.responseMode === "frame") ||
+    readerAnnotations.some(
+      (annotation) => annotation.visualEffect?.kind === "frame"
+    );
+  const readerUsesBrackets =
+    readerActions.some((action) => action.responseMode === "brackets") ||
+    readerAnnotations.some(
+      (annotation) => annotation.visualEffect?.kind === "brackets"
+    );
+  const readerUsesAboveMarks =
+    readerActions.some((action) =>
+      [
+        "identify_codes",
+        "identify_group_types",
+        "identify_word_classes",
+        "find_nuclei",
+        "identify_gender",
+        "identify_number",
+        "link_agreement"
+      ].includes(action.kind)
+    ) || (sentence?.wordClassTargets?.length ?? 0) > 0;
+  const readerGeometryClass = [
+    readerUsesFrames
+      ? "geometry-frames"
+      : readerUsesBrackets
+        ? "geometry-brackets"
+        : "geometry-plain",
+    readerUsesAboveMarks ? "geometry-above" : ""
+  ].filter(Boolean).join(" ");
 
   const restorePendingPoints = useCallback((points: PendingPoint[]) => {
     setPendingPoints(points);
@@ -593,7 +627,7 @@ export default function PresentationPage({
           </div>
         </section>
 
-        <section className="reader-activity-surface" key={readerRunRevision}>
+        <section className={`reader-activity-flow ${readerGeometryClass}`} key={readerRunRevision}>
         {isTreeAnalysisActivity ? (
           <TreeAnalysisReader
             sentence={sentence}

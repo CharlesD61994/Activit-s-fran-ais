@@ -120,14 +120,14 @@ export function useRangeTargetPositions(
           .filter((element): element is HTMLElement => Boolean(element));
         if (!elements.length) return;
 
-        const rects = elements.map((element) => {
-          const rect = element.getBoundingClientRect();
+        const rects = elements.map((element) => element.getBoundingClientRect());
+        const glyphRects = elements.map((element, index) => {
           const fontSize = Number.parseFloat(
             window.getComputedStyle(element).fontSize
           );
           return fitRectToGlyphHeight(
-            rect,
-            Number.isFinite(fontSize) ? fontSize : rect.height
+            rects[index],
+            Number.isFinite(fontSize) ? fontSize : rects[index].height
           );
         });
         const first = rects[0];
@@ -153,7 +153,9 @@ export function useRangeTargetPositions(
           endX: last.right - surfaceRect.left,
           endY: last.top - surfaceRect.top,
           endHeight: last.height,
-          segments: buildRangeSegments(rects, surfaceRect)
+          // Les cadres suivent les glyphes; les crochets et les gestes gardent
+          // les rectangles de ligne complets afin de rester faciles à tracer.
+          segments: buildRangeSegments(glyphRects, surfaceRect)
         };
       });
 

@@ -113,8 +113,8 @@ export function RangeMarksLayer({
         const rightSpacing = bracketSpacing(
           nextPosition ? nextPosition.startX - position.endX : undefined
         );
-        const leftInset = Math.max(4, position.startHeight * .1);
-        const rightInset = Math.max(4, position.endHeight * .1);
+        const leftInset = Math.max(3, position.startHeight * .08);
+        const rightInset = Math.max(3, position.endHeight * .08);
         const marks: React.ReactNode[] = [];
 
         if (leftIds.includes(target.id)) {
