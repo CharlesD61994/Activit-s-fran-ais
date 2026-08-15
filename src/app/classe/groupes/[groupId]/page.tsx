@@ -389,8 +389,16 @@ export default function ClassroomGroupPage({
                   <span>Objectif de la semaine</span>
                   <span className="classroom-objective-edit-label"><Pencil size={15} /> Modifier</span>
                 </div>
-                <div className="classroom-objective-symbol">
-                  <Target size={42} />
+                <div
+                  className={`classroom-objective-wheel ${weeklyPoints >= objectiveTargetPoints ? "is-complete" : ""}`}
+                  style={{ "--objective-progress": `${objectiveProgress * 3.6}deg` } as React.CSSProperties}
+                  aria-label={`${Math.round(objectiveProgress)} % de l’objectif atteint`}
+                >
+                  <span className="classroom-objective-wheel-ticks" aria-hidden="true" />
+                  <span className="classroom-objective-wheel-core">
+                    <Target size={28} aria-hidden="true" />
+                    <strong>{Math.round(objectiveProgress)}%</strong>
+                  </span>
                 </div>
                 <div className="classroom-objective-copy">
                   <h3>{objectiveTitle}</h3>
@@ -401,9 +409,6 @@ export default function ClassroomGroupPage({
                     <strong>{Math.min(weeklyPoints, objectiveTargetPoints)} / {objectiveTargetPoints} points</strong>
                     <span>{weeklyPoints >= objectiveTargetPoints ? "Objectif atteint !" : "En progression"}</span>
                   </div>
-                  <span className="classroom-objective-track">
-                    <span style={{ width: objectiveProgress + "%" }} />
-                  </span>
                 </div>
                 <button
                   type="button"
