@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Flag,
   Play,
+  Pencil,
   Sparkles,
   Star,
   Target,
@@ -41,12 +42,16 @@ export default function ClassroomGroupPage({
   const {
     data,
     setActivityAssignmentStatus,
-    setSessionAssignmentStatus
+    setSessionAssignmentStatus,
+    updateGroupObjective
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<PortalTab>("activities");
   const [showAllCompetitionScores, setShowAllCompetitionScores] =
     useState(false);
+  const [objectiveEditorOpen, setObjectiveEditorOpen] = useState(false);
+  const [objectiveDraft, setObjectiveDraft] = useState("");
+  const [objectivePointsDraft, setObjectivePointsDraft] = useState("10");
 
   const group = data.groups.find((item) => item.id === groupId);
   const activities = data.sentences.filter((sentence) =>
@@ -165,6 +170,26 @@ export default function ClassroomGroupPage({
   }
 
   const weeklyPoints = getWeeklyPoints(data.scoreEvents, group.id);
+  const objectiveTargetPoints = Math.max(1, group.weeklyObjectivePoints ?? 10);
+  const objectiveTitle = group.weeklyObjective?.trim() || "Atteindre 10 points";
+  const objectiveProgress = Math.min(100, (weeklyPoints / objectiveTargetPoints) * 100);
+
+  function openObjectiveEditor() {
+    setObjectiveDraft(objectiveTitle);
+    setObjectivePointsDraft(String(objectiveTargetPoints));
+    setObjectiveEditorOpen(true);
+  }
+
+  function saveObjective() {
+    const objective = objectiveDraft.trim();
+    if (!objective) return;
+    const parsedPoints = Number.parseInt(objectivePointsDraft, 10);
+    const targetPoints = Number.isFinite(parsedPoints)
+      ? Math.min(999, Math.max(1, parsedPoints))
+      : 10;
+    updateGroupObjective(groupId, objective, targetPoints);
+    setObjectiveEditorOpen(false);
+  }
   const completedCompetitionResults = data.competitionResults
     .filter((result) => result.groupId === group.id)
     .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
@@ -358,28 +383,34 @@ export default function ClassroomGroupPage({
             <div className="classroom-mission-grid">
               {activeActivities.slice(0, 2).map(renderActivityCard)}
 
-              <Card className="classroom-objective-card">
+              <Card className={`classroom-objective-card ${group.weeklyObjective ? "is-configured" : ""}`}>
                 <div className="classroom-objective-pattern" aria-hidden="true" />
                 <div className="classroom-objective-heading">
                   <span>Objectif de la semaine</span>
-                  <Target size={25} />
+                  <span className="classroom-objective-edit-label"><Pencil size={15} /> Modifier</span>
                 </div>
                 <div className="classroom-objective-symbol">
                   <Target size={42} />
                 </div>
                 <div className="classroom-objective-copy">
-                  <h3>Atteindre 10 points</h3>
-                  <p>Chaque réussite fait avancer toute la classe.</p>
+                  <h3>{objectiveTitle}</h3>
+                  <p>Clique sur la carte pour choisir l’objectif de la classe.</p>
                 </div>
                 <div className="classroom-objective-progress">
                   <div>
-                    <strong>{Math.min(weeklyPoints, 10)} / 10 points</strong>
-                    <span>{weeklyPoints >= 10 ? "Objectif atteint !" : "En progression"}</span>
+                    <strong>{Math.min(weeklyPoints, objectiveTargetPoints)} / {objectiveTargetPoints} points</strong>
+                    <span>{weeklyPoints >= objectiveTargetPoints ? "Objectif atteint !" : "En progression"}</span>
                   </div>
                   <span className="classroom-objective-track">
-                    <span style={{ width: Math.min(100, weeklyPoints * 10) + "%" }} />
+                    <span style={{ width: objectiveProgress + "%" }} />
                   </span>
                 </div>
+                <button
+                  type="button"
+                  className="classroom-objective-edit-trigger"
+                  onClick={openObjectiveEditor}
+                  aria-label="Modifier l’objectif de la semaine"
+                />
               </Card>
 
               {activeActivities.slice(2).map(renderActivityCard)}
@@ -746,6 +777,72 @@ export default function ClassroomGroupPage({
         </div>
       )}
 
+      {objectiveEditorOpen && (
+        <div className="modal-backdrop">
+          <Card
+            className="modal-card classroom-objective-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="objective-modal-title"
+          >
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                saveObjective();
+              }}
+            >
+              <div className="modal-heading">
+                <div>
+                  <span className="eyebrow">Objectif de la semaine</span>
+                  <h2 id="objective-modal-title">Choisir un objectif</h2>
+                  <p>Écris un objectif motivant et détermine le nombre de points à atteindre.</p>
+                </div>
+                <button
+                  type="button"
+                  className="icon-control"
+                  onClick={() => setObjectiveEditorOpen(false)}
+                  aria-label="Fermer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <label className="classroom-objective-field">
+                <span>Objectif affiché</span>
+                <input
+                  value={objectiveDraft}
+                  onChange={(event) => setObjectiveDraft(event.target.value)}
+                  placeholder="Ex. : Réussir 3 activités sans erreur"
+                  maxLength={90}
+                  autoFocus
+                  required
+                />
+              </label>
+
+              <label className="classroom-objective-field classroom-objective-points-field">
+                <span>Points à atteindre cette semaine</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="999"
+                  value={objectivePointsDraft}
+                  onChange={(event) => setObjectivePointsDraft(event.target.value)}
+                  required
+                />
+              </label>
+
+              <div className="classroom-objective-modal-actions">
+                <Button type="button" variant="secondary" onClick={() => setObjectiveEditorOpen(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit">
+                  Enregistrer l’objectif
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
       {showAllCompetitionScores && (
         <div className="modal-backdrop">
           <Card

@@ -35,6 +35,7 @@ function targetForAnnotation(annotation: GrammarAnnotation, targets: WordClassTa
 /** Convert mixed-editor answers to the native WordClassReader data model. */
 export function buildMixedWordClassSentence(sentence: Sentence): Sentence {
   const annotations = sentence.grammarAnnotations ?? [];
+  const annotationById = new Map(annotations.map((annotation) => [annotation.id, annotation]));
   const annotationTargets = annotations
     .filter((annotation) => annotation.kind === "word_class")
     .map((annotation): WordClassTarget | null => {
@@ -47,7 +48,13 @@ export function buildMixedWordClassSentence(sentence: Sentence): Sentence {
         text: sentence.originalText.slice(annotation.start, annotation.end),
         wordClass,
         isAnalysisTarget: true,
-        wordClassInteractionMode: annotation.wordClassInteractionMode
+        wordClassInteractionMode: annotation.wordClassInteractionMode,
+        triggerAfterRole:
+          annotation.parentAnnotationId &&
+          (annotationById.get(annotation.parentAnnotationId)?.kind === "donor" ||
+            annotationById.get(annotation.parentAnnotationId)?.kind === "receiver")
+            ? annotationById.get(annotation.parentAnnotationId)?.kind as "donor" | "receiver"
+            : undefined
       };
     })
     .filter((target): target is WordClassTarget => Boolean(target));
@@ -55,7 +62,6 @@ export function buildMixedWordClassSentence(sentence: Sentence): Sentence {
   const targetMap = new Map<string, WordClassTarget>();
   [...(sentence.wordClassTargets ?? []), ...annotationTargets].forEach((target) => targetMap.set(target.id, target));
   const targets = Array.from(targetMap.values());
-  const annotationById = new Map(annotations.map((annotation) => [annotation.id, annotation]));
   const donorAnnotations = annotations.filter((annotation) => annotation.kind === "donor");
   const receiverAnnotations = annotations.filter((annotation) => annotation.kind === "receiver");
 

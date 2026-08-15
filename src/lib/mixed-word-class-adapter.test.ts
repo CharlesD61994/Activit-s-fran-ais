@@ -85,4 +85,21 @@ describe("buildMixedWordClassSentence", () => {
       }
     ]);
   });
+
+  it("keeps a word-class action linked directly after a receiver", () => {
+    const sentence = {
+      id: "receiver-class-chain",
+      originalText: "Les créatures",
+      grammarAnnotations: [
+        { id: "donor", start: 4, end: 13, kind: "donor", label: "Donneur d’accord" },
+        { id: "receiver", start: 0, end: 3, kind: "receiver", label: "Receveur d’accord", linkedAnnotationId: "donor" },
+        { id: "receiver-class", start: 0, end: 3, kind: "word_class", label: "Déterminant", parentAnnotationId: "receiver", wordClassInteractionMode: "choose_class" }
+      ]
+    } as Sentence;
+
+    expect(buildMixedWordClassSentence(sentence).wordClassTargets?.find((target) => target.id === "receiver-class")).toMatchObject({
+      triggerAfterRole: "receiver",
+      wordClassInteractionMode: "choose_class"
+    });
+  });
 });

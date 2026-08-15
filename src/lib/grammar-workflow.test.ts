@@ -41,6 +41,16 @@ describe("grammar workflow", () => {
     });
   });
 
+  it("does not invent agreement questions inside an explicit workflow", () => {
+    expect(getAgreementWorkflowSettings({
+      workflowPhases: [createWorkflowPhase("word_classes")]
+    } as Sentence)).toEqual({
+      identifyDonors: false,
+      identifyReceivers: false,
+      linkAgreement: false
+    });
+  });
+
   it("shuffles target ids without mutating the source order", () => {
     const source = ["fonction-1", "fonction-2", "fonction-3"];
     expect(shuffledGrammarTargetIds(source, () => 0)).toEqual([

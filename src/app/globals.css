@@ -10933,3 +10933,134 @@ textarea {
 .reader-chrome-progress > strong {
   font-size: 1.04rem;
 }
+
+/* La correction réserve dès le départ la largeur visuelle de ses deux variantes. */
+.interactive-segment {
+  display: inline-grid;
+  vertical-align: baseline;
+}
+
+.interactive-segment > .interactive-segment-sizer,
+.interactive-segment > .interactive-word {
+  grid-area: 1 / 1;
+}
+
+.interactive-segment-sizer {
+  display: inline-grid;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.interactive-segment-sizer > span {
+  grid-area: 1 / 1;
+  width: max-content;
+  padding-inline: .03em;
+}
+/* V907 — objectif hebdomadaire modifiable dans le portail élève */
+.classroom-objective-card {
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.classroom-objective-card:hover {
+  transform: translateY(-3px);
+  border-color: #ffd56b;
+  box-shadow: 0 19px 38px rgb(5 35 61 / 31%);
+}
+
+.classroom-objective-card:focus-within {
+  outline: 3px solid color-mix(in srgb, #ffd56b 72%, white);
+  outline-offset: 3px;
+}
+
+.classroom-objective-card > :not(.classroom-objective-edit-trigger) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.classroom-objective-edit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid rgb(255 218 121 / 45%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+  color: #fff4c4;
+  font-size: .66rem;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
+.classroom-objective-edit-trigger {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.classroom-objective-edit-trigger:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -7px;
+}
+
+.classroom-objective-modal {
+  width: min(600px, 100%);
+  padding: 26px;
+}
+
+.classroom-objective-modal form {
+  display: grid;
+  gap: 21px;
+}
+
+.classroom-objective-modal .modal-heading h2 {
+  margin: 4px 0 6px;
+}
+
+.classroom-objective-modal .modal-heading p {
+  max-width: 460px;
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.classroom-objective-field {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: .86rem;
+  font-weight: 900;
+}
+
+.classroom-objective-field input {
+  width: 100%;
+  min-height: 52px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.classroom-objective-field input:focus {
+  border-color: var(--primary);
+  outline: 3px solid color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.classroom-objective-points-field {
+  max-width: 280px;
+}
+
+.classroom-objective-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}

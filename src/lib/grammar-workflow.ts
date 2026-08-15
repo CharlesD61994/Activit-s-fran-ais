@@ -136,10 +136,11 @@ export function getAgreementWorkflowSettings(sentence: Sentence) {
   );
 
   if (!phase) {
+    const hasExplicitWorkflow = Boolean(sentence.workflowPhases?.length);
     return {
-      identifyDonors: true,
-      identifyReceivers: true,
-      linkAgreement: true
+      identifyDonors: !hasExplicitWorkflow,
+      identifyReceivers: !hasExplicitWorkflow,
+      linkAgreement: !hasExplicitWorkflow
     };
   }
 

@@ -146,15 +146,10 @@ function buildLayoutTokens(sentence: Sentence): LayoutToken[] {
       });
     });
 
-    const widestText =
-      correction.originalText.length >= correction.correctedText.length
-        ? correction.originalText
-        : correction.correctedText || "·";
-
     tokens.push({
       type: "correction",
       key: correction.id,
-      text: widestText,
+      text: correction.originalText || "·",
       correction
     });
 
@@ -424,7 +419,12 @@ export function InteractiveSentenceReader({
           return;
         }
 
-        const width = measureTextWidth(token.text, context, letterSpacing);
+        const width = token.correction
+          ? Math.max(
+              measureTextWidth(token.correction.originalText || "·", context, letterSpacing),
+              measureTextWidth(token.correction.correctedText || "·", context, letterSpacing)
+            ) + (Number.parseFloat(styles.fontSize) || 0) * 0.06
+          : measureTextWidth(token.text, context, letterSpacing);
 
         if (
           currentLine.length > 0 &&
@@ -592,6 +592,10 @@ export function InteractiveSentenceReader({
           hinted && !corrected ? "hinted" : ""
         ].filter(Boolean).join(" ")}
       >
+        <span className="interactive-segment-sizer" aria-hidden="true">
+          <span>{correction.originalText || "·"}</span>
+          <span>{correction.correctedText || "·"}</span>
+        </span>
         {corrected && (
           <button
             type="button"

@@ -26,6 +26,8 @@ export type ClassGroup = {
   schoolYearId?: string;
   name: string;
   description?: string;
+  weeklyObjective?: string;
+  weeklyObjectivePoints?: number;
   themeId: ThemeId;
   totalPoints: number;
   sentenceCount: number;
@@ -175,6 +177,8 @@ export type WordClassTarget = {
   grammaticalGender?: "feminine" | "masculine";
   grammaticalNumber?: "singular" | "plural";
   wordClassInteractionMode?: "find_requested" | "choose_class";
+  /** Mixed activities can unlock this class immediately after the linked role is completed. */
+  triggerAfterRole?: "donor" | "receiver";
 };
 
 

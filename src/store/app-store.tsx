@@ -31,6 +31,7 @@ type AppStoreValue = {
   saveSchoolYear: (schoolYear: SchoolYear) => void;
   deleteSchoolYear: (schoolYearId: string) => void;
   updateGroupTheme: (groupId: string, themeId: ThemeId) => void;
+  updateGroupObjective: (groupId: string, objective: string, targetPoints: number) => void;
   setGlobalTheme: (themeId: ThemeId) => void;
   setDashboardTitle: (title: string) => void;
   setDashboardSectionLabel: (label: string) => void;
@@ -236,6 +237,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         ...current,
         groups: current.groups.map((group) =>
           group.id === groupId ? { ...group, themeId } : group
+        )
+      })),
+    updateGroupObjective: (groupId, weeklyObjective, weeklyObjectivePoints) =>
+      setData((current) => ({
+        ...current,
+        groups: current.groups.map((group) =>
+          group.id === groupId
+            ? { ...group, weeklyObjective, weeklyObjectivePoints }
+            : group
         )
       })),
     setGlobalTheme: (themeId) => setData((current) => ({ ...current, globalThemeId: themeId })),

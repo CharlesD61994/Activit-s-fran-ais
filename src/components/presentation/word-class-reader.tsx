@@ -347,6 +347,8 @@ export function WordClassReader({
   const [confirmedWordIds, setConfirmedWordIds] = useState<string[]>(
     []
   );
+  const [roleTriggeredTargetIds, setRoleTriggeredTargetIds] = useState<string[]>([]);
+  const [suspendedRelationTargetId, setSuspendedRelationTargetId] = useState<string | null>(null);
   const [arrowCanvas, setArrowCanvas] = useState({
     width: 0,
     height: 0
@@ -389,7 +391,8 @@ export function WordClassReader({
           isAnalysisTarget: target.isAnalysisTarget,
           grammaticalGender: target.grammaticalGender,
           grammaticalNumber: target.grammaticalNumber,
-          wordClassInteractionMode: target.wordClassInteractionMode
+          wordClassInteractionMode: target.wordClassInteractionMode,
+          triggerAfterRole: target.triggerAfterRole
         })),
         relations,
         selectedClasses
@@ -407,6 +410,8 @@ export function WordClassReader({
       setResolvedGenderIds([]);
       setResolvedNumberIds([]);
       setRolePointIds([]);
+      setRoleTriggeredTargetIds([]);
+      setSuspendedRelationTargetId(null);
       setRelationAnswers({});
       setDrawnAgreementArrows([]);
       setAgreementArrowsVisible(true);
@@ -427,6 +432,8 @@ export function WordClassReader({
       setResolvedGenderIds([]);
       setResolvedNumberIds([]);
       setRolePointIds([]);
+      setRoleTriggeredTargetIds([]);
+      setSuspendedRelationTargetId(null);
       setRelationAnswers({});
       setDrawnAgreementArrows([]);
       setAgreementArrowsVisible(true);
@@ -446,6 +453,7 @@ export function WordClassReader({
         resolvedGenderIds?: string[];
         resolvedNumberIds?: string[];
         rolePointIds?: string[];
+        roleTriggeredTargetIds?: string[];
         relationAnswers?: Record<string, string[]>;
         activeRelationTargetId?: string | null;
         drawnAgreementArrows?: Array<
@@ -461,6 +469,7 @@ export function WordClassReader({
       const restoredResolvedGenderIds = saved.resolvedGenderIds ?? [];
       const restoredResolvedNumberIds = saved.resolvedNumberIds ?? [];
       const restoredRolePointIds = saved.rolePointIds ?? [];
+      const restoredRoleTriggeredTargetIds = saved.roleTriggeredTargetIds ?? [];
       const restoredRelationAnswers = saved.relationAnswers ?? {};
       const restoredDrawnAgreementArrows = (
         saved.drawnAgreementArrows ?? []
@@ -475,6 +484,7 @@ export function WordClassReader({
       setResolvedGenderIds(restoredResolvedGenderIds);
       setResolvedNumberIds(restoredResolvedNumberIds);
       setRolePointIds(restoredRolePointIds);
+      setRoleTriggeredTargetIds(restoredRoleTriggeredTargetIds);
       setRelationAnswers(restoredRelationAnswers);
       setDrawnAgreementArrows(restoredDrawnAgreementArrows);
       setAgreementArrowsVisible(saved.agreementArrowsVisible ?? true);
@@ -486,6 +496,7 @@ export function WordClassReader({
       setActiveRelationTargetId(
         saved.activeRelationTargetId ?? null
       );
+      setSuspendedRelationTargetId(null);
 
       const restoredPoints: RestoredPoint[] = [];
 
@@ -572,6 +583,7 @@ export function WordClassReader({
         resolvedGenderIds,
         resolvedNumberIds,
         rolePointIds,
+        roleTriggeredTargetIds,
         relationAnswers,
         activeRelationTargetId,
         drawnAgreementArrows,
@@ -592,7 +604,8 @@ export function WordClassReader({
     resolvedGenderIds,
     resolvedNumberIds,
     resolvedRoleIds,
-    rolePointIds
+    rolePointIds,
+    roleTriggeredTargetIds
   ]);
 
   const currentTask = activeRelationTargetId
@@ -767,9 +780,15 @@ export function WordClassReader({
   function startRoleOrContinue(target: WordClassTarget) {
     const roleTask = roleTaskMap.get(target.id);
 
-    if (roleTask) {
+    if (roleTask && !resolvedRoleIds.includes(target.id)) {
       setRoleTargetId(target.id);
       setRoleFeedback("");
+      return;
+    }
+
+    if (suspendedRelationTargetId) {
+      setActiveRelationTargetId(suspendedRelationTargetId);
+      setSuspendedRelationTargetId(null);
       return;
     }
 
@@ -827,6 +846,17 @@ export function WordClassReader({
 
     const target = findTarget(token);
 
+    if (target?.triggerAfterRole && !roleTriggeredTargetIds.includes(target.id)) {
+      const roleTask = roleTaskMap.get(target.id);
+      if (roleTask && roleTask.role === target.triggerAfterRole) {
+        setRoleTargetId(target.id);
+        setRoleFeedback("");
+      } else {
+        setMessage("Cette action se débloquera dès que ce mot aura été désigné dans l’accord.");
+      }
+      return;
+    }
+
     if (!target || !analysisTargets.some((item) => item.id === target.id)) {
       setMessage(
         `« ${token.text} » ne fait pas partie des mots recherchés.`
@@ -849,6 +879,16 @@ export function WordClassReader({
     }
 
     const target = findTarget(token);
+    if (target?.triggerAfterRole && !roleTriggeredTargetIds.includes(target.id)) {
+      const roleTask = roleTaskMap.get(target.id);
+      if (roleTask && roleTask.role === target.triggerAfterRole) {
+        setRoleTargetId(target.id);
+        setRoleFeedback("");
+      } else {
+        setMessage("Cette action se débloquera dès que ce mot aura été désigné dans l’accord.");
+      }
+      return;
+    }
     if (target && foundIds.includes(target.id)) return;
 
     setActiveToken(token);
@@ -926,9 +966,19 @@ export function WordClassReader({
     window.setTimeout(() => {
       setRoleTargetId(null);
       setRoleFeedback("");
-      setActiveRelationTargetId(
-        taskMap.has(task.targetId) ? task.targetId : null
-      );
+      const triggeredTarget = target.triggerAfterRole === task.role;
+      if (triggeredTarget && !foundIds.includes(target.id)) {
+        setRoleTriggeredTargetIds((current) => current.includes(target.id) ? current : [...current, target.id]);
+        const token = tokens.find((candidate) => candidate.isWord && candidate.start <= target.start && candidate.end >= target.end);
+        if (usesClassChoice(target, multipleClasses, hasExplicitClassModes) && token) {
+          setActiveToken(token);
+          setSelectedClass("noun");
+        } else {
+          setMessage(`Clique maintenant sur « ${target.text} » pour confirmer sa classe.`);
+        }
+        return;
+      }
+      setActiveRelationTargetId(taskMap.has(task.targetId) ? task.targetId : null);
     }, 700);
   }
 
@@ -1167,6 +1217,24 @@ export function WordClassReader({
             : currentTask.targetId;
         showWordSuccess([receiverId]);
         setMessage("");
+
+        const triggeredRole = currentTask.role === "donor" ? "receiver" : "donor";
+        const triggeredTarget = targetMap.get(answerId);
+        if (
+          triggeredTarget?.triggerAfterRole === triggeredRole &&
+          !foundIds.includes(triggeredTarget.id)
+        ) {
+          setRoleTriggeredTargetIds((current) => current.includes(triggeredTarget.id) ? current : [...current, triggeredTarget.id]);
+          setSuspendedRelationTargetId(currentTask.targetId);
+          setActiveRelationTargetId(null);
+          const token = tokens.find((candidate) => candidate.isWord && candidate.start <= triggeredTarget.start && candidate.end >= triggeredTarget.end);
+          if (usesClassChoice(triggeredTarget, multipleClasses, hasExplicitClassModes) && token) {
+            setActiveToken(token);
+            setSelectedClass("noun");
+          } else {
+            setMessage(`Clique maintenant sur « ${triggeredTarget.text} » pour confirmer sa classe.`);
+          }
+        }
       }
     } else if (pathLength < 24) {
       setMessage("Trace une flèche complète d’un mot à l’autre.");
@@ -1200,6 +1268,8 @@ export function WordClassReader({
     setDrawnAgreementArrows([]);
     setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
     setConfirmedWordIds([]);
+    setRoleTriggeredTargetIds([]);
+    setSuspendedRelationTargetId(null);
     clearDraftAgreementArrow();
     setActiveToken(null);
     setRoleTargetId(null);
