@@ -8,9 +8,9 @@ describe("bracketSpacing", () => {
 
   it("shrinks both brackets instead of merging adjacent boundaries", () => {
     const spacing = bracketSpacing(18);
-    expect(spacing.cap).toBeCloseTo(4.5);
-    expect(spacing.gap).toBeCloseTo(1.5);
-    expect((spacing.cap + spacing.gap) * 2 + 6).toBeLessThanOrEqual(18);
+    expect(spacing.cap).toBeCloseTo(3.75);
+    expect(spacing.gap).toBeCloseTo(1.25);
+    expect((spacing.cap + spacing.gap) * 2 + 8).toBeLessThanOrEqual(18);
   });
 
   it("always leaves a gap between a bracket and its word", () => {
@@ -21,6 +21,6 @@ describe("bracketSpacing", () => {
     const availableSpace = 18;
     const spacing = bracketSpacing(availableSpace);
     const usedByBrackets = (spacing.cap + spacing.gap) * 2;
-    expect(availableSpace - usedByBrackets).toBeGreaterThanOrEqual(6);
+    expect(availableSpace - usedByBrackets).toBeGreaterThanOrEqual(8);
   });
 });

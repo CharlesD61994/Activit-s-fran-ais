@@ -51,7 +51,8 @@ export function fitRectToGlyphHeight(
   const glyphHeight = Math.min(rect.height, Math.max(1, fontSize * 1.08));
   const verticalInset = (rect.height - glyphHeight) / 2;
   return {
-    ...rect,
+    left: rect.left,
+    right: rect.right,
     top: rect.top + verticalInset,
     bottom: rect.bottom - verticalInset,
     height: glyphHeight
@@ -150,7 +151,9 @@ export function useRangeTargetPositions(
           x: sameLine
             ? (first.left + last.right) / 2 - surfaceRect.left
             : (first.left + first.right) / 2 - surfaceRect.left,
-          y: first.top - surfaceRect.top,
+          // Les étiquettes se placent par rapport aux lettres visibles, pas à
+          // la boîte de ligne qui contient aussi l'interligne.
+          y: firstGlyph.top - surfaceRect.top,
           width: maxRight - minLeft,
           height: maxBottom - minTop,
           startX: first.left - surfaceRect.left,

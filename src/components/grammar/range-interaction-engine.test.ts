@@ -16,6 +16,12 @@ describe("moteur partagé des plages grammaticales", () => {
     ]);
   });
 
+  it("sépare la ponctuation de l'espace qui la suit", () => {
+    expect(
+      tokenizeGrammarText("Hier soir, les").map((token) => token.text)
+    ).toEqual(["Hier", " ", "soir", ",", " ", "les"]);
+  });
+
   it("choisit une seule cible lorsque des limites sont voisines", () => {
     const targets = [{ id: "first", start: 0, end: 2 }, { id: "second", start: 3, end: 7 }];
     const result = chooseBracketTarget([{ x: 12, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 20 }, { x: 12, y: 20 }], targets, [], [], undefined, (target) => ({ x: target.id === "first" ? 2 : 42, y: 10, height: 30 }));

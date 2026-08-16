@@ -127,9 +127,9 @@ export function RangeMarksLayer({
                   leftSpacing.cap -
                   leftDepth * (leftSpacing.cap + leftSpacing.gap) +
                   (previousPosition ? 1 : 0),
-                top: position.markStartY - 2,
+                top: position.markStartY - 1,
                 width: leftSpacing.cap,
-                height: Math.max(34, position.markStartHeight + 4)
+                height: Math.max(34, position.markStartHeight + 2)
               }}
             />
           );
@@ -146,9 +146,9 @@ export function RangeMarksLayer({
                   rightSpacing.gap +
                   rightDepth * (rightSpacing.cap + rightSpacing.gap) -
                   (nextPosition ? 1 : 0),
-                top: position.markEndY - 2,
+                top: position.markEndY - 1,
                 width: rightSpacing.cap,
-                height: Math.max(34, position.markEndHeight + 4)
+                height: Math.max(34, position.markEndHeight + 2)
               }}
             />
           );

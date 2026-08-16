@@ -30,6 +30,31 @@ describe("fitRectToGlyphHeight", () => {
       height: 54
     });
   });
+
+  it("conserve les coordonnées non énumérables d'un DOMRect", () => {
+    const rect = {} as {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      height: number;
+    };
+    Object.defineProperties(rect, {
+      left: { value: 12 },
+      right: { value: 92 },
+      top: { value: 20 },
+      bottom: { value: 100 },
+      height: { value: 80 }
+    });
+
+    expect(fitRectToGlyphHeight(rect, 50)).toMatchObject({
+      left: 12,
+      right: 92,
+      top: 33,
+      bottom: 87,
+      height: 54
+    });
+  });
 });
 
 describe("buildRangeSegments", () => {

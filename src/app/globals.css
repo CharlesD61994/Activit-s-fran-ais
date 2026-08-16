@@ -6325,32 +6325,6 @@ textarea {
 .mixed-workspace-test { display: grid; gap: 16px; }
 @media (max-width: 980px) { .mixed-workspace-meta { grid-template-columns: 1fr 1fr; position: static; } .mixed-workspace-grid { grid-template-columns: 1fr; } .mixed-workspace-toolbar, .mixed-workspace-phases { position: static; } }
 
-/* Géométrie unique de la phrase pendant toutes les phases grammaticales. */
-.interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text,
-.word-group-reader.embedded .word-group-reader-text.shared-grammar-reader-text,
-.grammar-extension-reader .grammar-reader-text.shared-grammar-reader-text {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 12px 44px 24px;
-  font-size: clamp(1.75rem, 3.85vw, 4.45rem);
-  line-height: 1.38;
-  letter-spacing: -.03em;
-  font-weight: 700;
-  text-align: center;
-  white-space: pre-wrap;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-@media (max-width: 760px) {
-  .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text,
-  .word-group-reader.embedded .word-group-reader-text.shared-grammar-reader-text,
-  .grammar-extension-reader .grammar-reader-text.shared-grammar-reader-text {
-    padding-inline: 24px;
-    font-size: clamp(1.45rem, 6.6vw, 2.65rem);
-    line-height: 1.42;
-  }
-}
-
 .word-group-drawing-canvas {
   position: absolute;
   inset: 0;
@@ -6409,7 +6383,7 @@ textarea {
 }
 
 .word-group-reader-token.group-confirmed {
-  font-weight: 900;
+  font-weight: inherit;
 }
 
 .word-group-reader-token.nucleus-confirmed {
@@ -9428,15 +9402,6 @@ textarea {
   background: color-mix(in srgb, var(--secondary) 42%, var(--surface));
 }
 
-.grammar-extension-reader .grammar-reader-text.shared-grammar-reader-text {
-  min-height: 250px;
-  display: block;
-  padding-block: 46px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--surface);
-}
-
 .grammar-reader-message {
   margin: 0;
   padding-inline: 18px;
@@ -9466,10 +9431,6 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .grammar-extension-reader .grammar-reader-text.shared-grammar-reader-text {
-    min-height: 210px;
-    padding-block: 34px;
-  }
 }
 
 /* V88 — fonctions : même surface et mêmes instructions que Groupes */
@@ -10835,43 +10796,74 @@ textarea {
  * dessine rien : chaque mécanique conserve uniquement sa propre feuille. */
 .reader-activity-flow {
   display: contents;
+  --reader-sentence-padding-top: 30px;
+  --reader-sentence-padding-inline: 44px;
+  --reader-sentence-padding-bottom: 36px;
+  --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
+  --reader-sentence-font-weight: 800;
+  --reader-sentence-line-height: 1.48;
+  --reader-annotation-gap: 3px;
 }
 
-.reader-activity-flow .shared-grammar-reader-text {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 0;
-  padding: 32px 44px 38px;
-  font-size: clamp(1.75rem, 3.85vw, 4.45rem);
-  font-weight: 900;
-  line-height: 1.5;
-  letter-spacing: -.03em;
-  text-align: center;
-  white-space: pre-wrap;
-  overflow-wrap: normal;
-  word-break: normal;
+.reader-scene .reader-activity-flow .interactive-reader,
+.reader-scene .reader-activity-flow .word-group-reader,
+.reader-scene .reader-activity-flow .word-class-reader,
+.reader-scene .reader-activity-flow .grammar-extension-reader {
+  width: min(1460px, 100%) !important;
+  max-width: 1460px !important;
+  margin-inline: auto !important;
+}
+
+.reader-scene .reader-activity-flow .shared-grammar-reader-text {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding:
+    var(--reader-sentence-padding-top)
+    var(--reader-sentence-padding-inline)
+    var(--reader-sentence-padding-bottom) !important;
+  font-size: var(--reader-sentence-font-size) !important;
+  font-weight: var(--reader-sentence-font-weight) !important;
+  line-height: var(--reader-sentence-line-height) !important;
+  letter-spacing: -.03em !important;
+  text-align: center !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
 }
 
 /* La correction utilise exactement les mêmes lignes que les autres phases.
  * Les anciens espaces réservés aux codes sont remplacés par une superposition. */
-.reader-activity-flow .interactive-reader-sentence .interactive-line,
-.reader-activity-flow .interactive-reader-sentence .interactive-line-empty {
-  min-height: 0;
-  padding-top: 0;
-  line-height: inherit;
+.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-line,
+.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-line-empty {
+  min-height: 0 !important;
+  padding-top: 0 !important;
+  line-height: inherit !important;
 }
 
-.reader-activity-flow .interactive-reader-sentence .interactive-line + .interactive-line {
-  margin-top: 0;
+.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-line + .interactive-line {
+  margin-top: 0 !important;
 }
 
-.reader-activity-flow .interactive-reader-sentence .interactive-segment {
-  margin: 0;
-  padding: 0;
+.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-segment {
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-.reader-activity-flow .interactive-reader-sentence .interactive-code-box {
-  bottom: calc(100% + 2px);
+.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-word,
+.reader-scene .reader-activity-flow .word-group-reader-token {
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+}
+
+.reader-scene .reader-activity-flow .word-group-reader-token.group-confirmed {
+  font-weight: inherit !important;
+}
+
+.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-code-box {
+  bottom: calc(100% + var(--reader-annotation-gap)) !important;
   width: 1.45em;
   height: 1.45em;
   min-width: 1.45em;
@@ -10882,7 +10874,7 @@ textarea {
   line-height: 1;
 }
 
-.reader-activity-flow .interactive-reader-sentence .interactive-code-box.filled {
+.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-code-box.filled {
   width: auto;
   height: auto;
   min-width: 0;
@@ -10892,37 +10884,39 @@ textarea {
 
 /* Les classes de mots partagent la même fonte et la même respiration. Les
  * flèches conservent seulement leur bande de dessin, calculée par le lecteur. */
-.reader-activity-flow .word-class-reader-text.shared-grammar-reader-text {
-  padding-top: 32px !important;
-  padding-bottom: 38px;
+.reader-scene .reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token {
+  margin-top: 0 !important;
 }
 
-.reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token {
-  margin-top: 0;
+.reader-scene .reader-activity-flow .word-class-reader-text.has-agreement-relations {
+  line-height: 1.18 !important;
 }
 
-.reader-activity-flow .word-class-reader-text.has-agreement-relations {
-  padding-top: 18px !important;
-  padding-bottom: 38px;
-  line-height: 1.18;
+.reader-scene .reader-activity-flow .word-class-reader-label {
+  bottom: calc(100% + var(--reader-annotation-gap)) !important;
+}
+
+.reader-scene .reader-activity-flow .word-group-label-anchor,
+.reader-scene .reader-activity-flow .word-group-label-anchor.contracted-result {
+  transform: translate(-50%, calc(-100% - var(--reader-annotation-gap))) !important;
 }
 
 /* Les surfaces qui étaient transparentes dans Mixte redeviennent les cartes
  * adaptatives natives, sans carte supplémentaire autour d’elles. */
 .reader-scene .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text,
-.reader-scene .word-group-reader.embedded .word-group-drawing-surface,
+.reader-scene .reader-activity-flow .word-group-drawing-surface,
 .reader-scene .grammar-extension-reader .grammar-extension-surface,
 .reader-scene .word-class-reader-text.shared-grammar-reader-text {
-  min-height: 0;
-  border: 1px solid #cfdeea;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 10px 24px rgb(17 58 88 / 7%);
+  min-height: 0 !important;
+  border: 1px solid #cfdeea !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  box-shadow: 0 10px 24px rgb(17 58 88 / 7%) !important;
 }
 
 .reader-scene .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text {
-  width: min(1460px, 100%);
-  margin-inline: auto;
+  width: 100% !important;
+  margin-inline: 0 !important;
 }
 
 .reader-command-dock {
