@@ -1534,14 +1534,6 @@ textarea {
   flex-wrap: wrap;
 }
 
-.interactive-sentence {
-  text-align: center;
-  font-size: clamp(2rem, 4.6vw, 5.5rem);
-  line-height: 1.58;
-  letter-spacing: -.03em;
-  font-weight: 700;
-}
-
 .interactive-word {
   position: relative;
   display: inline-block;
@@ -1652,10 +1644,6 @@ textarea {
     text-align: left;
   }
 
-  .interactive-sentence {
-    font-size: clamp(1.7rem, 8vw, 3.2rem);
-  }
-
   .new-reader-session-nav {
     grid-template-columns: 1fr 1fr;
   }
@@ -1736,15 +1724,9 @@ textarea {
   gap: 6px;
 }
 
-.interactive-sentence {
-  font-size: clamp(1.8rem, 4.1vw, 4.8rem);
-  line-height: 1.38;
-}
-
 .interactive-segment {
   position: relative;
   display: inline-block;
-  margin: .5em .02em 0;
 }
 
 .interactive-word {
@@ -1780,18 +1762,12 @@ textarea {
 .interactive-code-box {
   position: absolute;
   left: 50%;
-  bottom: calc(100% - .06em);
   transform: translateX(-50%);
   min-width: 1.7em;
-  min-height: .62em;
-  padding: 0 .12em;
   border: 2px solid var(--primary);
   border-radius: .12em;
   background: var(--surface);
   color: var(--primary);
-  font-size: .31em;
-  line-height: 1.05;
-  font-weight: 900;
   cursor: pointer;
 }
 
@@ -1815,11 +1791,6 @@ textarea {
 @media (max-width: 760px) {
   .new-reader-stage {
     padding: 18px 14px;
-  }
-
-  .interactive-sentence {
-    font-size: clamp(1.55rem, 7vw, 2.8rem);
-    line-height: 1.42;
   }
 }
 
@@ -1890,23 +1861,9 @@ textarea {
   font-weight: 800;
 }
 
-.interactive-segment {
-  margin-top: .28em;
-}
-
 .interactive-code-box {
-  bottom: calc(100% - .18em);
   min-width: 2.25em;
-  min-height: .9em;
-  padding: 0 .16em;
   border-width: 2px;
-  font-size: .52em;
-  line-height: .95;
-}
-
-.interactive-code-box.filled {
-  font-size: .52em;
-  line-height: .95;
 }
 
 .new-reader-session-nav {
@@ -1916,11 +1873,6 @@ textarea {
 @media (max-width: 760px) {
   .reader-heading-block h1 {
     font-size: clamp(1.2rem, 5vw, 1.7rem);
-  }
-
-  .interactive-code-box,
-  .interactive-code-box.filled {
-    font-size: .48em;
   }
 
   .new-reader-session-nav {
@@ -1935,12 +1887,6 @@ textarea {
 .interactive-word:disabled:hover {
   background: transparent !important;
   box-shadow: none !important;
-}
-
-.interactive-code-box {
-  min-height: 1.08em;
-  padding-top: .06em;
-  padding-bottom: .06em;
 }
 
 .reader-title-card {
@@ -2125,7 +2071,6 @@ textarea {
 
 .reader-scene .interactive-sentence {
   order: 1;
-  margin-top: 10px;
 }
 
 .reader-scene-footer {
@@ -2183,10 +2128,6 @@ textarea {
   align-items: center;
 }
 
-.interactive-code-box {
-  bottom: calc(100% - .28em);
-}
-
 .reader-dialog-actions {
   display: flex;
   gap: 8px;
@@ -2219,13 +2160,6 @@ textarea {
 
 
 /* V20 — navigation, années actives et espaces du lecteur */
-.interactive-sentence {
-  white-space: pre-wrap;
-}
-
-.interactive-segment {
-  white-space: nowrap;
-}
 
 .interactive-word {
   margin-right: 0;
@@ -2303,12 +2237,6 @@ textarea {
   display: block;
   width: max-content;
   max-width: 100%;
-  margin: 0 auto;
-  white-space: nowrap;
-}
-
-.interactive-line + .interactive-line {
-  margin-top: .04em;
 }
 
 /*
@@ -3024,23 +2952,11 @@ textarea {
 
 .interactive-reader-text .interactive-sentence {
   max-width: 1180px;
-  margin: 0 auto;
-  text-align: left;
-  font-size: clamp(1.2rem, 2.05vw, 2rem);
-  line-height: 1.75;
-  letter-spacing: 0;
-  font-weight: 500;
 }
 
 .interactive-reader-text .interactive-line {
   width: 100%;
   max-width: 100%;
-  margin: 0;
-  white-space: nowrap;
-}
-
-.interactive-reader-text .interactive-code-box {
-  font-size: .62em;
 }
 
 .reader-scene-main-text {
@@ -3059,11 +2975,6 @@ textarea {
 
   .activity-textarea-long {
     min-height: 280px;
-  }
-
-  .interactive-reader-text .interactive-sentence {
-    font-size: clamp(1.05rem, 4.5vw, 1.45rem);
-    line-height: 1.65;
   }
 }
 
@@ -3119,14 +3030,6 @@ textarea {
   white-space: pre-wrap;
 }
 
-.interactive-reader-text .interactive-line {
-  min-height: 1.75em;
-}
-
-.interactive-reader-text .interactive-line-empty {
-  min-height: 1.75em;
-}
-
 .interactive-line-empty {
   display: block;
 }
@@ -3162,22 +3065,6 @@ textarea {
 
 .interactive-line {
   box-sizing: content-box;
-  min-height: 1.45em;
-  padding-top: .72em;
-}
-
-.interactive-reader-text .interactive-line,
-.interactive-reader-text .interactive-line-empty {
-  min-height: 1.75em;
-  padding-top: .72em;
-}
-
-.interactive-segment {
-  margin-top: 0;
-}
-
-.interactive-code-box {
-  bottom: calc(100% - .18em);
 }
 
 .interactive-punctuation-target {
@@ -3417,10 +3304,6 @@ textarea {
 
 .reader-meta-row {
   margin-bottom: -2px;
-}
-
-.reader-scene .interactive-sentence {
-  margin-top: 2px;
 }
 
 .school-year-actions {
@@ -3994,31 +3877,6 @@ textarea {
   flex: 0 0 auto;
 }
 
-.interactive-line {
-  min-height: 1.32em;
-  padding-top: .48em;
-}
-
-.interactive-reader-text .interactive-line,
-.interactive-reader-text .interactive-line-empty {
-  min-height: 1.6em;
-  padding-top: .48em;
-}
-
-.interactive-code-box {
-  bottom: calc(100% - .30em);
-  min-height: .96em;
-  font-size: .48em;
-}
-
-.interactive-code-box.filled {
-  font-size: .48em;
-}
-
-.interactive-segment {
-  margin-top: 0;
-}
-
 
 /* V39 — podium cumulatif compact */
 .competition-cumulative-podium {
@@ -4134,39 +3992,8 @@ textarea {
   gap: 12px;
 }
 
-.interactive-reader-sentence .interactive-sentence {
-  font-size: clamp(1.75rem, 3.85vw, 4.45rem);
-  line-height: 1.28;
-}
-
-.interactive-reader-sentence .interactive-line {
-  min-height: 1.2em;
-  padding-top: .36em;
-}
-
-.interactive-reader-sentence .interactive-line + .interactive-line {
-  margin-top: 0;
-}
-
-.interactive-reader-sentence .interactive-code-box {
-  bottom: calc(100% - .34em);
-  min-height: .88em;
-  font-size: .44em;
-}
-
-.interactive-reader-sentence .interactive-code-box.filled {
-  font-size: .44em;
-}
-
 .interactive-reader-sentence .interactive-reader-actions {
   margin-top: 2px;
-}
-
-@media (max-width: 760px) {
-  .interactive-reader-sentence .interactive-sentence {
-    font-size: clamp(1.45rem, 6.6vw, 2.65rem);
-    line-height: 1.32;
-  }
 }
 
 
@@ -4705,22 +4532,14 @@ textarea {
 
 .word-class-reader-text {
   width: 100%;
-  padding: 26px 24px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--surface);
-  font-size: clamp(1.55rem, 3.2vw, 3.35rem);
-  font-weight: 650;
-  line-height: 1.75;
-  text-align: center;
-  white-space: pre-wrap;
 }
 
 .word-class-reader-token {
   position: relative;
   display: inline-block;
-  margin-top: .55em;
-  padding: 0 .035em;
   border: 0;
   border-radius: .1em;
   background: transparent;
@@ -4745,7 +4564,6 @@ textarea {
 .word-class-reader-label {
   position: absolute;
   left: 50%;
-  bottom: calc(100% - .1em);
   transform: translateX(-50%);
   color: var(--primary);
   font-size: .32em;
@@ -4783,13 +4601,6 @@ textarea {
 
   .word-class-progress-count {
     min-width: 0;
-    text-align: left;
-  }
-
-  .word-class-reader-text {
-    padding: 22px 16px;
-    font-size: clamp(1.3rem, 6.2vw, 2.2rem);
-    line-height: 1.8;
     text-align: left;
   }
 }
@@ -5173,10 +4984,6 @@ textarea {
     align-items: flex-start;
     flex-direction: column;
   }
-
-  .word-class-reader-token {
-    min-height: 1.25em;
-  }
 }
 
 
@@ -5427,7 +5234,6 @@ textarea {
 
 /* V56 — flèches entièrement visibles sous la phrase */
 .word-class-reader-text {
-  padding-bottom: 92px;
   overflow: visible;
 }
 
@@ -5442,9 +5248,6 @@ textarea {
 }
 
 @media (max-width: 760px) {
-  .word-class-reader-text {
-    padding-bottom: 76px;
-  }
 
   .agreement-arrow-path {
     stroke-width: 2;
@@ -5454,18 +5257,7 @@ textarea {
 
 /* V57 — flèches compactes au-dessus de la phrase */
 .word-class-reader-text {
-  padding-top: 62px;
-  padding-bottom: 24px;
-  line-height: 1.58;
   overflow: visible;
-}
-
-.word-class-reader-token {
-  margin-top: .42em;
-}
-
-.word-class-reader-label {
-  bottom: calc(100% - .18em);
 }
 
 .agreement-arrow-layer {
@@ -5477,68 +5269,20 @@ textarea {
   stroke-width: 2.35;
 }
 
-@media (max-width: 760px) {
-  .word-class-reader-text {
-    padding-top: 56px;
-    padding-bottom: 20px;
-    line-height: 1.62;
-  }
-
-  .word-class-reader-token {
-    margin-top: .38em;
-  }
-
-  .word-class-reader-label {
-    bottom: calc(100% - .2em);
-  }
-}
-
 
 /* V58 — flèches persistantes et arrivée verticale */
-.word-class-reader-text {
-  padding-top: 68px;
-  line-height: 1.56;
-}
-
-.word-class-reader-label {
-  bottom: calc(100% - .23em);
-}
 
 .agreement-arrow-path {
   stroke-linejoin: round;
   stroke-linecap: round;
-}
-
-@media (max-width: 760px) {
-  .word-class-reader-text {
-    padding-top: 62px;
-    line-height: 1.6;
-  }
-
-  .word-class-reader-label {
-    bottom: calc(100% - .24em);
-  }
 }
 
 
 /* V58 — flèches persistantes et pointe recourbée */
-.word-class-reader-text {
-  padding-top: 68px;
-}
-
-.word-class-reader-label {
-  bottom: calc(100% - .22em);
-}
 
 .agreement-arrow-path {
   stroke-linejoin: round;
   stroke-linecap: round;
-}
-
-@media (max-width: 760px) {
-  .word-class-reader-text {
-    padding-top: 60px;
-  }
 }
 
 
@@ -5715,14 +5459,6 @@ textarea {
 
 
 /* V66 — reduce top whitespace above sentence */
-.word-class-reader-text{
-  padding-top:22px !important;
-}
-@media (max-width:760px){
-  .word-class-reader-text{
-    padding-top:18px !important;
-  }
-}
 
 /* V67 — éditeur Groupes de mots */
 .word-group-editor textarea{width:100%;margin-top:8px}
@@ -5792,12 +5528,6 @@ textarea {
 .word-group-reader-text {
   position: relative;
   z-index: 1;
-  padding: 34px 44px;
-  font-size: clamp(1.55rem, 3.1vw, 3.2rem);
-  font-weight: 650;
-  line-height: 1.72;
-  text-align: center;
-  white-space: pre-wrap;
   pointer-events: none;
 }
 
@@ -5810,14 +5540,6 @@ textarea {
   border: 0;
   background: transparent;
   box-shadow: none;
-}
-
-.word-group-reader.embedded .word-group-reader-text {
-  padding: 12px 44px 24px;
-  font-size: clamp(1.8rem, 4.1vw, 4.8rem);
-  line-height: 1.38;
-  letter-spacing: -.03em;
-  font-weight: 700;
 }
 
 .word-group-reader.embedded .word-group-reader-toolbar {
@@ -5903,13 +5625,6 @@ textarea {
   .word-group-reader-instruction > strong {
     font-size: 1rem;
   }
-
-  .word-group-reader-text {
-    padding: 28px 24px;
-    font-size: clamp(1.3rem, 6vw, 2.15rem);
-    line-height: 1.76;
-    text-align: left;
-  }
 }
 
 /* V69/V70 — Groupes de mots : type du groupe + noyau */
@@ -5951,7 +5666,6 @@ textarea {
 .word-group-label-anchor {
   position: absolute;
   z-index: 8;
-  transform: translate(-50%, calc(-100% + 6px));
   pointer-events: auto;
 }
 
@@ -6197,9 +5911,6 @@ textarea {
 
 
 /* V78 — résultat contracté plus près de la phrase */
-.word-group-label-anchor.contracted-result {
-  transform: translate(-50%, calc(-100% + 12px));
-}
 
 .word-group-label-anchor.contracted-result .word-group-completed-label {
   gap: 0;
@@ -6464,9 +6175,6 @@ textarea {
 }
 
 /* V89 — bloc contracté à deux lignes légèrement remonté */
-.word-group-label-anchor.contracted-result {
-  transform: translate(-50%, calc(-100% + 6px));
-}
 
 .word-group-label-anchor.contracted-result .word-group-completed-label {
   gap: 2px;
@@ -6477,21 +6185,9 @@ textarea {
 }
 
 /* V89 — un peu plus d'air entre les lignes de la phrase */
-.word-group-reader-text {
-  line-height: 1.76;
-}
-
-@media (max-width: 760px) {
-  .word-group-reader-text {
-    line-height: 1.80;
-  }
-}
 
 
 /* V90 — micro-ajustement vertical du bloc contracté */
-.word-group-label-anchor.contracted-result {
-  transform: translate(-50%, calc(-100% + 8px));
-}
 
 
 /* V91 — séparation automatique des codes qui se chevauchent */
@@ -8320,10 +8016,6 @@ textarea {
 .tree-reader-category button.active { border-color: var(--primary); background: color-mix(in srgb,var(--primary) 14%,var(--surface)); }
 
 /* V95 — finitions du lecteur mixte : étiquettes et cibles de correction */
-.word-group-label-anchor,
-.word-group-label-anchor.contracted-result {
-  transform: translate(-50%, calc(-100% + 14px));
-}
 
 .interactive-code-box:not(.filled) {
   display: inline-grid;
@@ -8331,8 +8023,6 @@ textarea {
   width: 1.15em;
   height: 1.15em;
   min-width: 1.15em;
-  min-height: 1.15em;
-  padding: 0;
   z-index: 5;
   cursor: pointer !important;
   pointer-events: auto;
@@ -8421,27 +8111,6 @@ textarea {
   line-height: 1.08;
 }
 
-.word-class-reader-label {
-  bottom: calc(100% + 2px);
-}
-
-.word-class-reader-text.has-agreement-relations {
-  padding-top: 20px !important;
-  padding-bottom: 24px;
-  line-height: 1.48;
-}
-
-.word-class-reader-text.has-agreement-relations .word-class-reader-token {
-  margin-top: 0;
-  padding: var(--agreement-band-height, 72px) .035em 0;
-  line-height: 1;
-  vertical-align: baseline;
-}
-
-.word-class-reader-text.has-agreement-relations .word-class-reader-label {
-  bottom: calc(100% + 2px);
-}
-
 .word-class-reader-text.has-agreement-relations .agreement-found-indicator {
   display: none;
 }
@@ -8487,15 +8156,6 @@ textarea {
 }
 
 @media (max-width: 760px) {
-  .word-class-reader-text.has-agreement-relations {
-    padding-top: 16px !important;
-    padding-bottom: 20px;
-    line-height: 1.42;
-  }
-
-  .word-class-reader-text.has-agreement-relations .word-class-reader-token {
-    padding-top: var(--agreement-band-height, 68px);
-  }
 
   .agreement-arrow-path,
   .agreement-arrow-tip {
@@ -8549,22 +8209,6 @@ textarea {
 }
 
 /* V82 — densité, couleurs et confirmation des mots */
-.word-class-reader-text.has-agreement-relations {
-  padding-top: 10px !important;
-  padding-bottom: 14px;
-  line-height: 1.2;
-}
-
-.word-class-reader-text.has-agreement-relations .word-class-reader-token {
-  padding-top: var(--agreement-band-height, 48px);
-}
-
-.word-class-reader-label,
-.word-class-reader-text.has-agreement-relations .word-class-reader-label {
-  font-size: .34em;
-  font-weight: 950;
-  letter-spacing: .01em;
-}
 
 .word-class-reader-token.found .word-class-reader-word {
   font-weight: 850;
@@ -8634,15 +8278,6 @@ textarea {
 }
 
 @media (max-width: 760px) {
-  .word-class-reader-text.has-agreement-relations {
-    padding-top: 8px !important;
-    padding-bottom: 12px;
-    line-height: 1.18;
-  }
-
-  .word-class-reader-text.has-agreement-relations .word-class-reader-token {
-    padding-top: var(--agreement-band-height, 46px);
-  }
 
   .agreement-ink-palette {
     gap: 7px;
@@ -8675,45 +8310,13 @@ textarea {
 }
 
 /* V84 — interligne compact du lecteur d’accords */
-.word-class-reader-text.has-agreement-relations {
-  padding-top: 6px !important;
-  padding-bottom: 8px;
-  line-height: 1.08;
-}
-
-.word-class-reader-text.has-agreement-relations .word-class-reader-token {
-  padding-top: var(--agreement-band-height, 38px);
-}
-
-@media (max-width: 760px) {
-  .word-class-reader-text.has-agreement-relations {
-    padding-top: 5px !important;
-    padding-bottom: 7px;
-    line-height: 1.06;
-  }
-
-  .word-class-reader-text.has-agreement-relations .word-class-reader-token {
-    padding-top: var(--agreement-band-height, 36px);
-  }
-}
 
 /* V85 — accords compacts, codes adaptatifs et contrôle des flèches */
-.word-class-reader-text.has-agreement-relations {
-  padding-top: 2px !important;
-  padding-bottom: 4px;
-  line-height: .98;
-}
-
-.word-class-reader-text.has-agreement-relations .word-class-reader-token {
-  margin-top: .08em;
-  padding-top: var(--agreement-band-height, 22px);
-}
 
 .word-class-reader-text.has-agreement-relations .word-class-reader-label {
   transform: translateX(calc(-50% + var(--word-class-label-offset, 0px)));
   animation: none;
   transition: transform .18s ease;
-  white-space: nowrap;
 }
 
 .agreement-clear-arrows {
@@ -8733,16 +8336,6 @@ textarea {
 }
 
 @media (max-width: 760px) {
-  .word-class-reader-text.has-agreement-relations {
-    padding-top: 2px !important;
-    padding-bottom: 3px;
-    line-height: .96;
-  }
-
-  .word-class-reader-text.has-agreement-relations .word-class-reader-token {
-    margin-top: .06em;
-    padding-top: var(--agreement-band-height, 22px);
-  }
 
   .grammar-gender-number-fields {
     grid-template-columns: 1fr;
@@ -8761,7 +8354,6 @@ textarea {
   gap: 2px;
   transform: translateX(-50%);
   transition: none;
-  white-space: nowrap;
 }
 
 .word-class-reader-label-code {
@@ -8777,10 +8369,6 @@ textarea {
 
 .word-class-reader-token.has-grammar-details {
   margin-top: .72em;
-}
-
-.word-class-reader-text.has-agreement-relations .word-class-reader-token.has-grammar-details {
-  margin-top: .08em;
 }
 
 .word-class-dialog,
@@ -10335,18 +9923,19 @@ textarea {
   --reader-sentence-font-weight: 800;
   --reader-sentence-line-height: 1.48;
   --reader-annotation-gap: 3px;
+  --reader-annotation-leading-compensation: clamp(10px, 1vw, 17px);
 }
 
-.reader-scene .reader-activity-flow .interactive-reader,
-.reader-scene .reader-activity-flow .word-group-reader,
-.reader-scene .reader-activity-flow .word-class-reader,
-.reader-scene .reader-activity-flow .grammar-extension-reader {
+.reader-activity-flow .interactive-reader,
+.reader-activity-flow .word-group-reader,
+.reader-activity-flow .word-class-reader,
+.reader-activity-flow .grammar-extension-reader {
   width: min(1460px, 100%) !important;
   max-width: 1460px !important;
   margin-inline: auto !important;
 }
 
-.reader-scene .reader-activity-flow .shared-grammar-reader-text {
+.reader-activity-flow .shared-grammar-reader-text {
   box-sizing: border-box !important;
   width: 100% !important;
   max-width: none !important;
@@ -10368,34 +9957,34 @@ textarea {
 
 /* La correction utilise exactement les mêmes lignes que les autres phases.
  * Les anciens espaces réservés aux codes sont remplacés par une superposition. */
-.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-line,
-.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-line-empty {
+.reader-activity-flow .interactive-reader-sentence .interactive-line,
+.reader-activity-flow .interactive-reader-sentence .interactive-line-empty {
   min-height: 0 !important;
   padding-top: 0 !important;
   line-height: inherit !important;
 }
 
-.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-line + .interactive-line {
+.reader-activity-flow .interactive-reader-sentence .interactive-line + .interactive-line {
   margin-top: 0 !important;
 }
 
-.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-segment {
+.reader-activity-flow .interactive-reader-sentence .interactive-segment {
   margin: 0 !important;
   padding: 0 !important;
 }
 
-.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-word,
-.reader-scene .reader-activity-flow .word-group-reader-token {
+.reader-activity-flow .interactive-reader-sentence .interactive-word,
+.reader-activity-flow .word-group-reader-token {
   font-weight: inherit !important;
   letter-spacing: inherit !important;
 }
 
-.reader-scene .reader-activity-flow .word-group-reader-token.group-confirmed {
+.reader-activity-flow .word-group-reader-token.group-confirmed {
   font-weight: inherit !important;
 }
 
-.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-code-box {
-  bottom: calc(100% + var(--reader-annotation-gap)) !important;
+.reader-activity-flow .interactive-reader-sentence .interactive-code-box {
+  bottom: calc(100% - var(--reader-annotation-leading-compensation) + var(--reader-annotation-gap)) !important;
   width: 1.45em;
   height: 1.45em;
   min-width: 1.45em;
@@ -10406,7 +9995,7 @@ textarea {
   line-height: 1;
 }
 
-.reader-scene .reader-activity-flow .interactive-reader-sentence .interactive-code-box.filled {
+.reader-activity-flow .interactive-reader-sentence .interactive-code-box.filled {
   width: auto;
   height: auto;
   min-width: 0;
@@ -10416,21 +10005,35 @@ textarea {
 
 /* Les classes de mots partagent la même fonte et la même respiration. Les
  * flèches conservent seulement leur bande de dessin, calculée par le lecteur. */
-.reader-scene .reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token {
+.reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token {
   margin-top: 0 !important;
 }
 
-.reader-scene .reader-activity-flow .word-class-reader-text.has-agreement-relations {
-  line-height: 1.18 !important;
+.reader-activity-flow .word-class-reader-label {
+  bottom: calc(100% - var(--reader-annotation-leading-compensation) + var(--reader-annotation-gap)) !important;
 }
 
-.reader-scene .reader-activity-flow .word-class-reader-label {
-  bottom: calc(100% + var(--reader-annotation-gap)) !important;
+.reader-activity-flow .word-group-label-anchor,
+.reader-activity-flow .word-group-label-anchor.contracted-result {
+  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap))) !important;
 }
 
-.reader-scene .reader-activity-flow .word-group-label-anchor,
-.reader-scene .reader-activity-flow .word-group-label-anchor.contracted-result {
-  transform: translate(-50%, calc(-100% - var(--reader-annotation-gap))) !important;
+/* Les accords gardent une bande réservée aux flèches, sans hériter de la
+ * marge supérieure ni de l’interligne des activités grammaticales normales. */
+.reader-activity-flow .word-class-reader-text.has-agreement-relations {
+  padding-top: 2px !important;
+  padding-bottom: 4px !important;
+  line-height: .98 !important;
+}
+
+.reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-token {
+  margin-top: .08em !important;
+  padding-top: var(--agreement-band-height, 36px) !important;
+  line-height: 1 !important;
+}
+
+.reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-label {
+  bottom: calc(100% + 2px) !important;
 }
 
 /* Les surfaces qui étaient transparentes dans Mixte redeviennent les cartes
@@ -10461,44 +10064,8 @@ textarea {
   transform: translateX(-50%);
 }
 
-.reader-completion-dialog {
-  width: min(570px, 100%);
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  padding: 34px;
-  text-align: center;
-}
-
-.reader-completion-dialog > svg {
-  color: var(--primary);
-}
-
-.reader-completion-dialog h2,
-.reader-completion-dialog p {
-  margin: 0;
-}
-
-.reader-completion-dialog p {
-  color: var(--muted-foreground);
-}
-
-.reader-completion-actions {
-  width: 100%;
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-/* V905 — respiration verticale égale autour des phrases analysées */
-.reader-scene .word-class-reader-text {
-  padding-bottom: 38px;
-}
-
-@media (max-width: 760px) {
-  .reader-scene .word-class-reader-text {
-    padding-bottom: 34px;
-  }
+.reader-chrome-complete strong {
+  color: #176c4a;
 }
 /* V906 — consignes et progression plus lisibles au tableau */
 .reader-chrome-instruction-copy > strong {

@@ -970,20 +970,22 @@ export function MixedActivityEditor({
                 <X size={20} />
               </button>
             </div>
-            <InteractiveSentenceReader
-              key={testRunId}
-              sentence={sentence}
-              correctionCodes={correctionCodes}
-              onPoint={() => undefined}
-              persistenceKey={`mixed-test-${
-                initialSentence?.id ?? "new"
-              }-${testRunId}`}
-              finishControl={
-                <Button type="button" disabled>
-                  Terminé
-                </Button>
-              }
-            />
+            <div className="reader-activity-flow">
+              <InteractiveSentenceReader
+                key={testRunId}
+                sentence={sentence}
+                correctionCodes={correctionCodes}
+                onPoint={() => undefined}
+                persistenceKey={`mixed-test-${
+                  initialSentence?.id ?? "new"
+                }-${testRunId}`}
+                finishControl={
+                  <Button type="button" disabled>
+                    Terminé
+                  </Button>
+                }
+              />
+            </div>
           </section>
         </div>
       )}

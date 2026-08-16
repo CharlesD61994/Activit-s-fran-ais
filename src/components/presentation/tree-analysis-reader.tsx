@@ -309,7 +309,7 @@ export function TreeAnalysisReader({ sentence, persistenceKey, onCompleteChange,
         {drawingStart && drawingCurrent && <div className="tree-reader-drawing-box" style={{ left: Math.min(drawingStart.x, drawingCurrent.x), top: Math.min(drawingStart.y, drawingCurrent.y), width: Math.abs(drawingCurrent.x - drawingStart.x), height: Math.abs(drawingCurrent.y - drawingStart.y) }} />}
       </div></div>
 
-      <ReaderChromePortal slot="actions"><Button type="button" variant="secondary" onClick={restartActivity}><RotateCcw size={18} /> Recommencer</Button>{finishControl}</ReaderChromePortal>
+      <ReaderChromePortal slot="actions"><Button type="button" variant="secondary" onClick={restartActivity}><RotateCcw size={18} /> Recommencer</Button>{completed.length >= steps.length && steps.length > 0 ? finishControl : null}</ReaderChromePortal>
     </div>
   );
 }

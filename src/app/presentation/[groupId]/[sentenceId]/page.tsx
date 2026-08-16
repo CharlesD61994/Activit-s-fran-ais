@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  CheckCircle2,
   Maximize,
   Minimize,
   Target,
@@ -90,12 +89,7 @@ export default function PresentationPage({
   const readerPersistenceKey = `reader-progress-${groupId}-${plannedSessionId ?? "single"}-${sentenceId}-${competitionSourceId ?? "normal"}`;
   const [pendingPoints, setPendingPoints] = useState<PendingPoint[]>([]);
   const [finished, setFinished] = useState(false);
-  const [, setWordClassComplete] = useState(false);
-  const [, setWordGroupComplete] = useState(false);
-  const [, setTreeAnalysisComplete] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
-  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
-  const [readerRunRevision, setReaderRunRevision] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const competitionTeams = useMemo(
     () => data.teams.filter((team) => team.groupId === groupId),
@@ -457,32 +451,8 @@ export default function PresentationPage({
     );
   }
 
-  function handleReaderComplete(
-    complete: boolean,
-    setComplete: (value: boolean) => void
-  ) {
-    setComplete(complete);
-    if (complete) setShowCompletionDialog(true);
-  }
-
-  function restartActivity() {
-    if (typeof window !== "undefined") {
-      [
-        readerPersistenceKey,
-        `${readerPersistenceKey}-groups`,
-        `${readerPersistenceKey}-word-classes`
-      ].forEach((key) => window.sessionStorage.removeItem(key));
-    }
-    setPendingPoints([]);
-    setFinished(false);
-    setWordClassComplete(false);
-    setWordGroupComplete(false);
-    setTreeAnalysisComplete(false);
-    setShowCompletionDialog(false);
-    setReaderRunRevision((current) => current + 1);
-  }
-
   const standings = buildStandings();
+  const finishControl = <Button onClick={finishSentence}>Quitter</Button>;
 
   if (showPodium) {
     return (
@@ -593,14 +563,12 @@ export default function PresentationPage({
           </div>
         </section>
 
-        <section className="reader-activity-flow" key={readerRunRevision}>
+        <section className="reader-activity-flow">
         {isTreeAnalysisActivity ? (
           <TreeAnalysisReader
             sentence={sentence}
             persistenceKey={readerPersistenceKey}
-            onCompleteChange={(complete) =>
-              handleReaderComplete(complete, setTreeAnalysisComplete)
-            }
+            finishControl={finishControl}
           />
         ) : isWordGroupActivity ? (
           <WordGroupReader
@@ -609,9 +577,7 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onPoint={queueWordGroupPoint}
             onRestorePoints={restoreWordGroupPoints}
-            onCompleteChange={(complete) =>
-              handleReaderComplete(complete, setWordGroupComplete)
-            }
+            finishControl={finishControl}
           />
         ) : isWordClassActivity ? (
           <WordClassReader
@@ -619,9 +585,7 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onPoint={queueWordClassPoint}
             onRestorePoints={restoreWordClassPoints}
-            onCompleteChange={(complete) =>
-              handleReaderComplete(complete, setWordClassComplete)
-            }
+            finishControl={finishControl}
           />
         ) : (
           <InteractiveSentenceReader
@@ -633,9 +597,7 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onRestorePoints={restorePendingPoints}
             onRestoreWordClassPoints={restoreWordClassPoints}
-            onCompleteChange={(complete) => {
-              if (complete) setShowCompletionDialog(true);
-            }}
+            finishControl={finishControl}
           />
         )}
         </section>
@@ -693,20 +655,6 @@ export default function PresentationPage({
           </section>
         )}
 
-        {showCompletionDialog && (
-          <div className="reader-dialog-backdrop">
-            <div className="reader-dialog reader-completion-dialog" role="dialog" aria-modal="true" aria-labelledby="reader-completion-title">
-              <CheckCircle2 size={48} aria-hidden="true" />
-              <span className="eyebrow">Activité terminée</span>
-              <h2 id="reader-completion-title">Bravo, l’activité est terminée!</h2>
-              <p>Les réponses et le pointage sont prêts à être enregistrés.</p>
-              <div className="reader-completion-actions">
-                <Button onClick={finishSentence}>Quitter</Button>
-                <Button variant="secondary" onClick={restartActivity}>Recommencer</Button>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
     </div>

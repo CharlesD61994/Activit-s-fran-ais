@@ -1342,7 +1342,7 @@ export function WordClassReader({
       ? `Trace une flèche de « ${currentFocusTarget?.text ?? ""} » vers chacun des ${currentTask.expectedIds.length} mot${currentTask.expectedIds.length > 1 ? "s" : ""} qui reçoivent son accord.`
       : `Trace une flèche du mot donneur vers « ${currentFocusTarget?.text ?? ""} ».`
     : complete
-      ? "Toutes les réponses ont été trouvées."
+      ? "Activité terminée — toutes les réponses ont été trouvées."
       : instruction;
 
   return (
@@ -1537,7 +1537,7 @@ export function WordClassReader({
       {(!embedded || (complete && finishControl)) && (
         <ReaderChromePortal slot="actions">
           {!embedded && <Button type="button" variant="secondary" onClick={restart}><RotateCcw size={18} /> Recommencer</Button>}
-          {!embedded || complete ? finishControl : null}
+          {complete ? finishControl : null}
         </ReaderChromePortal>
       )}
 

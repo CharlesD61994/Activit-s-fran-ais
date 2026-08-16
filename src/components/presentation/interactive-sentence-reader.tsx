@@ -366,7 +366,6 @@ export function InteractiveSentenceReader({
   const usesSharedRangeSurface = Boolean(usesNativeGroupPhase || usesNativeWordClassPhase || usesNativeFunctionPhase);
   const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const identifyGroupNuclei = Boolean(sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) || sentence.workflowPhases?.find((phase) => phase.kind === "nuclei")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled));
-  const hasRemainingGrammarWork = usesNativeWordClassPhase;
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
   const activityComplete = correctionComplete && (
     usesNativeGroupPhase
@@ -588,6 +587,7 @@ export function InteractiveSentenceReader({
     setCodePointIds([]);
     setHybridGroupComplete(false);
     setHybridWordClassComplete(false);
+    setHybridExtensionComplete(false);
     setReaderRevision((current) => current + 1);
     restorePointsRef.current?.([]);
     onRestoreWordClassPoints?.([]);
@@ -684,11 +684,17 @@ export function InteractiveSentenceReader({
           <ReaderChromePortal slot="progress"><div className="reader-chrome-progress"><strong>{correctedIds.length}/{ordered.length} corrections</strong><span className="reader-chrome-progress-dots" aria-hidden="true">{ordered.map((correction) => <i key={correction.id} className={correctedIds.includes(correction.id) ? "done" : ""} />)}</span></div></ReaderChromePortal>
         </>
       )}
+      {activityComplete && !usesSharedRangeSurface && (
+        <>
+          <ReaderChromePortal slot="instruction"><div className="reader-chrome-instruction-copy reader-chrome-complete"><strong>Activité terminée — vérifie la correction.</strong><span>La correction reste affichée tant que tu ne quittes pas ou ne recommences pas.</span></div></ReaderChromePortal>
+          <ReaderChromePortal slot="progress"><div className="reader-chrome-progress complete"><strong>{ordered.length}/{ordered.length} corrections</strong><span className="reader-chrome-progress-dots" aria-hidden="true">{ordered.map((correction) => <i key={correction.id} className="done" />)}</span></div></ReaderChromePortal>
+        </>
+      )}
       <ReaderChromePortal slot="actions">
-        <Button variant="secondary" onClick={useHint}><Lightbulb size={18} /> Indice</Button>
-        <Button variant="secondary" onClick={revealAll}>Tout dévoiler</Button>
+        {!correctionComplete && <Button variant="secondary" onClick={useHint}><Lightbulb size={18} /> Indice</Button>}
+        {!correctionComplete && <Button variant="secondary" onClick={revealAll}>Tout dévoiler</Button>}
         <Button variant="secondary" onClick={restart}>Recommencer</Button>
-        {!usesSharedRangeSurface && finishControl}
+        {activityComplete && finishControl}
       </ReaderChromePortal>
 
       {correctionComplete && usesSharedRangeSurface ? (
@@ -703,7 +709,6 @@ export function InteractiveSentenceReader({
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
             identifyNuclei={identifyGroupNuclei}
             forcedLineBreaks={forcedGrammarLineBreaks}
-            finishControl={hasRemainingGrammarWork ? undefined : finishControl}
             embedded
           />
         ) : usesNativeWordClassPhase ? (
@@ -714,7 +719,6 @@ export function InteractiveSentenceReader({
             onPoint={onWordClassPoint}
             onRestorePoints={onRestoreWordClassPoints}
             onCompleteChange={setHybridWordClassComplete}
-            finishControl={finishControl}
             embedded
           />
         ) : (

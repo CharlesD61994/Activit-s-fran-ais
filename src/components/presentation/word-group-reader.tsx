@@ -1045,7 +1045,7 @@ export function WordGroupReader({
   }
 
   function instructionText() {
-    if (complete) return "Tous les groupes ont été identifiés.";
+    if (complete) return "Activité terminée — tous les groupes ont été identifiés.";
     if (phase === "contracted_answer") {
       return "Écris le groupe enchâssé avec le déterminant décortiqué.";
     }
@@ -1391,7 +1391,7 @@ export function WordGroupReader({
       {(!embedded || (complete && finishControl)) && (
         <ReaderChromePortal slot="actions">
           {!embedded && <Button type="button" variant="secondary" onClick={restart}><RotateCcw size={18} /> Recommencer</Button>}
-          {!embedded || complete ? finishControl : null}
+          {complete ? finishControl : null}
         </ReaderChromePortal>
       )}
     </div>
