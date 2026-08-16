@@ -38,6 +38,7 @@ import { wordClassLabels } from "@/lib/activity-types";
 import { InteractiveSentenceReader } from "@/components/presentation/interactive-sentence-reader";
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { CorrectionPrintSheet } from "@/components/presentation/correction-print-sheet";
+import type { CorrectionPrintSheetHandle } from "@/components/presentation/correction-print-sheet";
 import { ReaderChromeProvider, ReaderChromeTarget } from "@/components/presentation/reader-chrome";
 import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
 import type {
@@ -151,6 +152,7 @@ export function MixedActivityEditor({
   onSave
 }: Props) {
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const correctionPrintRef = useRef<CorrectionPrintSheetHandle>(null);
   const rememberedSelectionRef = useRef<Selection | null>(null);
   const workingTextRef = useRef(initialSentence?.originalText ?? "");
   const createdAt = useMemo(
@@ -677,14 +679,19 @@ export function MixedActivityEditor({
     });
   }
 
-  function printCorrection() {
+  async function printCorrection() {
     commitSurfaceText();
     if (hasAgreementLinks && agreementCorrectionArrows.length === 0) {
       setMessage("Trace d’abord les flèches du corrigé enseignant avant d’imprimer.");
       setShowArrowCorrection(true);
       return;
     }
-    window.requestAnimationFrame(() => window.print());
+    try {
+      await correctionPrintRef.current?.capture();
+      window.print();
+    } catch {
+      setMessage("Le corrigé n’a pas pu être préparé pour l’impression. Réessaie.");
+    }
   }
 
   function submit(event: React.FormEvent) {
@@ -1168,6 +1175,7 @@ export function MixedActivityEditor({
       )}
 
       <CorrectionPrintSheet
+        ref={correctionPrintRef}
         sentence={agreementCorrectionSentence}
         correctionMarks={teacherCorrectionMarks}
       />

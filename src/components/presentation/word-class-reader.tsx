@@ -16,6 +16,10 @@ import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-corre
 import { wordClassLabels } from "@/lib/activity-types";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import { buildRelationTasks } from "@/lib/word-class-relations";
+import {
+  preferredWordTarget,
+  uniqueClassTargetsByRange
+} from "@/lib/word-class-target-selection";
 import { getAgreementWorkflowSettings, reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
 import type {
   AgreementCorrectionArrow,
@@ -264,14 +268,7 @@ export function WordClassReader({
   );
   const classTargets = useMemo(
     () => identifyWordClasses
-      ? Array.from(
-          new Map(
-            analysisTargets.map((target) => [
-              `${target.start}-${target.end}`,
-              target
-            ])
-          ).values()
-        )
+      ? uniqueClassTargetsByRange(analysisTargets)
       : [],
     [analysisTargets, identifyWordClasses]
   );
@@ -350,14 +347,6 @@ export function WordClassReader({
     () => new Map(allTargets.map((target) => [target.id, target])),
     [allTargets]
   );
-
-  const targetByRange = useMemo(() => {
-    const map = new Map<string, WordClassTarget>();
-    allTargets.forEach((target) => {
-      map.set(`${target.start}-${target.end}`, target);
-    });
-    return map;
-  }, [allTargets]);
 
   const taskMap = useMemo(
     () =>
@@ -913,18 +902,7 @@ export function WordClassReader({
   }
 
   function findTarget(token: WordToken) {
-    const exact = targetByRange.get(
-      `${token.start}-${token.end}`
-    );
-    if (exact) return exact;
-
-    return allTargets.find(
-      (target) =>
-        (token.start <= target.start &&
-          token.end >= target.end) ||
-        (target.start <= token.start &&
-          target.end >= token.end)
-    );
+    return preferredWordTarget(token, classTargets, allTargets);
   }
 
   function startRoleOrContinue(target: WordClassTarget) {

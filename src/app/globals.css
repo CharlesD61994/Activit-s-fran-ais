@@ -10172,20 +10172,6 @@ textarea {
   min-height: 0;
   padding: 20px 22px;
   overflow: auto;
-  --reader-sentence-font-size: clamp(1.7rem, 3.15vw, 3.55rem);
-  --reader-sentence-padding-inline: 42px;
-  --reader-sentence-padding-bottom: 48px;
-}
-
-.correction-arrow-reader .word-class-reader-text.has-agreement-relations {
-  padding-top: 18px !important;
-  padding-bottom: 54px !important;
-  line-height: 1.22 !important;
-}
-
-.correction-arrow-reader .word-class-reader-text.has-agreement-relations .word-class-reader-token {
-  margin-top: .2em !important;
-  padding-top: max(var(--agreement-band-height, 42px), 64px) !important;
 }
 
 .correction-arrow-author .word-class-reader-message {
@@ -10236,11 +10222,10 @@ textarea {
   left: -200vw;
   display: block;
   box-sizing: border-box;
-  width: 10.3in;
+  width: 1780px;
   color: #142033;
   background: #fff;
   font-family: Arial, sans-serif;
-  visibility: hidden;
   pointer-events: none;
 }
 
@@ -10291,12 +10276,23 @@ textarea {
   background: #315f84;
 }
 
-.correction-print-reader {
-  break-inside: avoid;
+.correction-print-capture-source {
+  box-sizing: border-box;
+  width: 1780px;
+  padding: 18px;
+  background: #eef5fa;
+  min-height: 0;
+  display: block;
 }
 
-.correction-print-reader .word-class-reader-text {
+.correction-print-capture-source .word-class-reader-text {
   margin: 0;
+}
+
+.correction-print-captured-image {
+  display: none;
+  width: 100%;
+  height: auto;
 }
 
 .word-class-reader-text .resolved-correction-label {
@@ -10370,12 +10366,18 @@ textarea {
     margin: 3px 0 0;
   }
 
-  .correction-print-reader {
-    break-inside: avoid;
+  .correction-print-capture-source {
+    display: none !important;
   }
 
-  .correction-print-reader .word-class-reader-text {
-    margin: 0 !important;
+  .correction-print-captured-image {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 6.7in !important;
+    object-fit: contain;
+    object-position: top center;
+    break-inside: avoid;
   }
 }
 

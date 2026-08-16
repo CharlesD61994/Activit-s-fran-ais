@@ -1,43 +1,100 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState
+} from "react";
 import { createPortal } from "react-dom";
+import { toPng } from "html-to-image";
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
 import { grammarObjectiveLabels, getSentenceObjective } from "@/lib/grammar-workflow";
 import type { Sentence } from "@/types";
 
+export type CorrectionPrintSheetHandle = {
+  capture: () => Promise<void>;
+};
+
 type Props = {
-  /** The same corrected/adapted sentence rendered by the teacher reader. */
   sentence: Sentence;
   correctionMarks: ResolvedCorrectionMark[];
 };
 
-export function CorrectionPrintSheet({ sentence, correctionMarks }: Props) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
-  return createPortal(
-    <article className="correction-print-root" aria-hidden="true">
-      <header className="correction-print-document-header">
-        <span>Corrigé</span>
-        <h1>{sentence.title}</h1>
-        <div className="correction-print-tags">
-          <strong>{grammarObjectiveLabels[getSentenceObjective(sentence)]}</strong>
-          {(sentence.tags ?? []).map((tag) => <i key={tag}>{tag}</i>)}
-        </div>
-      </header>
-      <section className="correction-print-reader">
-        <WordClassReader
-          sentence={sentence}
-          onPoint={() => undefined}
-          embedded
-          correctionArrowAuthoring
-          correctionMarks={correctionMarks}
-        />
-      </section>
-    </article>,
-    document.body
+function afterPaint() {
+  return new Promise<void>((resolve) =>
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => resolve())
+    )
   );
 }
+
+export const CorrectionPrintSheet = forwardRef<CorrectionPrintSheetHandle, Props>(
+  function CorrectionPrintSheet({ sentence, correctionMarks }, ref) {
+    const [mounted, setMounted] = useState(false);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const captureRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => setMounted(true), []);
+
+    useImperativeHandle(ref, () => ({
+      async capture() {
+        const element = captureRef.current;
+        if (!element) throw new Error("La surface du corrigé n’est pas prête.");
+        await document.fonts?.ready;
+        await afterPaint();
+        const width = element.scrollWidth;
+        const height = element.scrollHeight;
+        const nextImage = await toPng(element, {
+          backgroundColor: "#ffffff",
+          cacheBust: true,
+          pixelRatio: 2,
+          width,
+          height
+        });
+        setImageUrl(nextImage);
+        await afterPaint();
+      }
+    }), []);
+
+    if (!mounted) return null;
+
+    return createPortal(
+      <article className="correction-print-root" aria-hidden="true">
+        <header className="correction-print-document-header">
+          <span>Corrigé</span>
+          <h1>{sentence.title}</h1>
+          <div className="correction-print-tags">
+            <strong>{grammarObjectiveLabels[getSentenceObjective(sentence)]}</strong>
+            {(sentence.tags ?? []).map((tag) => <i key={tag}>{tag}</i>)}
+          </div>
+        </header>
+
+        <div className="correction-print-capture-source reader-scene" ref={captureRef}>
+          <div className="reader-activity-flow">
+            <WordClassReader
+              sentence={sentence}
+              onPoint={() => undefined}
+              embedded
+              correctionArrowAuthoring
+              correctionMarks={correctionMarks}
+            />
+          </div>
+        </div>
+
+        {imageUrl && (
+          // A generated data URL cannot use the Next.js image optimizer.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className="correction-print-captured-image"
+            src={imageUrl}
+            alt="Corrigé final tel qu’affiché dans le lecteur"
+          />
+        )}
+      </article>,
+      document.body
+    );
+  }
+);
