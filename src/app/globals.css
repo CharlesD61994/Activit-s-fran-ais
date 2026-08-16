@@ -10143,6 +10143,11 @@ textarea {
 .correction-arrow-author {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
+  width: calc(100vw - 32px);
+  height: calc(100vh - 32px);
+  max-width: none;
+  max-height: none;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -10162,17 +10167,67 @@ textarea {
 }
 
 .correction-arrow-reader {
+  display: block;
+  min-width: 0;
+  min-height: 0;
   padding: 20px 22px;
   overflow: auto;
+  --reader-sentence-font-size: clamp(1.7rem, 3.15vw, 3.55rem);
+  --reader-sentence-padding-inline: 42px;
+  --reader-sentence-padding-bottom: 48px;
+}
+
+.correction-arrow-reader .word-class-reader-text.has-agreement-relations {
+  padding-top: 18px !important;
+  padding-bottom: 54px !important;
+  line-height: 1.22 !important;
+}
+
+.correction-arrow-reader .word-class-reader-text.has-agreement-relations .word-class-reader-token {
+  margin-top: .2em !important;
+  padding-top: max(var(--agreement-band-height, 42px), 64px) !important;
+}
+
+.correction-arrow-author .word-class-reader-message {
+  display: none;
 }
 
 .correction-arrow-footer {
   border-top: 1px solid var(--border);
   border-bottom: 0;
+  flex-wrap: wrap;
 }
 
 .mixed-workspace-meta {
-  grid-template-columns: minmax(180px, 1.2fr) minmax(160px, .9fr) minmax(115px, .6fr) minmax(110px, .55fr) repeat(4, auto);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.mixed-workspace-meta-fields {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.35fr) minmax(190px, 1fr) minmax(145px, .7fr) minmax(135px, .65fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.mixed-workspace-meta-fields label,
+.mixed-workspace-meta-fields input,
+.mixed-workspace-meta-fields select {
+  min-width: 0;
+  width: 100%;
+}
+
+.mixed-workspace-meta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.mixed-workspace-meta-actions .button {
+  white-space: nowrap;
 }
 
 .correction-print-root {
@@ -10180,8 +10235,102 @@ textarea {
   top: 0;
   left: -200vw;
   display: block;
+  box-sizing: border-box;
   width: 10.3in;
+  color: #142033;
+  background: #fff;
+  font-family: Arial, sans-serif;
   visibility: hidden;
+  pointer-events: none;
+}
+
+/* Le corrigé est mesuré hors écran avant l'ouverture de la boîte
+ * d'impression. Sa géométrie doit donc déjà être exactement celle de
+ * la feuille imprimée; autrement les codes et les cadres sont décalés. */
+.correction-print-document-header {
+  margin-bottom: 22px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #315f84;
+}
+
+.correction-print-document-header span,
+.correction-print-snapshot > header span {
+  color: #58718a;
+  font-size: 10pt;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.correction-print-document-header h1,
+.correction-print-snapshot h2 {
+  margin: 3px 0 0;
+}
+
+.correction-print-snapshot {
+  break-inside: avoid;
+  margin-bottom: 24px;
+}
+
+.correction-print-snapshot > header {
+  margin-bottom: 9px;
+}
+
+.correction-print-surface {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 72px 34px 38px;
+  border: 1px solid #b8c9d8;
+  border-radius: 14px;
+  background: #fff;
+  overflow: visible;
+}
+
+.correction-print-text {
+  position: relative;
+  z-index: 2;
+  padding: 0 !important;
+  font-size: 23pt !important;
+  font-weight: 700 !important;
+  line-height: 1.7 !important;
+  letter-spacing: -.02em !important;
+  text-align: center !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+.correction-print-label {
+  position: absolute;
+  z-index: 6;
+  transform: translate(-50%, calc(-100% - 7px));
+  color: #315f84;
+  font-size: 10pt;
+  font-weight: 900;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.correction-print-label.function {
+  transform: translate(-50%, calc(-100% - 30px));
+  color: #8a4d00;
+}
+
+.correction-print-label small {
+  display: block;
+  margin-top: 2px;
+  font-size: 8pt;
+  text-align: center;
+}
+
+.correction-print-arrows {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
   pointer-events: none;
 }
 
@@ -10251,12 +10400,7 @@ textarea {
   }
 
   .correction-print-surface {
-    position: relative;
-    padding: 42px 34px 30px;
-    border: 1px solid #b8c9d8;
-    border-radius: 14px;
-    background: #fff;
-    overflow: visible;
+    padding-top: 72px;
   }
 
   .correction-print-text {
@@ -10303,6 +10447,12 @@ textarea {
   .correction-print-surface .word-group-range-bracket,
   .correction-print-surface .word-group-confirmed-frame {
     visibility: visible !important;
+  }
+}
+
+@media (max-width: 1050px) {
+  .mixed-workspace-meta-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

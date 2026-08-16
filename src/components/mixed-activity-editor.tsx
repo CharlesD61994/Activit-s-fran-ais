@@ -722,74 +722,78 @@ export function MixedActivityEditor({
     <>
       <form className="mixed-workspace" onSubmit={submit}>
         <header className="mixed-workspace-meta">
-          <label>
-            Titre
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </label>
-          <label>
-            Objectif principal
-            <select
-              value={primaryObjective}
-              onChange={(event) =>
-                setPrimaryObjective(event.target.value as GrammarObjective)
-              }
-            >
-              {(Object.entries(grammarObjectiveLabels) as Array<
-                [GrammarObjective, string]
-              >).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Niveau
-            <select
-              value={levelId}
-              onChange={(event) => setLevelId(event.target.value)}
-            >
-              {levels.map((level) => (
-                <option value={level.id} key={level.id}>
-                  {level.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Difficulté
-            <select
-              value={difficulty}
-              onChange={(event) =>
-                setDifficulty(event.target.value as SentenceDifficulty)
-              }
-            >
-              <option value="easy">Facile</option>
-              <option value="medium">Moyenne</option>
-              <option value="hard">Difficile</option>
-            </select>
-          </label>
-          <Button type="button" variant="secondary" onClick={openTest}>
-            <Play size={17} />
-            Tester
-          </Button>
-          {hasAgreementLinks && (
-            <Button type="button" variant="secondary" onClick={() => setShowArrowCorrection(true)}>
-              <GitBranch size={17} />
-              {agreementCorrectionArrows.length > 0 ? "Modifier les flèches" : "Tracer les flèches du corrigé"}
+          <div className="mixed-workspace-meta-fields">
+            <label>
+              Titre
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
+            <label>
+              Objectif principal
+              <select
+                value={primaryObjective}
+                onChange={(event) =>
+                  setPrimaryObjective(event.target.value as GrammarObjective)
+                }
+              >
+                {(Object.entries(grammarObjectiveLabels) as Array<
+                  [GrammarObjective, string]
+                >).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Niveau
+              <select
+                value={levelId}
+                onChange={(event) => setLevelId(event.target.value)}
+              >
+                {levels.map((level) => (
+                  <option value={level.id} key={level.id}>
+                    {level.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Difficulté
+              <select
+                value={difficulty}
+                onChange={(event) =>
+                  setDifficulty(event.target.value as SentenceDifficulty)
+                }
+              >
+                <option value="easy">Facile</option>
+                <option value="medium">Moyenne</option>
+                <option value="hard">Difficile</option>
+              </select>
+            </label>
+          </div>
+          <div className="mixed-workspace-meta-actions">
+            <Button type="button" variant="secondary" onClick={openTest}>
+              <Play size={17} />
+              Tester
             </Button>
-          )}
-          <Button type="button" variant="secondary" onClick={printCorrection}>
-            <Printer size={17} />
-            Imprimer le corrigé
-          </Button>
-          <Button type="submit">
-            <Save size={17} />
-            Enregistrer
-          </Button>
+            {hasAgreementLinks && (
+              <Button type="button" variant="secondary" onClick={() => setShowArrowCorrection(true)}>
+                <GitBranch size={17} />
+                {agreementCorrectionArrows.length > 0 ? "Modifier les flèches" : "Tracer les flèches du corrigé"}
+              </Button>
+            )}
+            <Button type="button" variant="secondary" onClick={printCorrection}>
+              <Printer size={17} />
+              Imprimer le corrigé
+            </Button>
+            <Button type="submit">
+              <Save size={17} />
+              Enregistrer
+            </Button>
+          </div>
         </header>
 
         <div className="mixed-workspace-grid">
