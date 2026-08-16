@@ -33,6 +33,22 @@ describe("grammar workflow", () => {
     });
   });
 
+  it("keeps arrow drawing on donor/receiver events instead of the phase", () => {
+    const phase = createWorkflowPhase("agreements");
+    expect(phase.actions.map((action) => action.kind)).not.toContain("link_agreement");
+
+    expect(getAgreementWorkflowSettings({
+      workflowPhases: [phase],
+      grammarAnnotations: [{
+        id: "donor",
+        start: 0,
+        end: 3,
+        kind: "donor",
+        responseMode: "arrow"
+      }]
+    } as Sentence).linkAgreement).toBe(true);
+  });
+
   it("keeps the legacy agreement flow when no explicit phase exists", () => {
     expect(getAgreementWorkflowSettings({} as Sentence)).toEqual({
       identifyDonors: true,

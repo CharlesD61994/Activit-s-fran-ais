@@ -68,7 +68,7 @@ export function GrammarWorkflowPlanner({ phases, onChange }: Props) {
                 )}
                 {phase.kind === "agreements" && (
                   <small className="workflow-agreement-help">
-                    Active les questions de rôle seulement si l’élève doit dire si le mot est donneur ou receveur. Les flèches restent une option indépendante.
+                    Active les questions de rôle seulement si l’élève doit dire si le mot est donneur ou receveur. Le tracé d’une flèche se choisit directement dans l’action de chaque donneur ou receveur.
                   </small>
                 )}
                 {phase.actions.map((action) => (

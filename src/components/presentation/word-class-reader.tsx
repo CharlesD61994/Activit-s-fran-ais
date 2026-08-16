@@ -263,7 +263,16 @@ export function WordClassReader({
     )
   );
   const classTargets = useMemo(
-    () => identifyWordClasses ? analysisTargets : [],
+    () => identifyWordClasses
+      ? Array.from(
+          new Map(
+            analysisTargets.map((target) => [
+              `${target.start}-${target.end}`,
+              target
+            ])
+          ).values()
+        )
+      : [],
     [analysisTargets, identifyWordClasses]
   );
 
@@ -311,8 +320,18 @@ export function WordClassReader({
     ]
   );
   const relationTasks = useMemo(
-    () => (agreementWorkflow.linkAgreement ? allRelationTasks : []),
-    [agreementWorkflow.linkAgreement, allRelationTasks]
+    () => agreementWorkflow.linkAgreement
+      ? buildRelationTasks(
+          analysisTargets,
+          relations
+            .map((relation) => ({
+              ...relation,
+              receiverIds: relation.arrowReceiverIds ?? relation.receiverIds
+            }))
+            .filter((relation) => relation.receiverIds.length > 0)
+        )
+      : [],
+    [agreementWorkflow.linkAgreement, analysisTargets, relations]
   );
 
   const agreementBandHeight = useMemo(() => {

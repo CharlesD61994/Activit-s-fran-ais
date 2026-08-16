@@ -137,10 +137,18 @@ export function buildMixedWordClassSentence(sentence: Sentence): Sentence {
       .map((receiver) => receiverTargets.get(receiver.id)?.id)
       .filter((id): id is string => Boolean(id) && id !== donorTarget.id);
     if (receiverIds.length === 0) return;
+    const arrowReceiverIds = linkedReceivers
+      .filter(
+        (receiver) =>
+          donor.responseMode === "arrow" || receiver.responseMode === "arrow"
+      )
+      .map((receiver) => receiverTargets.get(receiver.id)?.id)
+      .filter((id): id is string => Boolean(id) && id !== donorTarget.id);
     generatedRelations.set(donor.id, {
       id: `mixed-agreement-${donor.id}`,
       donorId: donorTarget.id,
-      receiverIds: Array.from(new Set(receiverIds))
+      receiverIds: Array.from(new Set(receiverIds)),
+      arrowReceiverIds: Array.from(new Set(arrowReceiverIds))
     });
   });
 

@@ -169,9 +169,22 @@ export function MixedActivityEditor({
     initialSentence?.primaryObjective ?? "mixed_grammar"
   );
   const [text, setText] = useState(initialSentence?.originalText ?? "");
-  const [annotations, setAnnotations] = useState<GrammarAnnotation[]>(
-    initialSentence?.grammarAnnotations ?? []
-  );
+  const [annotations, setAnnotations] = useState<GrammarAnnotation[]>(() => {
+    const initial = initialSentence?.grammarAnnotations ?? [];
+    const hadLegacyArrowAction = initialSentence?.workflowPhases?.some(
+      (phase) =>
+        phase.kind === "agreements" &&
+        phase.actions.some(
+          (action) => action.kind === "link_agreement" && action.enabled
+        )
+    );
+    if (!hadLegacyArrowAction) return initial;
+    return initial.map((annotation) =>
+      annotation.kind === "donor"
+        ? { ...annotation, responseMode: "arrow" as const, visualEffect: { kind: "none" as const } }
+        : annotation
+    );
+  });
   const [corrections, setCorrections] = useState<SentenceCorrection[]>(
     initialSentence?.corrections ?? []
   );
@@ -250,16 +263,10 @@ export function MixedActivityEditor({
     ]
   );
 
-  const agreementCorrectionSentence = useMemo(() => {
-    const adapted = buildMixedWordClassSentence(correctedTeacherSentence(sentence).sentence);
-    return {
-      ...adapted,
-      workflowPhases: (adapted.workflowPhases ?? []).map((phase) => phase.kind === "agreements" ? {
-        ...phase,
-        actions: phase.actions.map((action) => ({ ...action, enabled: action.kind === "link_agreement" }))
-      } : phase)
-    };
-  }, [sentence]);
+  const agreementCorrectionSentence = useMemo(
+    () => buildMixedWordClassSentence(correctedTeacherSentence(sentence).sentence),
+    [sentence]
+  );
   const teacherCorrectionMarks = useMemo(() => correctedTeacherSentence(sentence).correctionMarks.map((mark) => ({
     id: mark.id,
     start: mark.start,
@@ -267,8 +274,14 @@ export function MixedActivityEditor({
     label: correctionCodes.find((code) => code.id === mark.correctionCodeId)?.code ?? "?"
   })), [correctionCodes, sentence]);
   const hasAgreementLinks = Boolean(
-    phases.some((phase) => phase.kind === "agreements" && phase.actions.some((action) => action.kind === "link_agreement" && action.enabled)) &&
-    (agreementCorrectionSentence.agreementRelations?.length ?? 0) > 0
+    annotations.some(
+      (annotation) =>
+        (annotation.kind === "donor" || annotation.kind === "receiver") &&
+        annotation.responseMode === "arrow"
+    ) &&
+    (agreementCorrectionSentence.agreementRelations ?? []).some(
+      (relation) => (relation.arrowReceiverIds?.length ?? 0) > 0
+    )
   );
   const arrowAuthoringSignature = useMemo(
     () => JSON.stringify({
@@ -454,7 +467,9 @@ export function MixedActivityEditor({
     const responseMode =
       kind === "nucleus" ||
       kind === "word_class" ||
-      kind === "gender_number"
+      kind === "gender_number" ||
+      kind === "donor" ||
+      kind === "receiver"
         ? "click"
         : "brackets";
 
@@ -470,7 +485,10 @@ export function MixedActivityEditor({
             : `Mets ${label.toLowerCase()} entre crochets.`,
       nucleusWordClass: "noun",
       linkedTargetId: "",
-      visualEffect: visualByKind[kind],
+      visualEffect:
+        kind === "donor" || kind === "receiver"
+          ? { kind: "none" }
+          : visualByKind[kind],
       parentAnnotationId: classAnnotation?.id,
       grammaticalGender: kind === "gender_number" ? "feminine" : undefined,
       grammaticalNumber: kind === "gender_number" ? "singular" : undefined,
@@ -504,7 +522,11 @@ export function MixedActivityEditor({
         grammarAnnotationLabels[annotation.kind as GrammarInteractionKind],
       responseMode: annotation.responseMode ?? "click",
       instruction:
-        annotation.responseMode === "brackets"
+        annotation.responseMode === "arrow"
+          ? annotation.kind === "donor"
+            ? `Trace une flèche de ${(annotation.label ?? "ce donneur").toLowerCase()} vers ses receveurs.`
+            : `Trace une flèche du donneur vers ${(annotation.label ?? "ce receveur").toLowerCase()}.`
+          : annotation.responseMode === "brackets"
           ? `Mets ${(annotation.label ?? "ce passage").toLowerCase()} entre crochets.`
           : annotation.responseMode === "frame"
             ? `Encadre ${(annotation.label ?? "ce passage").toLowerCase()}.`
@@ -535,7 +557,10 @@ export function MixedActivityEditor({
       kind: draft.kind,
       label,
       responseMode: draft.responseMode,
-      visualEffect: draft.visualEffect ?? visualByKind[draft.kind],
+      visualEffect:
+        draft.kind === "donor" || draft.kind === "receiver"
+          ? { kind: "none" }
+          : draft.visualEffect ?? visualByKind[draft.kind],
       parentAnnotationId: draft.parentAnnotationId,
       grammaticalGender: draft.grammaticalGender,
       grammaticalNumber: draft.grammaticalNumber,
@@ -1142,7 +1167,10 @@ export function MixedActivityEditor({
         </div>
       )}
 
-      <CorrectionPrintSheet sentence={sentence} correctionCodes={correctionCodes} />
+      <CorrectionPrintSheet
+        sentence={agreementCorrectionSentence}
+        correctionMarks={teacherCorrectionMarks}
+      />
     </>
   );
 }

@@ -68,7 +68,7 @@ const actionsByPhase: Record<GrammarPhaseKind, GrammarActionKind[]> = {
   word_classes: ["identify_word_classes"],
   nuclei: ["find_nuclei"],
   functions: ["frame_functions", "identify_functions"],
-  agreements: ["identify_donors", "identify_receivers", "link_agreement"],
+  agreements: ["identify_donors", "identify_receivers"],
   gender_number: ["identify_gender", "identify_number"],
   table: ["complete_table"],
   review: []
@@ -99,6 +99,12 @@ export function normalizeGrammarWorkflow(phases: GrammarWorkflowPhase[], include
     withoutLegacyNuclei.push(groups);
   }
   return withoutLegacyNuclei.map((phase) => {
+    if (phase.kind === "agreements") {
+      return {
+        ...phase,
+        actions: phase.actions.filter((action) => action.kind !== "link_agreement")
+      };
+    }
     if (phase.kind !== "groups") return phase;
     const hasNucleusAction = phase.actions.some((action) => action.kind === "find_nuclei");
     if (hasNucleusAction) return phase;
@@ -138,12 +144,18 @@ export function getAgreementWorkflowSettings(sentence: Sentence) {
     (candidate) => candidate.kind === "agreements"
   );
 
+  const annotationLinks = (sentence.grammarAnnotations ?? []).some(
+    (annotation) =>
+      (annotation.kind === "donor" || annotation.kind === "receiver") &&
+      annotation.responseMode === "arrow"
+  );
+
   if (!phase) {
     const hasExplicitWorkflow = Boolean(sentence.workflowPhases?.length);
     return {
       identifyDonors: !hasExplicitWorkflow,
       identifyReceivers: !hasExplicitWorkflow,
-      linkAgreement: !hasExplicitWorkflow
+      linkAgreement: annotationLinks || !hasExplicitWorkflow
     };
   }
 
@@ -153,7 +165,7 @@ export function getAgreementWorkflowSettings(sentence: Sentence) {
   return {
     identifyDonors: enabled("identify_donors"),
     identifyReceivers: enabled("identify_receivers"),
-    linkAgreement: enabled("link_agreement")
+    linkAgreement: annotationLinks || enabled("link_agreement")
   };
 }
 

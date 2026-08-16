@@ -81,7 +81,8 @@ describe("buildMixedWordClassSentence", () => {
       {
         id: "mixed-agreement-donor",
         donorId: "class-donor",
-        receiverIds: ["class-receiver"]
+        receiverIds: ["class-receiver"],
+        arrowReceiverIds: []
       }
     ]);
   });
@@ -100,6 +101,24 @@ describe("buildMixedWordClassSentence", () => {
     expect(buildMixedWordClassSentence(sentence).wordClassTargets?.find((target) => target.id === "receiver-class")).toMatchObject({
       triggerAfterRole: "receiver",
       wordClassInteractionMode: "choose_class"
+    });
+  });
+
+  it("limits drawing tasks to donor/receiver events configured as arrows", () => {
+    const sentence = {
+      id: "selective-arrows",
+      originalText: "Les créatures cachées",
+      grammarAnnotations: [
+        { id: "donor-class", start: 4, end: 13, kind: "word_class", label: "Nom", wordClassInteractionMode: "find_requested" },
+        { id: "donor", start: 4, end: 13, kind: "donor", label: "Donneur", responseMode: "click", parentAnnotationId: "donor-class" },
+        { id: "receiver-arrow", start: 0, end: 3, kind: "receiver", label: "Receveur", responseMode: "arrow", linkedAnnotationId: "donor" },
+        { id: "receiver-click", start: 14, end: 21, kind: "receiver", label: "Receveur", responseMode: "click", linkedAnnotationId: "donor" }
+      ]
+    } as Sentence;
+
+    expect(buildMixedWordClassSentence(sentence).agreementRelations?.[0]).toMatchObject({
+      receiverIds: ["mixed-relation-endpoint-receiver-arrow", "mixed-relation-endpoint-receiver-click"],
+      arrowReceiverIds: ["mixed-relation-endpoint-receiver-arrow"]
     });
   });
 });

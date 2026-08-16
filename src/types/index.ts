@@ -160,7 +160,7 @@ export type GrammarAnnotation = {
   grammaticalNumber?: "singular" | "plural";
   wordClassInteractionMode?: "find_requested" | "choose_class";
 
-  responseMode?: "click" | "frame" | "brackets";
+  responseMode?: "click" | "frame" | "brackets" | "arrow";
   visualEffect?: {
     kind: "none" | "color" | "frame" | "brackets" | "bold" | "highlight" | "underline";
     color?: string;
@@ -377,6 +377,8 @@ export type AgreementRelation = {
   id: string;
   donorId: string;
   receiverIds: string[];
+  /** Receivers for which the student must draw an arrow. */
+  arrowReceiverIds?: string[];
 };
 
 export type SentenceCorrection = {
