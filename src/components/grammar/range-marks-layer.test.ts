@@ -6,10 +6,10 @@ describe("bracketSpacing", () => {
     expect(bracketSpacing(30)).toEqual({ cap: 6, gap: 4 });
   });
 
-  it("shrinks both brackets instead of merging adjacent boundaries", () => {
+  it("keeps visible bracket arms instead of reducing adjacent marks to lines", () => {
     const spacing = bracketSpacing(18);
-    expect(spacing.cap).toBe(3);
-    expect(spacing.gap).toBe(1);
+    expect(spacing.cap).toBe(5);
+    expect(spacing.gap).toBe(2);
     expect((spacing.cap + spacing.gap) * 2).toBeLessThanOrEqual(18);
   });
 
@@ -21,6 +21,6 @@ describe("bracketSpacing", () => {
     const availableSpace = 18;
     const spacing = bracketSpacing(availableSpace);
     const usedByBrackets = (spacing.cap + spacing.gap) * 2;
-    expect(availableSpace - usedByBrackets).toBeGreaterThanOrEqual(10);
+    expect(availableSpace - usedByBrackets).toBeGreaterThanOrEqual(4);
   });
 });

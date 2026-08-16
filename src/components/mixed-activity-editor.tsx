@@ -539,6 +539,7 @@ export function MixedActivityEditor({
       parentAnnotationId: annotation.parentAnnotationId,
       groupNucleusStart: childNucleus?.start,
       groupNucleusEnd: childNucleus?.end,
+      skipGroupNucleus: annotation.kind === "group" && !childNucleus,
       grammaticalGender: annotation.grammaticalGender,
       grammaticalNumber: annotation.grammaticalNumber,
       wordClassInteractionMode: annotation.wordClassInteractionMode
@@ -552,6 +553,17 @@ export function MixedActivityEditor({
       ? "GPrep"
       : draft.label;
     const annotationId = editingAnnotationId ?? crypto.randomUUID();
+    const createsGroupNucleus =
+      draft.kind === "group" &&
+      !draft.skipGroupNucleus &&
+      draft.groupNucleusStart !== undefined &&
+      draft.groupNucleusEnd !== undefined;
+    const hasOtherNucleus = annotations.some(
+      (item) =>
+        item.kind === "nucleus" &&
+        item.parentAnnotationId !== annotationId
+    );
+    const hasNucleiAfterSave = hasOtherNucleus || createsGroupNucleus;
     const annotation: GrammarAnnotation = {
       id: annotationId,
       start: selection.start,
@@ -576,11 +588,17 @@ export function MixedActivityEditor({
           )
         : [...current, annotation];
 
-      if (
-        draft.kind === "group" &&
-        draft.groupNucleusStart !== undefined &&
-        draft.groupNucleusEnd !== undefined
-      ) {
+      if (draft.kind === "group" && draft.skipGroupNucleus) {
+        next = next.filter(
+          (item) =>
+            !(
+              item.kind === "nucleus" &&
+              item.parentAnnotationId === annotationId
+            )
+        );
+      }
+
+      if (createsGroupNucleus) {
         const nucleusWordClass = nucleusClassByGroup[label] ?? "noun";
         const existingNucleus = next.find(
           (item) =>
@@ -589,8 +607,8 @@ export function MixedActivityEditor({
         );
         const nucleus: GrammarAnnotation = {
           id: existingNucleus?.id ?? crypto.randomUUID(),
-          start: draft.groupNucleusStart,
-          end: draft.groupNucleusEnd,
+          start: draft.groupNucleusStart!,
+          end: draft.groupNucleusEnd!,
           kind: "nucleus",
           label: wordClassLabels[nucleusWordClass],
           responseMode: "click",
@@ -616,7 +634,7 @@ export function MixedActivityEditor({
                 ...phase,
                 actions: phase.actions.map((action) =>
                   action.kind === "find_nuclei"
-                    ? { ...action, enabled: true }
+                    ? { ...action, enabled: hasNucleiAfterSave }
                     : action
                 )
               }

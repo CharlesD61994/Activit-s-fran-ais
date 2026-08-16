@@ -208,9 +208,11 @@ export type WordGroupTarget = {
   end: number;
   text: string;
   groupType: WordGroupType;
-  nucleusStart: number;
-  nucleusEnd: number;
-  nucleusText: string;
+  nucleusStart?: number;
+  nucleusEnd?: number;
+  nucleusText?: string;
+  /** False when this group must be classified without a nucleus question. */
+  analyzeNucleus?: boolean;
   mode?: "standard" | "contracted_nested";
   contractedGnText?: string;
   contractedPrepNucleus?: "de" | "à";

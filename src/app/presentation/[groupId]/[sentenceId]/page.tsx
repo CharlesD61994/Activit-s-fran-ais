@@ -575,6 +575,7 @@ export default function PresentationPage({
             sentence={sentence}
             boundaryMode={sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets"}
             persistenceKey={readerPersistenceKey}
+            identifyNuclei={sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) ?? true}
             onPoint={queueWordGroupPoint}
             onRestorePoints={restoreWordGroupPoints}
             finishControl={finishControl}

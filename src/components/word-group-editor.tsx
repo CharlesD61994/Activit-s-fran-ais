@@ -33,6 +33,7 @@ type GroupDraft = {
   nucleusStart?: number;
   nucleusEnd?: number;
   nucleusText?: string;
+  analyzeNucleus?: boolean;
   mode?: "standard" | "contracted_nested";
   contractedGnText?: string;
   contractedPrepNucleus?: "de" | "à";
@@ -122,7 +123,8 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
       mode: inferredContractedGn ? "contracted_nested" : "standard",
       contractedGnText: inferredContractedGn ?? undefined,
       contractedPrepNucleus:
-        inferContractedPrepNucleus(text) ?? undefined
+        inferContractedPrepNucleus(text) ?? undefined,
+      analyzeNucleus: true
     });
     setMessage("");
   }
@@ -166,7 +168,8 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
       ...draft,
       nucleusStart: start,
       nucleusEnd: end,
-      nucleusText: text
+      nucleusText: text,
+      analyzeNucleus: true
     });
     setMessage("");
   }
@@ -222,28 +225,37 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
     }
 
     if (
-      !draft.nucleusText ||
-      draft.nucleusStart === undefined ||
-      draft.nucleusEnd === undefined
+      draft.analyzeNucleus !== false &&
+      (
+        !draft.nucleusText ||
+        draft.nucleusStart === undefined ||
+        draft.nucleusEnd === undefined
+      )
     ) {
       setMessage("Choisis le noyau avant d’ajouter le groupe.");
       return;
     }
 
-    setTargets((current) => [
-      ...current,
-      {
+    const target: WordGroupTarget = {
         id: crypto.randomUUID(),
         start: draft.start,
         end: draft.end,
         text: draft.text,
         groupType: draft.groupType,
-        nucleusStart: draft.nucleusStart!,
-        nucleusEnd: draft.nucleusEnd!,
-        nucleusText: draft.nucleusText!,
+        nucleusStart: draft.analyzeNucleus === false ? undefined : draft.nucleusStart,
+        nucleusEnd: draft.analyzeNucleus === false ? undefined : draft.nucleusEnd,
+        nucleusText: draft.analyzeNucleus === false ? undefined : draft.nucleusText,
+        analyzeNucleus: draft.analyzeNucleus !== false,
         mode: "standard"
-      }
-    ]);
+      };
+    setTargets((current) => [...current, target]);
+    setWorkflowPhases((current) => current.map((phase) => phase.kind === "groups" ? {
+      ...phase,
+      actions: phase.actions.map((action) => action.kind === "find_nuclei" ? {
+        ...action,
+        enabled: target.analyzeNucleus !== false || targets.some((item) => item.analyzeNucleus !== false)
+      } : action)
+    } : phase));
     setDraft(null);
     setMessage("");
   }
@@ -260,7 +272,11 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
     }
     const invalid = targets.some(t =>
       originalText.slice(t.start,t.end) !== t.text ||
-      originalText.slice(t.nucleusStart,t.nucleusEnd) !== t.nucleusText ||
+      (t.analyzeNucleus !== false && (
+        t.nucleusStart === undefined ||
+        t.nucleusEnd === undefined ||
+        originalText.slice(t.nucleusStart,t.nucleusEnd) !== t.nucleusText
+      )) ||
       (t.mode === "contracted_nested" && !t.contractedGnText?.trim())
     );
     if (invalid) {
@@ -452,6 +468,15 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
               </button>
             );
           })}
+          {draft.mode !== "contracted_nested" && (
+            <button
+              type="button"
+              className={`word-group-nucleus-option ${draft.analyzeNucleus === false ? "selected" : ""}`}
+              onClick={() => setDraft({ ...draft, analyzeNucleus: false, nucleusStart: undefined, nucleusEnd: undefined, nucleusText: undefined })}
+            >
+              Pas d’analyse du noyau
+            </button>
+          )}
         </div>
         {draft.nucleusText && (
           <span className="word-group-nucleus-chip">
@@ -476,7 +501,7 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
             <span>
               {t.mode === "contracted_nested"
                 ? `GN enchâssé : ${t.contractedGnText} · noyau : ${t.nucleusText} · noyau du GPrép : ${t.contractedPrepNucleus ?? "—"}`
-                : `Noyau : ${t.nucleusText}`}
+                : t.analyzeNucleus === false ? "Pas d’analyse du noyau" : `Noyau : ${t.nucleusText}`}
             </span>
           </div>
           <button type="button" onClick={()=>setTargets(c=>c.filter(x=>x.id!==t.id))} aria-label={`Supprimer ${t.text}`}><Trash2 size={17}/></button>
@@ -494,7 +519,7 @@ export function WordGroupEditor({ initialSentence, levels, groups, onSave }: Pro
               </>
             ) : (
               <>
-                <strong>{t.groupType}</strong> [{t.text}] · noyau : <b>{t.nucleusText}</b>
+                <strong>{t.groupType}</strong> [{t.text}] · {t.analyzeNucleus === false ? "pas d’analyse du noyau" : <>noyau : <b>{t.nucleusText}</b></>}
               </>
             )}
           </div>

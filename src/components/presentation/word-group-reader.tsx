@@ -138,12 +138,14 @@ export function WordGroupReader({
   const layoutTargets = useMemo(() => [...targets, ...functionTargets, ...correctionMarks], [correctionMarks, functionTargets, targets]);
   const labelPositions = useRangeTargetPositions(surfaceRef, layoutTargets, tokens, "data-group-token-id");
   const currentTarget = targets[currentIndex];
+  const targetNeedsNucleus = (target: WordGroupTarget) =>
+    identifyNuclei && target.analyzeNucleus !== false;
   const currentIsContracted =
     isContractedNested(currentTarget);
   const groupsComplete =
     targets.length === 0 || targets.every(
       (target) =>
-        (!identifyNuclei ? classifiedIds.includes(target.id) : nucleusFoundIds.includes(target.id)) &&
+        (targetNeedsNucleus(target) ? nucleusFoundIds.includes(target.id) : classifiedIds.includes(target.id)) &&
         (!isContractedNested(target) ||
           gprepNucleusFoundIds.includes(target.id))
     );
@@ -216,7 +218,7 @@ export function WordGroupReader({
                   : "brackets"
       : currentBracketsFound && !currentClassified
         ? "type"
-        : identifyNuclei && currentClassified && !currentNucleusFound
+        : currentTarget && targetNeedsNucleus(currentTarget) && currentClassified && !currentNucleusFound
           ? "nucleus"
           : "brackets";
 
@@ -665,7 +667,9 @@ export function WordGroupReader({
     const foundLeftIds = markingFunctions ? functionLeftIds : leftFoundIds;
     const foundRightIds = markingFunctions ? functionRightIds : rightFoundIds;
     const requestedTargetId = markingFunctions ? currentFunctionTarget?.id : undefined;
-    const completedGroupIds = identifyNuclei ? nucleusFoundIds : classifiedIds;
+    const completedGroupIds = targets
+      .filter((target) => targetNeedsNucleus(target) ? nucleusFoundIds.includes(target.id) : classifiedIds.includes(target.id))
+      .map((target) => target.id);
     const unavailableIds = Array.from(new Set([...completedGroupIds, ...(boundary === "left_bracket" ? foundLeftIds : foundRightIds)]));
     const otherBoundaryIds = boundary === "left_bracket" ? foundRightIds : foundLeftIds;
     const matched = chooseBracketTarget(points, boundaryTargets, unavailableIds, otherBoundaryIds, requestedTargetId, (target) => expectedAnchor(target, boundary));
@@ -859,7 +863,7 @@ export function WordGroupReader({
     const nextIndex = targets.findIndex(
       (target) =>
         target.id !== completedTargetId &&
-        !(identifyNuclei ? nucleusFoundIds : classifiedIds).includes(target.id)
+        !(targetNeedsNucleus(target) ? nucleusFoundIds : classifiedIds).includes(target.id)
     );
 
     if (nextIndex >= 0) {
@@ -930,7 +934,7 @@ export function WordGroupReader({
       1,
       `group-type-${currentTarget.id}`
     );
-    if (!identifyNuclei && !isContractedNested(currentTarget)) {
+    if (!targetNeedsNucleus(currentTarget) && !isContractedNested(currentTarget)) {
       window.setTimeout(() => returnToFreeSearch(currentTarget.id), 250);
     }
   }
@@ -939,7 +943,9 @@ export function WordGroupReader({
     if (
       !currentTarget ||
       phase !== "nucleus" ||
-      !token.isWord
+      !token.isWord ||
+      currentTarget.nucleusStart === undefined ||
+      currentTarget.nucleusEnd === undefined
     ) {
       return;
     }
@@ -1103,9 +1109,9 @@ export function WordGroupReader({
       </ReaderChromePortal>}
       {!activeReviewPhase && <ReaderChromePortal slot="progress">
         <div className="reader-chrome-progress">
-          <strong>{markingFunctions ? functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length + "/" + functionTargets.length + " fonctions" : (identifyNuclei ? nucleusFoundIds : classifiedIds).length + "/" + targets.length + " groupes"}</strong>
+          <strong>{markingFunctions ? functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length + "/" + functionTargets.length + " fonctions" : targets.filter((target) => targetNeedsNucleus(target) ? nucleusFoundIds.includes(target.id) : classifiedIds.includes(target.id)).length + "/" + targets.length + " groupes"}</strong>
           <span className="reader-chrome-progress-dots" aria-hidden="true">
-            {Array.from({ length: Math.max(1, markingFunctions ? functionTargets.length : targets.length) }, (_, index) => <i key={index} className={index < (markingFunctions ? functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length : (identifyNuclei ? nucleusFoundIds : classifiedIds).length) ? "done" : ""} />)}
+            {Array.from({ length: Math.max(1, markingFunctions ? functionTargets.length : targets.length) }, (_, index) => <i key={index} className={index < (markingFunctions ? functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length : targets.filter((target) => targetNeedsNucleus(target) ? nucleusFoundIds.includes(target.id) : classifiedIds.includes(target.id)).length) ? "done" : ""} />)}
           </span>
         </div>
       </ReaderChromePortal>}
@@ -1258,6 +1264,8 @@ export function WordGroupReader({
                         targets.some(
                           (target) =>
                             nucleusFoundIds.includes(target.id) &&
+                            target.nucleusStart !== undefined &&
+                            target.nucleusEnd !== undefined &&
                             token.start >= target.nucleusStart &&
                             token.end <= target.nucleusEnd
                         )

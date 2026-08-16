@@ -10295,12 +10295,9 @@ textarea {
   height: auto;
 }
 
-.word-class-reader-text .resolved-correction-label {
-  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap) - 76px));
-}
-
+.word-class-reader-text .resolved-correction-label,
 .word-class-reader-text .persistent-range-label:not(.function-label-anchor) {
-  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap) - 30px)) !important;
+  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap))) !important;
 }
 
 .reader-activity-flow .word-class-reader-text .function-label-anchor {

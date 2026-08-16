@@ -581,6 +581,22 @@ export function GrammarExtensionReader({
           />
 
           {annotations
+            .filter((annotation) => annotation.kind === "group" && displayedSolvedIds.has(annotation.id))
+            .map((annotation) => {
+              const position = positions[annotation.id];
+              if (!position) return null;
+              return (
+                <div
+                  className="word-group-label-anchor persistent-range-label"
+                  key={`extension-group-label-${annotation.id}`}
+                  style={{ left: position.x, top: position.y }}
+                >
+                  <span className="word-group-code-box filled">{annotation.label}</span>
+                </div>
+              );
+            })}
+
+          {annotations
             .filter((annotation) => annotation.kind === "function" && displayedSolvedIds.has(annotation.id))
             .map((annotation) => {
               const position = positions[annotation.id];

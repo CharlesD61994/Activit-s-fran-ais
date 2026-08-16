@@ -110,7 +110,8 @@ function buildHybridGroupTargets(sentence: Sentence, correctedText: string): Wor
       groupType: group.label as WordGroupType,
       nucleusStart,
       nucleusEnd,
-      nucleusText: correctedText.slice(nucleusStart, nucleusEnd)
+      nucleusText: correctedText.slice(nucleusStart, nucleusEnd),
+      analyzeNucleus: Boolean(nucleus)
     };
   });
 }
