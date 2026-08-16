@@ -153,6 +153,9 @@ export function GrammarExtensionReader({
       ? "frame"
       : "click");
   const complete = stepIndex >= steps.length;
+  const displayedSolvedIds = complete
+    ? new Set(annotations.map((annotation) => annotation.id))
+    : new Set(solvedIds);
   const stepTargets = step
     ? annotations.filter((annotation) => annotation.kind === step.kind)
     : [];
@@ -162,13 +165,13 @@ export function GrammarExtensionReader({
 
   const solvedBracketTargets = annotations.filter(
     (annotation) =>
-      solvedIds.includes(annotation.id) &&
+      displayedSolvedIds.has(annotation.id) &&
       (annotation.visualEffect?.kind === "brackets" ||
         (!annotation.visualEffect && annotation.kind === "group"))
   );
   const solvedFrameTargets = annotations.filter(
     (annotation) =>
-      solvedIds.includes(annotation.id) &&
+      displayedSolvedIds.has(annotation.id) &&
       (annotation.visualEffect?.kind === "frame" ||
         (!annotation.visualEffect && annotation.kind === "function"))
   );
@@ -440,7 +443,7 @@ export function GrammarExtensionReader({
   function tokenStyle(start: number, end: number): CSSProperties {
     const marks = annotations.filter(
       (annotation) =>
-        solvedIds.includes(annotation.id) &&
+        displayedSolvedIds.has(annotation.id) &&
         start < annotation.end &&
         end > annotation.start
     );
@@ -523,7 +526,7 @@ export function GrammarExtensionReader({
     return `${solvedStepCount}/${stepTargets.length} ${noun} complétées`;
   }
 
-  if (!annotations.length || !steps.length) {
+  if (!annotations.length) {
     return <ReaderChromePortal slot="actions">{finishControl}</ReaderChromePortal>;
   }
 

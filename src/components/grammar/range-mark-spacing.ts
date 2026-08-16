@@ -2,12 +2,15 @@ const DEFAULT_BRACKET_CAP = 6;
 const DEFAULT_TEXT_GAP = 4;
 const MIN_BRACKET_CAP = 3;
 const MIN_TEXT_GAP = 1;
-const MIN_BRACKET_SEPARATION = 8;
+const DEFAULT_BRACKET_SEPARATION = 10;
+const MIN_BRACKET_SEPARATION = 12;
+
+export const ADJACENT_BRACKET_INSET = 2;
 
 export function bracketSpacing(availableSpace?: number) {
   const defaultFootprint =
     (DEFAULT_BRACKET_CAP + DEFAULT_TEXT_GAP) * 2 +
-    MIN_BRACKET_SEPARATION;
+    DEFAULT_BRACKET_SEPARATION;
 
   if (availableSpace === undefined || availableSpace >= defaultFootprint) {
     return { cap: DEFAULT_BRACKET_CAP, gap: DEFAULT_TEXT_GAP };

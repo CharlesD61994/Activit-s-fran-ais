@@ -10022,7 +10022,7 @@ textarea {
  * marge supérieure ni de l’interligne des activités grammaticales normales. */
 .reader-activity-flow .word-class-reader-text.has-agreement-relations {
   padding-top: 2px !important;
-  padding-bottom: 4px !important;
+  padding-bottom: 24px !important;
   line-height: .98 !important;
 }
 

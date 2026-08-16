@@ -1,7 +1,10 @@
 "use client";
 
 import type { RangePosition } from "@/components/grammar/use-range-target-positions";
-import { bracketSpacing } from "@/components/grammar/range-mark-spacing";
+import {
+  ADJACENT_BRACKET_INSET,
+  bracketSpacing
+} from "@/components/grammar/range-mark-spacing";
 
 type Target = { id: string; start: number; end: number };
 type Props = {
@@ -126,7 +129,7 @@ export function RangeMarksLayer({
                   leftSpacing.gap -
                   leftSpacing.cap -
                   leftDepth * (leftSpacing.cap + leftSpacing.gap) +
-                  (previousPosition ? 1 : 0),
+                  (previousPosition ? ADJACENT_BRACKET_INSET : 0),
                 top: position.markStartY - 1,
                 width: leftSpacing.cap,
                 height: Math.max(34, position.markStartHeight + 2)
@@ -145,7 +148,7 @@ export function RangeMarksLayer({
                   position.endX +
                   rightSpacing.gap +
                   rightDepth * (rightSpacing.cap + rightSpacing.gap) -
-                  (nextPosition ? 1 : 0),
+                  (nextPosition ? ADJACENT_BRACKET_INSET : 0),
                 top: position.markEndY - 1,
                 width: rightSpacing.cap,
                 height: Math.max(34, position.markEndHeight + 2)
