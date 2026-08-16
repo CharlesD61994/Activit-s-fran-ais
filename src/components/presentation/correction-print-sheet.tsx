@@ -1,13 +1,16 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
-import { buildCorrectionPrintSnapshots } from "@/lib/correction-print";
+import { buildCorrectionPrintSnapshots, remapCorrectionArrow } from "@/lib/correction-print";
 import type { CorrectionPrintSnapshot } from "@/lib/correction-print";
+import { grammarObjectiveLabels, getSentenceObjective } from "@/lib/grammar-workflow";
+import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
 import type { CorrectionCode, GrammarAnnotation, Sentence, WordGroupTarget } from "@/types";
 
 function correctedText(sentence: Sentence) {
@@ -38,12 +41,24 @@ function mappedPosition(sentence: Sentence, position: number, affinity: "start" 
 
 function PrintSnapshot({ sentence, codes, snapshot }: { sentence: Sentence; codes: CorrectionCode[]; snapshot: CorrectionPrintSnapshot }) {
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const [surfaceSize, setSurfaceSize] = useState({ width: 0, height: 0 });
   const text = useMemo(() => correctedText(sentence), [sentence]);
   const annotations = useMemo<GrammarAnnotation[]>(() => (sentence.grammarAnnotations ?? []).map((annotation) => ({
     ...annotation,
     start: mappedPosition(sentence, annotation.start, "start"),
     end: mappedPosition(sentence, annotation.end, "end")
   })), [sentence]);
+  const printSentence = useMemo(() => buildMixedWordClassSentence({
+    ...sentence,
+    originalText: text,
+    corrections: [],
+    grammarAnnotations: annotations,
+    wordClassTargets: (sentence.wordClassTargets ?? []).map((target) => {
+      const start = mappedPosition(sentence, target.start, "start");
+      const end = mappedPosition(sentence, target.end, "end");
+      return { ...target, start, end, text: text.slice(start, end) };
+    })
+  }), [annotations, sentence, text]);
   const groupAnnotations = useMemo(
     () => annotations.filter((annotation) => annotation.kind === "group" && snapshot.kinds.has("groups")),
     [annotations, snapshot]
@@ -60,12 +75,32 @@ function PrintSnapshot({ sentence, codes, snapshot }: { sentence: Sentence; code
     const start = mappedPosition(sentence, correction.start, "start");
     return { id: `print-code-${correction.id}`, start, end: start + correction.correctedText.length, correction };
   }), [sentence]);
+  const agreementTargets = useMemo(
+    () => printSentence.wordClassTargets ?? [],
+    [printSentence.wordClassTargets]
+  );
   const rangeTargets = useMemo(
-    () => [...groupAnnotations, ...functionAnnotations, ...classAnnotations, ...correctionTargets],
-    [classAnnotations, correctionTargets, functionAnnotations, groupAnnotations]
+    () => Array.from(new Map(
+      [...groupAnnotations, ...functionAnnotations, ...classAnnotations, ...correctionTargets, ...agreementTargets]
+        .map((target) => [target.id, target])
+    ).values()),
+    [agreementTargets, classAnnotations, correctionTargets, functionAnnotations, groupAnnotations]
   );
   const tokens = useMemo(() => tokenizeGrammarText(text, `print-${snapshot.id}`), [snapshot.id, text]);
   const positions = useRangeTargetPositions(surfaceRef, rangeTargets, tokens, "data-correction-print-token-id");
+
+  useLayoutEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const update = () => setSurfaceSize((current) => {
+      const next = { width: surface.clientWidth, height: surface.clientHeight };
+      return current.width === next.width && current.height === next.height ? current : next;
+    });
+    update();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(surface);
+    return () => observer?.disconnect();
+  }, []);
   const nucleusAnnotations = annotations.filter((annotation) => annotation.kind === "nucleus" && snapshot.kinds.has("groups"));
   const genderAnnotations = annotations.filter((annotation) => annotation.kind === "gender_number");
   const visibleAnnotationKinds = new Set<GrammarAnnotation["kind"]>([
@@ -87,6 +122,31 @@ function PrintSnapshot({ sentence, codes, snapshot }: { sentence: Sentence; code
     nucleusEnd: annotation.end,
     nucleusText: text.slice(annotation.start, annotation.end)
   }));
+  const printableArrows = (sentence.agreementCorrectionArrows ?? []).flatMap((arrow) => {
+    if (!snapshot.kinds.has("agreements") || surfaceSize.width <= 0 || surfaceSize.height <= 0) return [];
+    const relation = (printSentence.agreementRelations ?? []).find(
+      (candidate) =>
+        (candidate.donorId === arrow.taskTargetId && candidate.receiverIds.includes(arrow.answerId)) ||
+        (candidate.donorId === arrow.answerId && candidate.receiverIds.includes(arrow.taskTargetId))
+    );
+    if (!relation) return [];
+    const receiverId = relation.donorId === arrow.taskTargetId ? arrow.answerId : arrow.taskTargetId;
+    const donorPosition = positions[relation.donorId];
+    const receiverPosition = positions[receiverId];
+    if (!donorPosition || !receiverPosition) return [];
+    const start = {
+      x: (donorPosition.startX + donorPosition.endX) / 2,
+      y: donorPosition.markStartY - 5
+    };
+    const end = {
+      x: (receiverPosition.startX + receiverPosition.endX) / 2,
+      y: receiverPosition.markStartY - 5
+    };
+    return [{
+      ...arrow,
+      points: remapCorrectionArrow(arrow.points, start, end)
+    }];
+  });
 
   function tokenStyle(start: number, end: number): CSSProperties {
     const marks = annotations.filter((annotation) => visibleAnnotationKinds.has(annotation.kind) && start < annotation.end && end > annotation.start);
@@ -124,12 +184,12 @@ function PrintSnapshot({ sentence, codes, snapshot }: { sentence: Sentence; code
           return position && code ? <span className="correction-print-label correction" key={target.id} style={{ left: position.x, top: position.y }}>({code})</span> : null;
         })}
 
-        {snapshot.kinds.has("agreements") && (sentence.agreementCorrectionArrows?.length ?? 0) > 0 && (
-          <svg className="correction-print-arrows" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
+        {printableArrows.length > 0 && (
+          <svg className="correction-print-arrows" viewBox={`0 0 ${surfaceSize.width} ${surfaceSize.height}`} preserveAspectRatio="none" aria-hidden="true">
             <defs>
-              {(sentence.agreementCorrectionArrows ?? []).map((arrow) => <marker key={`marker-${arrow.id}`} id={`print-arrow-${snapshot.id}-${arrow.id}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 Z" fill={arrow.color} /></marker>)}
+              {printableArrows.map((arrow) => <marker key={`marker-${arrow.id}`} id={`print-arrow-${snapshot.id}-${arrow.id}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 Z" fill={arrow.color} /></marker>)}
             </defs>
-            {(sentence.agreementCorrectionArrows ?? []).map((arrow) => <polyline key={arrow.id} points={arrow.points.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke={arrow.color} strokeWidth="2.5" vectorEffect="non-scaling-stroke" markerEnd={`url(#print-arrow-${snapshot.id}-${arrow.id})`} />)}
+            {printableArrows.map((arrow) => <polyline key={arrow.id} points={arrow.points.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke={arrow.color} strokeWidth="2.5" vectorEffect="non-scaling-stroke" markerEnd={`url(#print-arrow-${snapshot.id}-${arrow.id})`} />)}
           </svg>
         )}
 
@@ -142,11 +202,22 @@ function PrintSnapshot({ sentence, codes, snapshot }: { sentence: Sentence; code
 }
 
 export function CorrectionPrintSheet({ sentence, correctionCodes }: { sentence: Sentence; correctionCodes: CorrectionCode[] }) {
+  const [mounted, setMounted] = useState(false);
   const snapshots = useMemo(() => buildCorrectionPrintSnapshots(sentence), [sentence]);
-  return (
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(
     <article className="correction-print-root" aria-hidden="true">
-      <header className="correction-print-document-header"><span>Corrigé</span><h1>{sentence.title}</h1></header>
+      <header className="correction-print-document-header">
+        <span>Corrigé</span>
+        <h1>{sentence.title}</h1>
+        <div className="correction-print-tags">
+          <strong>{grammarObjectiveLabels[getSentenceObjective(sentence)]}</strong>
+          {(sentence.tags ?? []).map((tag) => <i key={tag}>{tag}</i>)}
+        </div>
+      </header>
       {snapshots.map((snapshot) => <PrintSnapshot key={snapshot.id} sentence={sentence} codes={correctionCodes} snapshot={snapshot} />)}
-    </article>
+    </article>,
+    document.body
   );
 }

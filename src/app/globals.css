@@ -10267,6 +10267,32 @@ textarea {
   margin: 3px 0 0;
 }
 
+.correction-print-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.correction-print-tags strong,
+.correction-print-tags i {
+  padding: 4px 9px;
+  border: 1px solid #b8c9d8;
+  border-radius: 999px;
+  color: #315f84;
+  background: #eef5fa;
+  font-size: 8.5pt;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.correction-print-tags strong {
+  border-color: #315f84;
+  color: #fff;
+  background: #315f84;
+}
+
 .correction-print-snapshot {
   break-inside: avoid;
   margin-bottom: 24px;
@@ -10352,6 +10378,22 @@ textarea {
     margin: .35in;
   }
 
+  html,
+  body {
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body > *:not(.correction-print-root) {
+    display: none !important;
+  }
+
   body * {
     visibility: hidden !important;
   }
@@ -10362,10 +10404,11 @@ textarea {
   }
 
   .correction-print-root {
-    position: absolute;
-    inset: 0;
+    position: static;
     display: block;
     width: 100%;
+    height: auto;
+    min-height: 0;
     color: #142033;
     background: #fff;
   }
@@ -10393,6 +10436,10 @@ textarea {
   .correction-print-snapshot {
     break-inside: avoid;
     margin-bottom: 24px;
+  }
+
+  .correction-print-snapshot:last-child {
+    margin-bottom: 0;
   }
 
   .correction-print-snapshot > header {
@@ -10447,6 +10494,21 @@ textarea {
   .correction-print-surface .word-group-range-bracket,
   .correction-print-surface .word-group-confirmed-frame {
     visibility: visible !important;
+  }
+
+  .correction-print-surface .word-group-range-bracket {
+    --primary: #315f84;
+    width: 7px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+  }
+
+  .correction-print-surface .word-group-range-bracket.left {
+    border-left-width: 4px;
+  }
+
+  .correction-print-surface .word-group-range-bracket.right {
+    border-right-width: 4px;
   }
 }
 

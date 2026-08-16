@@ -231,23 +231,49 @@ export function WordClassReader({
     [sentence.originalText, sentence.wordClassTargets]
   );
 
+  const tokens = useMemo(
+    () => tokenize(sentence.originalText),
+    [sentence.originalText]
+  );
+
   const analysisTargets = useMemo(
     () =>
       allTargets.filter(
         (target) =>
           target.isAnalysisTarget !== false &&
-          selectedClasses.includes(target.wordClass)
+          selectedClasses.includes(target.wordClass) &&
+          tokens.some(
+            (token) =>
+              token.isWord &&
+              ((token.start <= target.start && token.end >= target.end) ||
+                (target.start <= token.start && target.end >= token.end))
+          )
       ),
-    [allTargets, selectedClasses]
+    [allTargets, selectedClasses, tokens]
   );
 
-  const hasExplicitClassModes = analysisTargets.some(
+  const hasExplicitWorkflow = Boolean(sentence.workflowPhases?.length);
+  const identifyWordClasses = !hasExplicitWorkflow || Boolean(
+    sentence.workflowPhases?.some(
+      (phase) =>
+        phase.kind === "word_classes" &&
+        phase.actions.some(
+          (action) => action.kind === "identify_word_classes" && action.enabled
+        )
+    )
+  );
+  const classTargets = useMemo(
+    () => identifyWordClasses ? analysisTargets : [],
+    [analysisTargets, identifyWordClasses]
+  );
+
+  const hasExplicitClassModes = classTargets.some(
     (target) => Boolean(target.wordClassInteractionMode)
   );
-  const hasClassChoiceTargets = analysisTargets.some((target) =>
+  const hasClassChoiceTargets = classTargets.some((target) =>
     usesClassChoice(target, multipleClasses, hasExplicitClassModes)
   );
-  const hasDirectFindTargets = analysisTargets.some(
+  const hasDirectFindTargets = classTargets.some(
     (target) =>
       !usesClassChoice(target, multipleClasses, hasExplicitClassModes)
   );
@@ -300,11 +326,6 @@ export function WordClassReader({
       32 + Math.max(1, Math.min(linkCount, 4))
     );
   }, [relationTasks]);
-
-  const tokens = useMemo(
-    () => tokenize(sentence.originalText),
-    [sentence.originalText]
-  );
 
   const targetMap = useMemo(
     () => new Map(allTargets.map((target) => [target.id, target])),
@@ -818,9 +839,9 @@ export function WordClassReader({
   }, []);
 
 
-  const classesComplete =
-    analysisTargets.length > 0 &&
-    foundIds.length === analysisTargets.length;
+  const classesComplete = classTargets.every((target) =>
+    foundIds.includes(target.id)
+  );
 
   const rolesComplete = roleTasks.every((task) =>
     resolvedRoleIds.includes(task.targetId)
@@ -967,7 +988,7 @@ export function WordClassReader({
       return;
     }
 
-    if (!target || !analysisTargets.some((item) => item.id === target.id)) {
+    if (!target || !classTargets.some((item) => item.id === target.id)) {
       setMessage(
         `« ${token.text} » ne fait pas partie des mots recherchés.`
       );
@@ -1013,7 +1034,7 @@ export function WordClassReader({
 
     if (
       !target ||
-      !analysisTargets.some((item) => item.id === target.id) ||
+      !classTargets.some((item) => item.id === target.id) ||
       target.wordClass !== selectedClass
     ) {
       setMessage("Cette classe ne correspond pas à ce mot.");
@@ -1077,7 +1098,11 @@ export function WordClassReader({
       setRoleTargetId(null);
       setRoleFeedback("");
       const triggeredTarget = target.triggerAfterRole === task.role;
-      if (triggeredTarget && !foundIds.includes(target.id)) {
+      if (
+        triggeredTarget &&
+        classTargets.some((candidate) => candidate.id === target.id) &&
+        !foundIds.includes(target.id)
+      ) {
         setRoleTriggeredTargetIds((current) => current.includes(target.id) ? current : [...current, target.id]);
         const token = tokens.find((candidate) => candidate.isWord && candidate.start <= target.start && candidate.end >= target.end);
         if (usesClassChoice(target, multipleClasses, hasExplicitClassModes) && token) {
@@ -1411,7 +1436,7 @@ export function WordClassReader({
     return values.join(", ");
   }
 
-  const unresolvedTargets = analysisTargets.filter(
+  const unresolvedTargets = classTargets.filter(
     (target) => !foundIds.includes(target.id)
   );
   const unresolvedDirectClasses = Array.from(new Set(
@@ -1456,11 +1481,11 @@ export function WordClassReader({
           {currentTask ? (
             <strong>{currentAnswers.length}/{currentTask.expectedIds.length} {currentTask.role === "donor" ? "receveur" : "donneur"}{currentTask.expectedIds.length > 1 ? "s" : ""}</strong>
           ) : (
-            <strong>{foundIds.length}/{analysisTargets.length} mot{analysisTargets.length > 1 ? "s" : ""}</strong>
+            <strong>{classTargets.filter((target) => foundIds.includes(target.id)).length}/{classTargets.length} mot{classTargets.length > 1 ? "s" : ""}</strong>
           )}
           <span className="reader-chrome-progress-dots" aria-hidden="true">
-            {Array.from({ length: Math.max(1, currentTask?.expectedIds.length ?? analysisTargets.length) }, (_, index) => (
-              <i key={index} className={index < (currentTask ? currentAnswers.length : foundIds.length) ? "done" : ""} />
+            {Array.from({ length: Math.max(1, currentTask?.expectedIds.length ?? classTargets.length) }, (_, index) => (
+              <i key={index} className={index < (currentTask ? currentAnswers.length : classTargets.filter((target) => foundIds.includes(target.id)).length) ? "done" : ""} />
             ))}
           </span>
         </div>
