@@ -8,10 +8,17 @@ import type {
 import { Check, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
+import { CorrectionPause } from "@/components/presentation/correction-pause";
+import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
+import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
+import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
+import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
 import { wordClassLabels } from "@/lib/activity-types";
+import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import { buildRelationTasks } from "@/lib/word-class-relations";
-import { getAgreementWorkflowSettings } from "@/lib/grammar-workflow";
+import { getAgreementWorkflowSettings, reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
 import type {
+  AgreementCorrectionArrow,
   Sentence,
   WordClass,
   WordClassTarget
@@ -39,6 +46,9 @@ type Props = {
   onCompleteChange?: (complete: boolean) => void;
   finishControl?: React.ReactNode;
   embedded?: boolean;
+  correctionArrowAuthoring?: boolean;
+  onAgreementCorrectionArrowsChange?: (arrows: AgreementCorrectionArrow[]) => void;
+  correctionMarks?: ResolvedCorrectionMark[];
 };
 
 type WordToken = {
@@ -56,13 +66,7 @@ type AgreementPoint = {
   y: number;
 };
 
-type DrawnAgreementArrow = {
-  id: string;
-  taskTargetId: string;
-  answerId: string;
-  color: string;
-  points: AgreementPoint[];
-};
+type DrawnAgreementArrow = AgreementCorrectionArrow;
 
 type AgreementArrow = {
   id: string;
@@ -207,7 +211,10 @@ export function WordClassReader({
   onRestorePoints,
   onCompleteChange,
   finishControl,
-  embedded = false
+  embedded = false,
+  correctionArrowAuthoring = false,
+  onAgreementCorrectionArrowsChange,
+  correctionMarks = []
 }: Props) {
   const selectedClasses = useMemo(
     () => sentence.selectedWordClasses ?? [],
@@ -324,11 +331,19 @@ export function WordClassReader({
     [roleTasks]
   );
 
-  const [foundIds, setFoundIds] = useState<string[]>([]);
+  const [foundIds, setFoundIds] = useState<string[]>(() =>
+    correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []
+  );
   const [classPointIds, setClassPointIds] = useState<string[]>([]);
-  const [resolvedRoleIds, setResolvedRoleIds] = useState<string[]>([]);
-  const [resolvedGenderIds, setResolvedGenderIds] = useState<string[]>([]);
-  const [resolvedNumberIds, setResolvedNumberIds] = useState<string[]>([]);
+  const [resolvedRoleIds, setResolvedRoleIds] = useState<string[]>(() =>
+    correctionArrowAuthoring ? roleTasks.map((task) => task.targetId) : []
+  );
+  const [resolvedGenderIds, setResolvedGenderIds] = useState<string[]>(() =>
+    correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []
+  );
+  const [resolvedNumberIds, setResolvedNumberIds] = useState<string[]>(() =>
+    correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []
+  );
   const [rolePointIds, setRolePointIds] = useState<string[]>([]);
   const [relationAnswers, setRelationAnswers] = useState<
     Record<string, string[]>
@@ -348,7 +363,7 @@ export function WordClassReader({
   const [hydrated, setHydrated] = useState(false);
   const [drawnAgreementArrows, setDrawnAgreementArrows] = useState<
     DrawnAgreementArrow[]
-  >([]);
+  >(correctionArrowAuthoring ? sentence.agreementCorrectionArrows ?? [] : []);
   const [draftAgreementPoints, setDraftAgreementPoints] = useState<
     AgreementPoint[]
   >([]);
@@ -365,6 +380,7 @@ export function WordClassReader({
     width: 0,
     height: 0
   });
+  const [dismissedReviewIds, setDismissedReviewIds] = useState<string[]>([]);
 
   const textContainerRef = useRef<HTMLDivElement>(null);
   const activeDrawingPointerRef = useRef<number | null>(null);
@@ -374,6 +390,37 @@ export function WordClassReader({
   const restoreRef = useRef(onRestorePoints);
   const completeRef = useRef(onCompleteChange);
 
+  const persistentGroupAnnotations = useMemo(
+    () => sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled))
+      ? (sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group")
+      : [],
+    [sentence.grammarAnnotations, sentence.workflowPhases]
+  );
+  const persistentFunctionAnnotations = useMemo(
+    () => sentence.workflowPhases?.some((phase) => phase.kind === "functions" && phase.actions.some((action) => action.enabled))
+      ? (sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "function")
+      : [],
+    [sentence.grammarAnnotations, sentence.workflowPhases]
+  );
+  const persistentNucleusAnnotations = useMemo(
+    () => persistentGroupAnnotations.length > 0
+      ? (sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "nucleus")
+      : [],
+    [persistentGroupAnnotations.length, sentence.grammarAnnotations]
+  );
+  const persistentRangeTargets = useMemo(
+    () => [...persistentGroupAnnotations, ...persistentFunctionAnnotations, ...correctionMarks],
+    [correctionMarks, persistentFunctionAnnotations, persistentGroupAnnotations]
+  );
+  const persistentRangePositions = useRangeTargetPositions(
+    textContainerRef,
+    persistentRangeTargets,
+    tokens,
+    "data-class-token-id"
+  );
+  const persistentGroupMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
+  const persistentFunctionMode = sentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame";
+
   useEffect(() => {
     restoreRef.current = onRestorePoints;
   }, [onRestorePoints]);
@@ -381,6 +428,20 @@ export function WordClassReader({
   useEffect(() => {
     completeRef.current = onCompleteChange;
   }, [onCompleteChange]);
+
+  useEffect(() => {
+    if (correctionArrowAuthoring) {
+      onAgreementCorrectionArrowsChange?.(drawnAgreementArrows);
+    }
+  }, [correctionArrowAuthoring, drawnAgreementArrows, onAgreementCorrectionArrowsChange]);
+
+  useEffect(() => {
+    if (!correctionArrowAuthoring) return;
+    setFoundIds(analysisTargets.map((target) => target.id));
+    setResolvedRoleIds(roleTasks.map((task) => task.targetId));
+    setResolvedGenderIds(analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id));
+    setResolvedNumberIds(analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id));
+  }, [analysisTargets, correctionArrowAuthoring, roleTasks]);
 
   useEffect(
     () => () => {
@@ -416,16 +477,24 @@ export function WordClassReader({
     setHydrated(false);
 
     if (!persistenceKey || typeof window === "undefined") {
-      setFoundIds([]);
+      const presetArrows = correctionArrowAuthoring
+        ? sentence.agreementCorrectionArrows ?? []
+        : [];
+      const presetAnswers = presetArrows.reduce<Record<string, string[]>>((answers, arrow) => {
+        answers[arrow.taskTargetId] = [...(answers[arrow.taskTargetId] ?? []), arrow.answerId];
+        return answers;
+      }, {});
+      setFoundIds(correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []);
       setClassPointIds([]);
-      setResolvedRoleIds([]);
-      setResolvedGenderIds([]);
-      setResolvedNumberIds([]);
+      setResolvedRoleIds(correctionArrowAuthoring ? roleTasks.map((task) => task.targetId) : []);
+      setResolvedGenderIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
+      setResolvedNumberIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
       setRolePointIds([]);
       setRoleTriggeredTargetIds([]);
       setSuspendedRelationTargetId(null);
-      setRelationAnswers({});
-      setDrawnAgreementArrows([]);
+      setRelationAnswers(presetAnswers);
+      setDrawnAgreementArrows(presetArrows);
+      setDismissedReviewIds([]);
       setAgreementArrowsVisible(true);
       setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
       setDraftAgreementPoints([]);
@@ -438,16 +507,22 @@ export function WordClassReader({
     const raw = window.sessionStorage.getItem(persistenceKey);
 
     if (!raw) {
-      setFoundIds([]);
+      const presetArrows = correctionArrowAuthoring ? sentence.agreementCorrectionArrows ?? [] : [];
+      const presetAnswers = presetArrows.reduce<Record<string, string[]>>((answers, arrow) => {
+        answers[arrow.taskTargetId] = [...(answers[arrow.taskTargetId] ?? []), arrow.answerId];
+        return answers;
+      }, {});
+      setFoundIds(correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []);
       setClassPointIds([]);
-      setResolvedRoleIds([]);
-      setResolvedGenderIds([]);
-      setResolvedNumberIds([]);
+      setResolvedRoleIds(correctionArrowAuthoring ? roleTasks.map((task) => task.targetId) : []);
+      setResolvedGenderIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
+      setResolvedNumberIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
       setRolePointIds([]);
       setRoleTriggeredTargetIds([]);
       setSuspendedRelationTargetId(null);
-      setRelationAnswers({});
-      setDrawnAgreementArrows([]);
+      setRelationAnswers(presetAnswers);
+      setDrawnAgreementArrows(presetArrows);
+      setDismissedReviewIds([]);
       setAgreementArrowsVisible(true);
       setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
       setDraftAgreementPoints([]);
@@ -473,6 +548,7 @@ export function WordClassReader({
         >;
         agreementInkColor?: string;
         agreementArrowsVisible?: boolean;
+        dismissedReviewIds?: string[];
       };
 
       const restoredFoundIds = saved.foundIds ?? [];
@@ -499,6 +575,7 @@ export function WordClassReader({
       setRoleTriggeredTargetIds(restoredRoleTriggeredTargetIds);
       setRelationAnswers(restoredRelationAnswers);
       setDrawnAgreementArrows(restoredDrawnAgreementArrows);
+      setDismissedReviewIds(saved.dismissedReviewIds ?? []);
       setAgreementArrowsVisible(saved.agreementArrowsVisible ?? true);
       setAgreementInkColor(
         saved.agreementInkColor ?? DEFAULT_AGREEMENT_INK_COLOR
@@ -568,12 +645,15 @@ export function WordClassReader({
     }
   }, [
     analysisTargets,
+    correctionArrowAuthoring,
     hasExplicitClassModes,
     multipleClasses,
     persistenceKey,
     persistenceSignature,
     relationTasks,
+    roleTasks,
     sentence.id,
+    sentence.agreementCorrectionArrows,
     targetMap
   ]);
 
@@ -600,7 +680,8 @@ export function WordClassReader({
         activeRelationTargetId,
         drawnAgreementArrows,
         agreementInkColor,
-        agreementArrowsVisible
+        agreementArrowsVisible,
+        dismissedReviewIds
       })
     );
   }, [
@@ -613,6 +694,7 @@ export function WordClassReader({
     drawnAgreementArrows,
     agreementInkColor,
     agreementArrowsVisible,
+    dismissedReviewIds,
     resolvedGenderIds,
     resolvedNumberIds,
     resolvedRoleIds,
@@ -755,12 +837,28 @@ export function WordClassReader({
     (!target.grammaticalNumber || resolvedNumberIds.includes(target.id))
   );
 
-  const complete =
+  const rawComplete =
     classesComplete && genderNumberComplete && rolesComplete && relationsComplete;
+  const lastRelevantPhase = [...(sentence.workflowPhases ?? [])]
+    .reverse()
+    .find((phase) => phase.kind === "word_classes" || phase.kind === "gender_number" || phase.kind === "agreements");
+  const reviewPhase = lastRelevantPhase
+    ? reviewPhaseImmediatelyAfter(sentence.workflowPhases, lastRelevantPhase.kind)
+    : undefined;
+  const reviewActive = Boolean(!correctionArrowAuthoring && rawComplete && reviewPhase && !dismissedReviewIds.includes(reviewPhase.id));
+  const complete = rawComplete && !reviewActive;
 
   useEffect(() => {
     completeRef.current?.(complete);
   }, [complete]);
+
+  useEffect(() => {
+    if (!correctionArrowAuthoring || !hydrated || activeRelationTargetId) return;
+    const nextTask = relationTasks.find((task) =>
+      task.expectedIds.some((id) => !(relationAnswers[task.targetId] ?? []).includes(id))
+    );
+    setActiveRelationTargetId(nextTask?.targetId ?? null);
+  }, [activeRelationTargetId, correctionArrowAuthoring, hydrated, relationAnswers, relationTasks]);
 
   function showWordSuccess(ids: string[]) {
     if (wordSuccessTimerRef.current !== null) {
@@ -1272,12 +1370,15 @@ export function WordClassReader({
   }
 
   function restart() {
-    setFoundIds([]);
+    setFoundIds(correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []);
     setClassPointIds([]);
-    setResolvedRoleIds([]);
+    setResolvedRoleIds(correctionArrowAuthoring ? roleTasks.map((task) => task.targetId) : []);
+    setResolvedGenderIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
+    setResolvedNumberIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
     setRolePointIds([]);
     setRelationAnswers({});
     setDrawnAgreementArrows([]);
+    setDismissedReviewIds([]);
     setAgreementInkColor(DEFAULT_AGREEMENT_INK_COLOR);
     setConfirmedWordIds([]);
     setRoleTriggeredTargetIds([]);
@@ -1347,10 +1448,10 @@ export function WordClassReader({
 
   return (
     <div className={`word-class-reader ${embedded ? "embedded" : ""}`}>
-      <ReaderChromePortal slot="instruction">
+      {!reviewActive && <ReaderChromePortal slot="instruction">
         <div className="reader-chrome-instruction-copy"><strong>{toolbarText}</strong>{message && <span className="reader-chrome-feedback">{message}</span>}</div>
-      </ReaderChromePortal>
-      <ReaderChromePortal slot="progress">
+      </ReaderChromePortal>}
+      {!reviewActive && <ReaderChromePortal slot="progress">
         <div className="reader-chrome-progress">
           {currentTask ? (
             <strong>{currentAnswers.length}/{currentTask.expectedIds.length} {currentTask.role === "donor" ? "receveur" : "donneur"}{currentTask.expectedIds.length > 1 ? "s" : ""}</strong>
@@ -1363,7 +1464,13 @@ export function WordClassReader({
             ))}
           </span>
         </div>
-      </ReaderChromePortal>
+      </ReaderChromePortal>}
+      {reviewActive && reviewPhase && (
+        <CorrectionPause
+          phase={reviewPhase}
+          onContinue={() => setDismissedReviewIds((current) => [...current, reviewPhase.id])}
+        />
+      )}
       <ReaderChromePortal slot="contextTools">
         {currentTask && (
           <div className="reader-context-tool-group">
@@ -1376,7 +1483,15 @@ export function WordClassReader({
           </div>
         )}
         {agreementArrowsVisible && drawnAgreementArrows.length > 0 && (
-          <Button type="button" variant="secondary" className="agreement-clear-arrows" onClick={() => setAgreementArrowsVisible(false)}><Trash2 size={16} /> Supprimer les flèches</Button>
+          <Button type="button" variant="secondary" className="agreement-clear-arrows" onClick={() => {
+            if (correctionArrowAuthoring) {
+              setDrawnAgreementArrows([]);
+              setRelationAnswers({});
+              setActiveRelationTargetId(relationTasks[0]?.targetId ?? null);
+            } else {
+              setAgreementArrowsVisible(false);
+            }
+          }}><Trash2 size={16} /> Supprimer les flèches</Button>
         )}
       </ReaderChromePortal>
       <div
@@ -1395,6 +1510,39 @@ export function WordClassReader({
         onPointerCancel={cancelAgreementDrawing}
         aria-live="polite"
       >
+        <RangeMarksLayer
+          targets={persistentGroupAnnotations}
+          positions={persistentRangePositions}
+          leftIds={persistentGroupAnnotations.map((annotation) => annotation.id)}
+          rightIds={persistentGroupAnnotations.map((annotation) => annotation.id)}
+          mode={persistentGroupMode}
+        />
+        <RangeMarksLayer
+          targets={persistentFunctionAnnotations}
+          positions={persistentRangePositions}
+          leftIds={persistentFunctionAnnotations.map((annotation) => annotation.id)}
+          rightIds={persistentFunctionAnnotations.map((annotation) => annotation.id)}
+          mode={persistentFunctionMode}
+        />
+        <ResolvedCorrectionLabels marks={correctionMarks} positions={persistentRangePositions} />
+        {persistentGroupAnnotations.map((annotation) => {
+          const position = persistentRangePositions[annotation.id];
+          if (!position) return null;
+          return (
+            <span className="word-group-label-anchor persistent-range-label" key={`persistent-group-${annotation.id}`} style={{ left: position.x, top: position.y }}>
+              <span className="word-group-code-box filled">{annotation.label}</span>
+            </span>
+          );
+        })}
+        {persistentFunctionAnnotations.map((annotation) => {
+          const position = persistentRangePositions[annotation.id];
+          if (!position) return null;
+          return (
+            <span className="word-group-label-anchor function-label-anchor persistent-range-label" key={`persistent-function-${annotation.id}`} style={{ left: position.x, top: position.y }}>
+              <span className="word-group-code-box filled function-code-box">{grammarFunctionInstructionLabel(annotation.label)}</span>
+            </span>
+          );
+        })}
         {(agreementArrows.length > 0 || draftAgreementArrow) && (
           <svg
             className="agreement-arrow-layer"
@@ -1438,7 +1586,7 @@ export function WordClassReader({
 
         {tokens.map((token) => {
           if (!token.isWord) {
-            return <span key={token.id}>{token.text}</span>;
+            return <span key={token.id} data-class-token-id={token.text.trim().length > 0 ? token.id : undefined}>{token.text}</span>;
           }
 
           const target = findTarget(token);
@@ -1460,6 +1608,7 @@ export function WordClassReader({
           const grammarDetails = target
             ? grammaticalDetails(target)
             : "";
+          const priorNucleus = persistentNucleusAnnotations.some((annotation) => token.start < annotation.end && token.end > annotation.start);
 
           return (
             <button
@@ -1468,7 +1617,7 @@ export function WordClassReader({
                 found ? "found" : ""
               } ${relationSelected ? "agreement-colored" : ""} ${
                 answerConfirmed ? "answer-confirmed" : ""
-              } ${focus ? "agreement-focus" : ""} ${grammarDetails ? "has-grammar-details" : ""}`}
+              } ${focus ? "agreement-focus" : ""} ${grammarDetails ? "has-grammar-details" : ""} ${priorNucleus ? "persistent-nucleus" : ""}`}
               key={token.id}
               style={
                 agreementColor
@@ -1478,6 +1627,7 @@ export function WordClassReader({
                   : undefined
               }
               data-word-token="true"
+              data-class-token-id={token.id}
               data-target-id={target?.id}
               aria-pressed={found || relationSelected}
               onClick={() => {
@@ -1534,7 +1684,7 @@ export function WordClassReader({
         <p className="word-class-reader-message">{message}</p>
       )}
 
-      {(!embedded || (complete && finishControl)) && (
+      {!reviewActive && (!embedded || (complete && finishControl)) && (
         <ReaderChromePortal slot="actions">
           {!embedded && <Button type="button" variant="secondary" onClick={restart}><RotateCcw size={18} /> Recommencer</Button>}
           {complete ? finishControl : null}

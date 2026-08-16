@@ -40,7 +40,8 @@ export const grammarPhaseLabels: Record<GrammarPhaseKind, string> = {
   functions: "Fonctions",
   agreements: "Donneurs et receveurs",
   gender_number: "Genre et nombre",
-  table: "Tableau"
+  table: "Tableau",
+  review: "Temps de correction"
 };
 
 export const grammarActionLabels: Record<GrammarActionKind, string> = {
@@ -69,7 +70,8 @@ const actionsByPhase: Record<GrammarPhaseKind, GrammarActionKind[]> = {
   functions: ["frame_functions", "identify_functions"],
   agreements: ["identify_donors", "identify_receivers", "link_agreement"],
   gender_number: ["identify_gender", "identify_number"],
-  table: ["complete_table"]
+  table: ["complete_table"],
+  review: []
 };
 
 export function createWorkflowPhase(kind: GrammarPhaseKind): GrammarWorkflowPhase {
@@ -82,7 +84,8 @@ export function createWorkflowPhase(kind: GrammarPhaseKind): GrammarWorkflowPhas
       kind: actionKind,
       enabled: true,
       responseMode: actionKind === "frame_groups" ? "brackets" : actionKind === "frame_functions" ? "frame" : undefined
-    }))
+    })),
+    reviewDurationSeconds: kind === "review" ? 0 : undefined
   };
 }
 
@@ -154,6 +157,16 @@ export function getAgreementWorkflowSettings(sentence: Sentence) {
   };
 }
 
+export function reviewPhaseImmediatelyAfter(
+  phases: GrammarWorkflowPhase[] | undefined,
+  kind: GrammarPhaseKind
+) {
+  const index = phases?.findIndex((phase) => phase.kind === kind) ?? -1;
+  if (index < 0) return undefined;
+  const candidate = phases?.[index + 1];
+  return candidate?.kind === "review" ? candidate : undefined;
+}
+
 export function getSecondaryObjectives(sentence: Sentence): GrammarPhaseKind[] {
   const primary = getSentenceObjective(sentence);
   const primaryPhase: Partial<Record<GrammarObjective, GrammarPhaseKind>> = {
@@ -166,5 +179,5 @@ export function getSecondaryObjectives(sentence: Sentence): GrammarPhaseKind[] {
   };
   return getSentenceWorkflow(sentence)
     .map((phase) => phase.kind)
-    .filter((kind, index, all) => kind !== primaryPhase[primary] && all.indexOf(kind) === index);
+    .filter((kind, index, all) => kind !== "review" && kind !== primaryPhase[primary] && all.indexOf(kind) === index);
 }

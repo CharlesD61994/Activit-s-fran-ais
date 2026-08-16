@@ -91,7 +91,8 @@ export type GrammarPhaseKind =
   | "functions"
   | "agreements"
   | "gender_number"
-  | "table";
+  | "table"
+  | "review";
 
 export type GrammarActionKind =
   | "find_errors"
@@ -124,6 +125,17 @@ export type GrammarWorkflowPhase = {
   title: string;
   collapsed?: boolean;
   actions: GrammarWorkflowAction[];
+  /** A review phase freezes the accumulated correction on the board. */
+  reviewDurationSeconds?: 0 | 15 | 30 | 45 | 60;
+};
+
+export type AgreementCorrectionArrow = {
+  id: string;
+  taskTargetId: string;
+  answerId: string;
+  color: string;
+  /** Points normalized against the sentence surface (0..1). */
+  points: Array<{ x: number; y: number }>;
 };
 
 export type GrammarAnnotationKind =
@@ -396,6 +408,7 @@ export type Sentence = {
   wordClassTargets?: WordClassTarget[];
   agreementRelationsEnabled?: boolean;
   agreementRelations?: AgreementRelation[];
+  agreementCorrectionArrows?: AgreementCorrectionArrow[];
   wordGroupTargets?: WordGroupTarget[];
   treeAnalysisPage?: TreeAnalysisPageConfig;
   treeAnalysisNodes?: TreeAnalysisNode[];

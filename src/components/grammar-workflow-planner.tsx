@@ -11,7 +11,7 @@ type Props = {
 
 export function GrammarWorkflowPlanner({ phases, onChange }: Props) {
   const available = (Object.keys(grammarPhaseLabels) as GrammarPhaseKind[])
-    .filter((kind) => kind !== "nuclei" && !phases.some((phase) => phase.kind === kind));
+    .filter((kind) => kind !== "nuclei" && (kind === "review" || !phases.some((phase) => phase.kind === kind)));
 
   function move(index: number, direction: -1 | 1) {
     const target = index + direction;
@@ -41,6 +41,31 @@ export function GrammarWorkflowPlanner({ phases, onChange }: Props) {
             </div>
             {!phase.collapsed && (
               <div className="workflow-actions">
+                {phase.kind === "review" && (
+                  <div className="workflow-review-settings">
+                    <label>
+                      Texte affiché
+                      <input
+                        value={phase.title}
+                        onChange={(event) => onChange(phases.map((item) => item.id === phase.id ? { ...item, title: event.target.value } : item))}
+                      />
+                    </label>
+                    <label>
+                      Minuteur au tableau
+                      <select
+                        value={phase.reviewDurationSeconds ?? 0}
+                        onChange={(event) => onChange(phases.map((item) => item.id === phase.id ? { ...item, reviewDurationSeconds: Number(event.target.value) as 0 | 15 | 30 | 45 | 60 } : item))}
+                      >
+                        <option value={0}>Sans minuteur</option>
+                        <option value={15}>15 secondes</option>
+                        <option value={30}>30 secondes</option>
+                        <option value={45}>45 secondes</option>
+                        <option value={60}>60 secondes</option>
+                      </select>
+                    </label>
+                    <small>La correction accumulée reste affichée jusqu’à ce que l’enseignant poursuive.</small>
+                  </div>
+                )}
                 {phase.kind === "agreements" && (
                   <small className="workflow-agreement-help">
                     Active les questions de rôle seulement si l’élève doit dire si le mot est donneur ou receveur. Les flèches restent une option indépendante.

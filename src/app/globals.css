@@ -10067,6 +10067,245 @@ textarea {
   margin-inline: 0 !important;
 }
 
+/* V91 — pauses collectives, libellés de fonctions et corrigé enseignant. */
+.workflow-phase:has(.workflow-review-settings) {
+  border-color: #e5b83f;
+  background: linear-gradient(135deg, #fffaf0, #fff);
+}
+
+.workflow-review-settings {
+  display: grid;
+  gap: 8px;
+}
+
+.workflow-review-settings label {
+  display: grid;
+  gap: 4px;
+  font-weight: 800;
+}
+
+.workflow-review-settings input,
+.workflow-review-settings select {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.workflow-review-settings small {
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.correction-pause-instruction strong {
+  color: #9a5d00;
+}
+
+.correction-pause-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reader-activity-flow .function-label-anchor {
+  z-index: 9;
+  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap) - 30px)) !important;
+}
+
+.function-code-box {
+  color: #8a4d00;
+  white-space: nowrap;
+}
+
+.resolved-correction-label {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap)));
+  color: #315f84;
+  font-size: clamp(15px, .34em, 23px);
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.word-class-reader-token.persistent-nucleus:not(.agreement-colored) {
+  color: #df2f32;
+}
+
+.word-class-reader-text .persistent-range-label {
+  pointer-events: none;
+}
+
+.correction-arrow-author {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.correction-arrow-command,
+.correction-arrow-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--border);
+  background: #f7fafc;
+}
+
+.correction-arrow-command [data-reader-chrome-slot="instruction"] {
+  flex: 1;
+}
+
+.correction-arrow-reader {
+  padding: 20px 22px;
+  overflow: auto;
+}
+
+.correction-arrow-footer {
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+
+.mixed-workspace-meta {
+  grid-template-columns: minmax(180px, 1.2fr) minmax(160px, .9fr) minmax(115px, .6fr) minmax(110px, .55fr) repeat(4, auto);
+}
+
+.correction-print-root {
+  position: fixed;
+  top: 0;
+  left: -200vw;
+  display: block;
+  width: 10.3in;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.word-class-reader-text .resolved-correction-label {
+  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap) - 76px));
+}
+
+.word-class-reader-text .persistent-range-label:not(.function-label-anchor) {
+  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap) - 30px)) !important;
+}
+
+.reader-activity-flow .word-class-reader-text .function-label-anchor {
+  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap) - 58px)) !important;
+}
+
+@media print {
+  @page {
+    size: letter landscape;
+    margin: .35in;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .correction-print-root,
+  .correction-print-root * {
+    visibility: visible !important;
+  }
+
+  .correction-print-root {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    color: #142033;
+    background: #fff;
+  }
+
+  .correction-print-document-header {
+    margin-bottom: 22px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #315f84;
+  }
+
+  .correction-print-document-header span,
+  .correction-print-snapshot > header span {
+    color: #58718a;
+    font-size: 10pt;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  .correction-print-document-header h1,
+  .correction-print-snapshot h2 {
+    margin: 3px 0 0;
+  }
+
+  .correction-print-snapshot {
+    break-inside: avoid;
+    margin-bottom: 24px;
+  }
+
+  .correction-print-snapshot > header {
+    margin-bottom: 9px;
+  }
+
+  .correction-print-surface {
+    position: relative;
+    padding: 42px 34px 30px;
+    border: 1px solid #b8c9d8;
+    border-radius: 14px;
+    background: #fff;
+    overflow: visible;
+  }
+
+  .correction-print-text {
+    position: relative;
+    z-index: 2;
+    padding: 0 !important;
+    font-size: 23pt !important;
+    font-weight: 700 !important;
+    line-height: 1.65 !important;
+    text-align: center !important;
+  }
+
+  .correction-print-label {
+    position: absolute;
+    z-index: 6;
+    transform: translate(-50%, calc(-100% - 5px));
+    color: #315f84;
+    font-size: 10pt;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .correction-print-label.function {
+    transform: translate(-50%, calc(-100% - 23px));
+    color: #8a4d00;
+  }
+
+  .correction-print-label small {
+    display: block;
+    font-size: 8pt;
+    text-align: center;
+  }
+
+  .correction-print-arrows {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .correction-print-surface .word-group-range-bracket,
+  .correction-print-surface .word-group-confirmed-frame {
+    visibility: visible !important;
+  }
+}
+
 .reader-command-dock {
   position: fixed;
   left: 50%;

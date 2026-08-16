@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  GitBranch,
   Pencil,
   Pilcrow,
   Play,
+  Printer,
   Save,
   SpellCheck2,
   Trash2,
@@ -34,7 +36,12 @@ import {
 } from "@/lib/grammar-definitions";
 import { wordClassLabels } from "@/lib/activity-types";
 import { InteractiveSentenceReader } from "@/components/presentation/interactive-sentence-reader";
+import { WordClassReader } from "@/components/presentation/word-class-reader";
+import { CorrectionPrintSheet } from "@/components/presentation/correction-print-sheet";
+import { ReaderChromeProvider, ReaderChromeTarget } from "@/components/presentation/reader-chrome";
+import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
 import type {
+  AgreementCorrectionArrow,
   CorrectionCode,
   GrammarAnnotation,
   GrammarObjective,
@@ -52,6 +59,49 @@ type Props = {
   correctionCodes: CorrectionCode[];
   onSave: (sentence: Sentence) => void;
 };
+
+function correctedTeacherSentence(sentence: Sentence) {
+  const ordered = [...sentence.corrections].sort((left, right) => left.start - right.start);
+  let cursor = 0;
+  let correctedText = "";
+  ordered.forEach((correction) => {
+    correctedText += sentence.originalText.slice(cursor, correction.start) + correction.correctedText;
+    cursor = correction.end;
+  });
+  correctedText += sentence.originalText.slice(cursor);
+
+  function mapPosition(position: number, affinity: "start" | "end" = "start") {
+    let delta = 0;
+    for (const correction of ordered) {
+      if (position >= correction.end) {
+        delta += correction.correctedText.length - (correction.end - correction.start);
+        continue;
+      }
+      if (position > correction.start) {
+        return correction.start + delta + (affinity === "end" ? correction.correctedText.length : 0);
+      }
+      break;
+    }
+    return position + delta;
+  }
+
+  return {
+    sentence: {
+      ...sentence,
+      originalText: correctedText,
+      corrections: [],
+      grammarAnnotations: (sentence.grammarAnnotations ?? []).map((annotation) => ({
+        ...annotation,
+        start: mapPosition(annotation.start, "start"),
+        end: mapPosition(annotation.end, "end")
+      }))
+    },
+    correctionMarks: ordered.map((correction) => {
+      const start = mapPosition(correction.start, "start");
+      return { id: `teacher-correction-${correction.id}`, start, end: start + correction.correctedText.length, correctionCodeId: correction.correctionCodeId };
+    })
+  };
+}
 
 type Selection = {
   start: number;
@@ -147,6 +197,10 @@ export function MixedActivityEditor({
     correctionCodes.find((code) => code.isActive !== false)?.id ?? ""
   );
   const [showTest, setShowTest] = useState(false);
+  const [showArrowCorrection, setShowArrowCorrection] = useState(false);
+  const [agreementCorrectionArrows, setAgreementCorrectionArrows] = useState<AgreementCorrectionArrow[]>(
+    initialSentence?.agreementCorrectionArrows ?? []
+  );
   const [testRunId, setTestRunId] = useState(0);
   const [surfaceRevision, setSurfaceRevision] = useState(0);
   const [message, setMessage] = useState("");
@@ -173,6 +227,7 @@ export function MixedActivityEditor({
       corrections,
       grammarAnnotations: annotations,
       workflowPhases: phases,
+      agreementCorrectionArrows,
       assignedGroupIds: initialSentence?.assignedGroupIds ?? [],
       showCorrectionCount: true,
       createdAt,
@@ -180,6 +235,7 @@ export function MixedActivityEditor({
     }),
     [
       annotations,
+      agreementCorrectionArrows,
       corrections,
       createdAt,
       difficulty,
@@ -193,6 +249,46 @@ export function MixedActivityEditor({
       title
     ]
   );
+
+  const agreementCorrectionSentence = useMemo(() => {
+    const adapted = buildMixedWordClassSentence(correctedTeacherSentence(sentence).sentence);
+    return {
+      ...adapted,
+      workflowPhases: (adapted.workflowPhases ?? []).map((phase) => phase.kind === "agreements" ? {
+        ...phase,
+        actions: phase.actions.map((action) => ({ ...action, enabled: action.kind === "link_agreement" }))
+      } : phase)
+    };
+  }, [sentence]);
+  const teacherCorrectionMarks = useMemo(() => correctedTeacherSentence(sentence).correctionMarks.map((mark) => ({
+    id: mark.id,
+    start: mark.start,
+    end: mark.end,
+    label: correctionCodes.find((code) => code.id === mark.correctionCodeId)?.code ?? "?"
+  })), [correctionCodes, sentence]);
+  const hasAgreementLinks = Boolean(
+    phases.some((phase) => phase.kind === "agreements" && phase.actions.some((action) => action.kind === "link_agreement" && action.enabled)) &&
+    (agreementCorrectionSentence.agreementRelations?.length ?? 0) > 0
+  );
+  const arrowAuthoringSignature = useMemo(
+    () => JSON.stringify({
+      text,
+      corrections: corrections.map((correction) => ({ id: correction.id, start: correction.start, end: correction.end, correctedText: correction.correctedText })),
+      annotations: annotations
+        .filter((annotation) => annotation.kind === "donor" || annotation.kind === "receiver" || annotation.kind === "word_class")
+        .map((annotation) => ({ id: annotation.id, kind: annotation.kind, start: annotation.start, end: annotation.end, parent: annotation.parentAnnotationId, linked: annotation.linkedAnnotationId }))
+    }),
+    [annotations, corrections, text]
+  );
+  const previousArrowAuthoringSignatureRef = useRef(arrowAuthoringSignature);
+
+  useEffect(() => {
+    if (previousArrowAuthoringSignatureRef.current === arrowAuthoringSignature) return;
+    previousArrowAuthoringSignatureRef.current = arrowAuthoringSignature;
+    if (agreementCorrectionArrows.length === 0) return;
+    setAgreementCorrectionArrows([]);
+    setMessage("Le texte ou les liens d’accord ont changé. Retrace les flèches du corrigé avant d’imprimer.");
+  }, [agreementCorrectionArrows.length, arrowAuthoringSignature]);
 
   function commitSurfaceText(nextText?: string) {
     const value = (
@@ -556,6 +652,16 @@ export function MixedActivityEditor({
     });
   }
 
+  function printCorrection() {
+    commitSurfaceText();
+    if (hasAgreementLinks && agreementCorrectionArrows.length === 0) {
+      setMessage("Trace d’abord les flèches du corrigé enseignant avant d’imprimer.");
+      setShowArrowCorrection(true);
+      return;
+    }
+    window.requestAnimationFrame(() => window.print());
+  }
+
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!title.trim() || !text.trim() || !levelId) {
@@ -669,6 +775,16 @@ export function MixedActivityEditor({
           <Button type="button" variant="secondary" onClick={openTest}>
             <Play size={17} />
             Tester
+          </Button>
+          {hasAgreementLinks && (
+            <Button type="button" variant="secondary" onClick={() => setShowArrowCorrection(true)}>
+              <GitBranch size={17} />
+              {agreementCorrectionArrows.length > 0 ? "Modifier les flèches" : "Tracer les flèches du corrigé"}
+            </Button>
+          )}
+          <Button type="button" variant="secondary" onClick={printCorrection}>
+            <Printer size={17} />
+            Imprimer le corrigé
           </Button>
           <Button type="submit">
             <Save size={17} />
@@ -989,6 +1105,40 @@ export function MixedActivityEditor({
           </section>
         </div>
       )}
+
+      {showArrowCorrection && (
+        <div className="mixed-workspace-test-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowArrowCorrection(false)}>
+          <ReaderChromeProvider>
+            <section className="mixed-workspace-test correction-arrow-author" role="dialog" aria-modal="true" aria-label="Tracer les flèches du corrigé">
+              <div className="mixed-workspace-test-heading">
+                <div><span className="eyebrow">Corrigé enseignant</span><h2>Trace seulement les flèches à imprimer</h2></div>
+                <button type="button" onClick={() => setShowArrowCorrection(false)} aria-label="Fermer"><X size={20} /></button>
+              </div>
+              <div className="correction-arrow-command">
+                <ReaderChromeTarget slot="instruction" />
+                <ReaderChromeTarget slot="progress" />
+              </div>
+              <div className="reader-activity-flow correction-arrow-reader">
+                <WordClassReader
+                  sentence={agreementCorrectionSentence}
+                  onPoint={() => undefined}
+                  correctionArrowAuthoring
+                  onAgreementCorrectionArrowsChange={setAgreementCorrectionArrows}
+                  correctionMarks={teacherCorrectionMarks}
+                />
+              </div>
+              <div className="correction-arrow-footer">
+                <ReaderChromeTarget slot="contextTools" />
+                <ReaderChromeTarget slot="actions" />
+                <Button type="button" onClick={() => setShowArrowCorrection(false)}><Save size={17} /> Conserver les flèches</Button>
+              </div>
+              <ReaderChromeTarget slot="viewTools" />
+            </section>
+          </ReaderChromeProvider>
+        </div>
+      )}
+
+      <CorrectionPrintSheet sentence={sentence} correctionCodes={correctionCodes} />
     </>
   );
 }

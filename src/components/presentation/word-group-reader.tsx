@@ -9,11 +9,15 @@ import {
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
+import { CorrectionPause } from "@/components/presentation/correction-pause";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
+import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
+import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
+import { reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
 type Boundary = "left_bracket" | "right_bracket";
@@ -59,6 +63,7 @@ type Props = {
   identifyNuclei?: boolean;
   embedded?: boolean;
   forcedLineBreaks?: number[];
+  correctionMarks?: ResolvedCorrectionMark[];
 };
 
 type Token = GrammarRangeToken;
@@ -75,7 +80,8 @@ export function WordGroupReader({
   continuationBoundaryMode = "frame",
   identifyNuclei = true,
   embedded = false,
-  forcedLineBreaks = []
+  forcedLineBreaks = [],
+  correctionMarks = []
 }: Props) {
   const targets = useMemo(
     () =>
@@ -112,6 +118,7 @@ export function WordGroupReader({
   const [labelOffsets, setLabelOffsets] = useState<
     Record<string, { x: number; y: number }>
   >({});
+  const [dismissedReviewIds, setDismissedReviewIds] = useState<string[]>([]);
 
   const surfaceRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -128,7 +135,7 @@ export function WordGroupReader({
 
   const functionAnnotations = useMemo(() => (sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "function"), [sentence.grammarAnnotations]);
   const functionTargets = useMemo<WordGroupTarget[]>(() => functionAnnotations.map((annotation) => ({ id: annotation.id, start: annotation.start, end: annotation.end, text: sentence.originalText.slice(annotation.start, annotation.end), groupType: "GN", nucleusStart: annotation.start, nucleusEnd: annotation.end, nucleusText: sentence.originalText.slice(annotation.start, annotation.end) })), [functionAnnotations, sentence.originalText]);
-  const layoutTargets = useMemo(() => [...targets, ...functionTargets], [functionTargets, targets]);
+  const layoutTargets = useMemo(() => [...targets, ...functionTargets, ...correctionMarks], [correctionMarks, functionTargets, targets]);
   const labelPositions = useRangeTargetPositions(surfaceRef, layoutTargets, tokens, "data-group-token-id");
   const currentTarget = targets[currentIndex];
   const currentIsContracted =
@@ -141,8 +148,14 @@ export function WordGroupReader({
           gprepNucleusFoundIds.includes(target.id))
     );
   const functionsComplete = functionTargets.every((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id));
-  const complete = groupsComplete && functionsComplete;
-  const markingFunctions = groupsComplete && !functionsComplete;
+  const groupReviewPhase = reviewPhaseImmediatelyAfter(sentence.workflowPhases, "groups");
+  const functionReviewPhase = reviewPhaseImmediatelyAfter(sentence.workflowPhases, "functions");
+  const groupReviewActive = Boolean(groupsComplete && groupReviewPhase && !dismissedReviewIds.includes(groupReviewPhase.id));
+  const rawComplete = groupsComplete && functionsComplete;
+  const functionReviewActive = Boolean(rawComplete && functionTargets.length > 0 && functionReviewPhase && !dismissedReviewIds.includes(functionReviewPhase.id));
+  const complete = rawComplete && !groupReviewActive && !functionReviewActive;
+  const markingFunctions = groupsComplete && !groupReviewActive && !functionsComplete;
+  const activeReviewPhase = groupReviewActive ? groupReviewPhase : functionReviewActive ? functionReviewPhase : undefined;
   const currentFunctionTarget = functionTargets.find((target) => !functionLeftIds.includes(target.id) || !functionRightIds.includes(target.id));
   const currentFunctionLabel = currentFunctionTarget ? functionAnnotations.find((annotation) => annotation.id === currentFunctionTarget.id)?.label : undefined;
 
@@ -180,8 +193,11 @@ export function WordGroupReader({
     | "nested_presence"
     | "nested_type"
     | "function_brackets"
+    | "review"
     | "complete" = markingFunctions
     ? "function_brackets"
+    : activeReviewPhase
+    ? "review"
     : complete
     ? "complete"
     : currentIsContracted
@@ -229,6 +245,7 @@ export function WordGroupReader({
           nestedTypeFoundIds?: string[];
           functionLeftIds?: string[];
           functionRightIds?: string[];
+          dismissedReviewIds?: string[];
           currentIndex?: number;
         };
         const left = saved.leftFoundIds ?? [];
@@ -249,6 +266,7 @@ export function WordGroupReader({
         setNestedTypeFoundIds(nestedTypes);
         setFunctionLeftIds(saved.functionLeftIds ?? []);
         setFunctionRightIds(saved.functionRightIds ?? []);
+        setDismissedReviewIds(saved.dismissedReviewIds ?? []);
         setCurrentIndex(
           Math.min(
             saved.currentIndex ?? 0,
@@ -366,6 +384,7 @@ export function WordGroupReader({
         nestedTypeFoundIds,
         functionLeftIds,
         functionRightIds,
+        dismissedReviewIds,
         currentIndex
       })
     );
@@ -377,6 +396,7 @@ export function WordGroupReader({
     nestedTypeFoundIds,
     functionLeftIds,
     functionRightIds,
+    dismissedReviewIds,
     currentIndex,
     hydrated,
     leftFoundIds,
@@ -821,6 +841,7 @@ export function WordGroupReader({
     setGprepNucleusFoundIds([]);
     setNestedPresenceFoundIds([]);
     setNestedTypeFoundIds([]);
+    setDismissedReviewIds([]);
     setTypeMenuOpen(false);
     setContractedAnswer("");
     setStroke([]);
@@ -1077,17 +1098,23 @@ export function WordGroupReader({
 
   return (
     <div className={`word-group-reader ${embedded ? "embedded" : ""}`}>
-      <ReaderChromePortal slot="instruction">
+      {!activeReviewPhase && <ReaderChromePortal slot="instruction">
         <div className="reader-chrome-instruction-copy"><strong>{instructionText()}</strong>{message && <span className="reader-chrome-feedback">{message}</span>}</div>
-      </ReaderChromePortal>
-      <ReaderChromePortal slot="progress">
+      </ReaderChromePortal>}
+      {!activeReviewPhase && <ReaderChromePortal slot="progress">
         <div className="reader-chrome-progress">
           <strong>{markingFunctions ? functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length + "/" + functionTargets.length + " fonctions" : (identifyNuclei ? nucleusFoundIds : classifiedIds).length + "/" + targets.length + " groupes"}</strong>
           <span className="reader-chrome-progress-dots" aria-hidden="true">
             {Array.from({ length: Math.max(1, markingFunctions ? functionTargets.length : targets.length) }, (_, index) => <i key={index} className={index < (markingFunctions ? functionTargets.filter((target) => functionLeftIds.includes(target.id) && functionRightIds.includes(target.id)).length : (identifyNuclei ? nucleusFoundIds : classifiedIds).length) ? "done" : ""} />)}
           </span>
         </div>
-      </ReaderChromePortal>
+      </ReaderChromePortal>}
+      {activeReviewPhase && (
+        <CorrectionPause
+          phase={activeReviewPhase}
+          onContinue={() => setDismissedReviewIds((current) => current.includes(activeReviewPhase.id) ? current : [...current, activeReviewPhase.id])}
+        />
+      )}
 
       <div
         className={`word-group-drawing-surface phase-${phase}`}
@@ -1095,6 +1122,7 @@ export function WordGroupReader({
       >
         <RangeMarksLayer targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>
         <RangeMarksLayer targets={functionTargets} positions={labelPositions} leftIds={functionLeftIds} rightIds={functionRightIds} mode={continuationBoundaryMode}/>
+        <ResolvedCorrectionLabels marks={correctionMarks} positions={labelPositions} />
         {targets.map((target) => {
           const position = labelPositions[target.id];
           const classified = classifiedIds.includes(target.id);
@@ -1179,6 +1207,23 @@ export function WordGroupReader({
                     )}
                 </div>
               )}
+            </div>
+          );
+        })}
+
+        {functionAnnotations.map((annotation) => {
+          const position = labelPositions[annotation.id];
+          const solved = functionLeftIds.includes(annotation.id) && functionRightIds.includes(annotation.id);
+          if (!position || !solved) return null;
+          return (
+            <div
+              className="word-group-label-anchor function-label-anchor"
+              key={`function-label-${annotation.id}`}
+              style={{ left: position.x, top: position.y }}
+            >
+              <span className="word-group-code-box filled function-code-box">
+                {grammarFunctionInstructionLabel(annotation.label)}
+              </span>
             </div>
           );
         })}

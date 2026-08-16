@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import type { RefObject } from "react";
 
 export type RangeSegment = {
@@ -101,7 +101,7 @@ export function useRangeTargetPositions(
 ) {
   const [positions, setPositions] = useState<Record<string, RangePosition>>({});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const surface = surfaceRef.current;
     if (!surface) return;
 
@@ -175,18 +175,25 @@ export function useRangeTargetPositions(
       setPositions(next);
     };
 
-    const frame = window.requestAnimationFrame(update);
-    const observer = new ResizeObserver(update);
-    observer.observe(surface);
+    update();
+    const frame = typeof window.requestAnimationFrame === "function"
+      ? window.requestAnimationFrame(update)
+      : null;
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(update);
+    observer?.observe(surface);
     surface
       .querySelectorAll<HTMLElement>(`[${tokenAttribute}]`)
-      .forEach((element) => observer.observe(element));
+      .forEach((element) => observer?.observe(element));
     const fontsReady = document.fonts?.ready.then(update);
     window.addEventListener("resize", update);
 
     return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
+      if (frame !== null && typeof window.cancelAnimationFrame === "function") {
+        window.cancelAnimationFrame(frame);
+      }
+      observer?.disconnect();
       window.removeEventListener("resize", update);
       void fontsReady;
     };

@@ -4,11 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lightbulb, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
+import { CorrectionPause } from "@/components/presentation/correction-pause";
 import { GrammarExtensionReader } from "@/components/presentation/grammar-extension-reader";
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
 import { resolveCorrectionBounds } from "@/lib/correction-ranges";
 import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
+import { reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
+import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
 import type { CorrectionCode, Sentence, SentenceCorrection, WordClassTarget, WordGroupTarget, WordGroupType } from "@/types";
 
 type Props = {
@@ -216,6 +219,7 @@ export function InteractiveSentenceReader({
   const [hybridWordClassComplete, setHybridWordClassComplete] = useState(false);
   const [hybridExtensionComplete, setHybridExtensionComplete] = useState(false);
   const [readerRevision, setReaderRevision] = useState(0);
+  const [dismissedReviewIds, setDismissedReviewIds] = useState<string[]>([]);
   const sentenceRef = useRef<HTMLDivElement>(null);
   const restorePointsRef = useRef(onRestorePoints);
 
@@ -225,6 +229,7 @@ export function InteractiveSentenceReader({
 
   useEffect(() => {
     if (!persistenceKey || typeof window === "undefined") {
+      setDismissedReviewIds([]);
       setPersistenceHydrated(true);
       return;
     }
@@ -240,6 +245,7 @@ export function InteractiveSentenceReader({
       setClickedIds([]);
       setWordPointIds([]);
       setCodePointIds([]);
+      setDismissedReviewIds([]);
       setPersistenceHydrated(true);
       return;
     }
@@ -252,6 +258,7 @@ export function InteractiveSentenceReader({
         clickedIds?: string[];
         wordPointIds?: string[];
         codePointIds?: string[];
+        dismissedReviewIds?: string[];
       };
 
       const restoredCorrectedIds = saved.correctedIds ?? [];
@@ -267,6 +274,7 @@ export function InteractiveSentenceReader({
       setClickedIds(restoredClickedIds);
       setWordPointIds(restoredWordPointIds);
       setCodePointIds(restoredCodePointIds);
+      setDismissedReviewIds(saved.dismissedReviewIds ?? []);
 
       if (restorePointsRef.current) {
         const restoredPoints: Array<{
@@ -330,7 +338,8 @@ export function InteractiveSentenceReader({
         hintedIds,
         clickedIds,
         wordPointIds,
-        codePointIds
+        codePointIds,
+        dismissedReviewIds
       })
     );
   }, [
@@ -341,7 +350,8 @@ export function InteractiveSentenceReader({
     hintedIds,
     clickedIds,
     wordPointIds,
-    codePointIds
+    codePointIds,
+    dismissedReviewIds
   ]);
   const [layoutLines, setLayoutLines] = useState<string[][]>([]);
 
@@ -355,6 +365,16 @@ export function InteractiveSentenceReader({
   const correctedText = useMemo(() => buildCorrectedText(sentence), [sentence]);
   const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
   const correctedGrammarSentence = useMemo(() => buildCorrectedGrammarSentence(sentence, correctedText), [correctedText, sentence]);
+  const resolvedCorrectionMarks = useMemo<ResolvedCorrectionMark[]>(() => !requiresCorrectionCodes ? [] : normalizedCorrections(sentence).map((correction) => {
+    const start = mapOriginalPosition(sentence, correction.start, "start");
+    const code = correctionCodes.find((item) => item.id === correction.correctionCodeId);
+    return {
+      id: `resolved-correction-${correction.id}`,
+      start,
+      end: start + correction.correctedText.length,
+      label: code?.code ?? "?"
+    };
+  }), [correctionCodes, requiresCorrectionCodes, sentence]);
   const hybridWordClassSentence = useMemo(() => buildMixedWordClassSentence(correctedGrammarSentence), [correctedGrammarSentence]);
   const usesNativeGroupPhase = Boolean(sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0);
   const usesNativeWordClassPhase = Boolean(
@@ -367,13 +387,19 @@ export function InteractiveSentenceReader({
   const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const identifyGroupNuclei = Boolean(sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) || sentence.workflowPhases?.find((phase) => phase.kind === "nuclei")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled));
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
+  const correctionReviewPhase = reviewPhaseImmediatelyAfter(sentence.workflowPhases, "correction");
+  const correctionReviewActive = Boolean(
+    correctionComplete &&
+    correctionReviewPhase &&
+    !dismissedReviewIds.includes(correctionReviewPhase.id)
+  );
   const activityComplete = correctionComplete && (
     usesNativeGroupPhase
       ? hybridGroupComplete && (!usesNativeWordClassPhase || hybridWordClassComplete)
       : usesNativeWordClassPhase
         ? hybridWordClassComplete
         : hybridExtensionComplete
-  );
+  ) && !correctionReviewActive;
 
   useEffect(() => {
     onCompleteChange?.(activityComplete);
@@ -588,6 +614,7 @@ export function InteractiveSentenceReader({
     setHybridGroupComplete(false);
     setHybridWordClassComplete(false);
     setHybridExtensionComplete(false);
+    setDismissedReviewIds([]);
     setReaderRevision((current) => current + 1);
     restorePointsRef.current?.([]);
     onRestoreWordClassPoints?.([]);
@@ -690,14 +717,21 @@ export function InteractiveSentenceReader({
           <ReaderChromePortal slot="progress"><div className="reader-chrome-progress complete"><strong>{ordered.length}/{ordered.length} corrections</strong><span className="reader-chrome-progress-dots" aria-hidden="true">{ordered.map((correction) => <i key={correction.id} className="done" />)}</span></div></ReaderChromePortal>
         </>
       )}
-      <ReaderChromePortal slot="actions">
+      {!correctionReviewActive && <ReaderChromePortal slot="actions">
         {!correctionComplete && <Button variant="secondary" onClick={useHint}><Lightbulb size={18} /> Indice</Button>}
         {!correctionComplete && <Button variant="secondary" onClick={revealAll}>Tout dévoiler</Button>}
         <Button variant="secondary" onClick={restart}>Recommencer</Button>
         {activityComplete && finishControl}
-      </ReaderChromePortal>
+      </ReaderChromePortal>}
 
-      {correctionComplete && usesSharedRangeSurface ? (
+      {correctionReviewActive && correctionReviewPhase && (
+        <CorrectionPause
+          phase={correctionReviewPhase}
+          onContinue={() => setDismissedReviewIds((current) => [...current, correctionReviewPhase.id])}
+        />
+      )}
+
+      {correctionComplete && usesSharedRangeSurface && !correctionReviewActive ? (
         usesNativeGroupPhase && !hybridGroupComplete ? (
           <WordGroupReader
             key={`mixed-groups-${readerRevision}`}
@@ -709,6 +743,7 @@ export function InteractiveSentenceReader({
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}
             identifyNuclei={identifyGroupNuclei}
             forcedLineBreaks={forcedGrammarLineBreaks}
+            correctionMarks={resolvedCorrectionMarks}
             embedded
           />
         ) : usesNativeWordClassPhase ? (
@@ -719,6 +754,7 @@ export function InteractiveSentenceReader({
             onPoint={onWordClassPoint}
             onRestorePoints={onRestoreWordClassPoints}
             onCompleteChange={setHybridWordClassComplete}
+            correctionMarks={resolvedCorrectionMarks}
             embedded
           />
         ) : (
@@ -728,6 +764,7 @@ export function InteractiveSentenceReader({
             excludedKinds={["group", "nucleus"]}
             initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus").map((annotation) => annotation.id)}
             forcedLineBreaks={forcedGrammarLineBreaks}
+            correctionMarks={resolvedCorrectionMarks}
             onCompleteChange={setHybridExtensionComplete}
           />
         )
@@ -742,6 +779,7 @@ export function InteractiveSentenceReader({
           key={`mixed-extension-${readerRevision}`}
           sentence={correctedGrammarSentence}
           forcedLineBreaks={forcedGrammarLineBreaks}
+          correctionMarks={resolvedCorrectionMarks}
           onCompleteChange={setHybridExtensionComplete}
         />
       )}

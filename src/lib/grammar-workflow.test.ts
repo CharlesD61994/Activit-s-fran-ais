@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWorkflowPhase, defaultWorkflowForObjective, getAgreementWorkflowSettings, normalizeGrammarWorkflow, shuffledGrammarTargetIds } from "./grammar-workflow";
+import { createWorkflowPhase, defaultWorkflowForObjective, getAgreementWorkflowSettings, getSecondaryObjectives, normalizeGrammarWorkflow, reviewPhaseImmediatelyAfter, shuffledGrammarTargetIds } from "./grammar-workflow";
 import type { Sentence } from "../types";
 
 describe("grammar workflow", () => {
@@ -59,6 +59,24 @@ describe("grammar workflow", () => {
       "fonction-1"
     ]);
     expect(source).toEqual(["fonction-1", "fonction-2", "fonction-3"]);
+  });
+
+  it("finds only a correction pause placed immediately after a phase", () => {
+    const correction = createWorkflowPhase("correction");
+    const review = createWorkflowPhase("review");
+    const groups = createWorkflowPhase("groups");
+
+    expect(reviewPhaseImmediatelyAfter([correction, review, groups], "correction")?.id).toBe(review.id);
+    expect(reviewPhaseImmediatelyAfter([correction, groups, review], "correction")).toBeUndefined();
+  });
+
+  it("does not expose correction pauses as student activity tags", () => {
+    const sentence = {
+      primaryObjective: "sentence_correction",
+      workflowPhases: [createWorkflowPhase("correction"), createWorkflowPhase("review"), createWorkflowPhase("groups")]
+    } as Sentence;
+
+    expect(getSecondaryObjectives(sentence)).toEqual(["groups"]);
   });
 
 });

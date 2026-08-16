@@ -28,6 +28,10 @@ import type {
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
+import { CorrectionPause } from "@/components/presentation/correction-pause";
+import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
+import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
+import { reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
 
 type Point = InteractionPoint;
 type Boundary = "left" | "right";
@@ -53,6 +57,7 @@ type Props = {
   forcedLineBreaks?: number[];
   onCompleteChange?: (complete: boolean) => void;
   finishControl?: React.ReactNode;
+  correctionMarks?: ResolvedCorrectionMark[];
 };
 
 export function GrammarExtensionReader({
@@ -61,7 +66,8 @@ export function GrammarExtensionReader({
   initialSolvedIds = [],
   forcedLineBreaks = [],
   onCompleteChange,
-  finishControl
+  finishControl,
+  correctionMarks = []
 }: Props) {
   const annotations = useMemo(
     () => sentence.grammarAnnotations ?? [],
@@ -115,6 +121,7 @@ export function GrammarExtensionReader({
   const [frameCurrent, setFrameCurrent] = useState<Point | null>(null);
   const [stroke, setStroke] = useState<Point[]>([]);
   const [message, setMessage] = useState("");
+  const [dismissedReviewIds, setDismissedReviewIds] = useState<string[]>([]);
 
   const surfaceRef = useRef<HTMLDivElement>(null);
   const activePointerRef = useRef<number | null>(null);
@@ -125,9 +132,10 @@ export function GrammarExtensionReader({
     () => tokenizeGrammarText(sentence.originalText, "extension-token"),
     [sentence.originalText]
   );
+  const layoutAnnotations = useMemo(() => [...annotations, ...correctionMarks], [annotations, correctionMarks]);
   const positions = useRangeTargetPositions(
     surfaceRef,
-    annotations,
+    layoutAnnotations,
     tokens,
     "data-extension-token-id"
   );
@@ -152,7 +160,13 @@ export function GrammarExtensionReader({
     (step?.kind === "function" || step?.kind === "group"
       ? "frame"
       : "click");
-  const complete = stepIndex >= steps.length;
+  const rawComplete = stepIndex >= steps.length;
+  const lastPhaseKind = steps[steps.length - 1]?.phase.kind;
+  const reviewPhase = lastPhaseKind
+    ? reviewPhaseImmediatelyAfter(sentence.workflowPhases, lastPhaseKind)
+    : undefined;
+  const reviewActive = Boolean(rawComplete && reviewPhase && !dismissedReviewIds.includes(reviewPhase.id));
+  const complete = rawComplete && !reviewActive;
   const displayedSolvedIds = complete
     ? new Set(annotations.map((annotation) => annotation.id))
     : new Set(solvedIds);
@@ -542,7 +556,8 @@ export function GrammarExtensionReader({
       <div
           className={`word-group-drawing-surface grammar-extension-surface phase-${responseMode}`}
           ref={surfaceRef}
-        >
+      >
+        <ResolvedCorrectionLabels marks={correctionMarks} positions={positions} />
           <RangeMarksLayer
             targets={solvedBracketTargets}
             positions={positions}
@@ -564,6 +579,24 @@ export function GrammarExtensionReader({
             rightIds={solvedFrameTargets.map((target) => target.id)}
             mode="frame"
           />
+
+          {annotations
+            .filter((annotation) => annotation.kind === "function" && displayedSolvedIds.has(annotation.id))
+            .map((annotation) => {
+              const position = positions[annotation.id];
+              if (!position) return null;
+              return (
+                <div
+                  className="word-group-label-anchor function-label-anchor"
+                  key={`extension-function-label-${annotation.id}`}
+                  style={{ left: position.x, top: position.y }}
+                >
+                  <span className="word-group-code-box filled function-code-box">
+                    {grammarFunctionInstructionLabel(annotation.label)}
+                  </span>
+                </div>
+              );
+            })}
 
           <div className="word-group-reader-text shared-grammar-reader-text">
             {tokens.map((token) => {
@@ -663,6 +696,12 @@ export function GrammarExtensionReader({
         </div>
 
       {complete && <ReaderChromePortal slot="instruction"><div className="reader-chrome-instruction-copy"><strong>Activité terminée!</strong></div></ReaderChromePortal>}
+      {reviewActive && reviewPhase && (
+        <CorrectionPause
+          phase={reviewPhase}
+          onContinue={() => setDismissedReviewIds((current) => [...current, reviewPhase.id])}
+        />
+      )}
       {complete && <ReaderChromePortal slot="actions">{finishControl}</ReaderChromePortal>}
     </section>
   );
