@@ -44,14 +44,26 @@ function PrintSnapshot({ sentence, codes, snapshot }: { sentence: Sentence; code
     start: mappedPosition(sentence, annotation.start, "start"),
     end: mappedPosition(sentence, annotation.end, "end")
   })), [sentence]);
-  const groupAnnotations = annotations.filter((annotation) => annotation.kind === "group" && snapshot.kinds.has("groups"));
-  const functionAnnotations = annotations.filter((annotation) => annotation.kind === "function" && snapshot.kinds.has("functions"));
-  const classAnnotations = annotations.filter((annotation) => annotation.kind === "word_class" && (snapshot.kinds.has("word_classes") || snapshot.kinds.has("agreements") || snapshot.kinds.has("gender_number")));
-  const correctionTargets = sentence.corrections.map((correction) => {
+  const groupAnnotations = useMemo(
+    () => annotations.filter((annotation) => annotation.kind === "group" && snapshot.kinds.has("groups")),
+    [annotations, snapshot]
+  );
+  const functionAnnotations = useMemo(
+    () => annotations.filter((annotation) => annotation.kind === "function" && snapshot.kinds.has("functions")),
+    [annotations, snapshot]
+  );
+  const classAnnotations = useMemo(
+    () => annotations.filter((annotation) => annotation.kind === "word_class" && (snapshot.kinds.has("word_classes") || snapshot.kinds.has("agreements") || snapshot.kinds.has("gender_number"))),
+    [annotations, snapshot]
+  );
+  const correctionTargets = useMemo(() => sentence.corrections.map((correction) => {
     const start = mappedPosition(sentence, correction.start, "start");
     return { id: `print-code-${correction.id}`, start, end: start + correction.correctedText.length, correction };
-  });
-  const rangeTargets = [...groupAnnotations, ...functionAnnotations, ...classAnnotations, ...correctionTargets];
+  }), [sentence]);
+  const rangeTargets = useMemo(
+    () => [...groupAnnotations, ...functionAnnotations, ...classAnnotations, ...correctionTargets],
+    [classAnnotations, correctionTargets, functionAnnotations, groupAnnotations]
+  );
   const tokens = useMemo(() => tokenizeGrammarText(text, `print-${snapshot.id}`), [snapshot.id, text]);
   const positions = useRangeTargetPositions(surfaceRef, rangeTargets, tokens, "data-correction-print-token-id");
   const nucleusAnnotations = annotations.filter((annotation) => annotation.kind === "nucleus" && snapshot.kinds.has("groups"));

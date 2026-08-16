@@ -44,6 +44,41 @@ type RectMetrics = {
   height: number;
 };
 
+function positionsAreEqual(
+  current: Record<string, RangePosition>,
+  next: Record<string, RangePosition>
+) {
+  const currentKeys = Object.keys(current);
+  const nextKeys = Object.keys(next);
+  if (currentKeys.length !== nextKeys.length) return false;
+
+  const closeEnough = (left: number, right: number) =>
+    Math.abs(left - right) < 0.1;
+  const scalarKeys: Array<Exclude<keyof RangePosition, "segments">> = [
+    "x", "y", "width", "height", "startX", "startY", "startHeight",
+    "markStartY", "markStartHeight", "endX", "endY", "endHeight",
+    "markEndY", "markEndHeight"
+  ];
+
+  return nextKeys.every((key) => {
+    const previous = current[key];
+    const incoming = next[key];
+    if (!previous || !incoming) return false;
+    if (scalarKeys.some((metric) => !closeEnough(previous[metric], incoming[metric]))) {
+      return false;
+    }
+    if (previous.segments.length !== incoming.segments.length) return false;
+    return incoming.segments.every((segment, index) => {
+      const previousSegment = previous.segments[index];
+      return previousSegment != null &&
+        closeEnough(previousSegment.x, segment.x) &&
+        closeEnough(previousSegment.y, segment.y) &&
+        closeEnough(previousSegment.width, segment.width) &&
+        closeEnough(previousSegment.height, segment.height);
+    });
+  });
+}
+
 export function fitRectToGlyphHeight(
   rect: RectMetrics,
   fontSize: number
@@ -172,7 +207,10 @@ export function useRangeTargetPositions(
         };
       });
 
-      setPositions(next);
+      // Une mesure identique ne doit pas provoquer un nouveau rendu. C'est
+      // particulièrement important pour les aperçus d'impression, dont les
+      // listes de cibles peuvent être recréées par leur composant parent.
+      setPositions((current) => positionsAreEqual(current, next) ? current : next);
     };
 
     update();
