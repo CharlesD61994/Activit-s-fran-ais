@@ -9959,9 +9959,13 @@ textarea {
  * Les anciens espaces réservés aux codes sont remplacés par une superposition. */
 .reader-activity-flow .interactive-reader-sentence .interactive-line,
 .reader-activity-flow .interactive-reader-sentence .interactive-line-empty {
+  width: max-content !important;
+  max-width: 100% !important;
   min-height: 0 !important;
+  margin-inline: auto !important;
   padding-top: 0 !important;
-  line-height: inherit !important;
+  line-height: var(--reader-sentence-line-height) !important;
+  text-align: center !important;
 }
 
 .reader-activity-flow .interactive-reader-sentence .interactive-line + .interactive-line {
@@ -10022,7 +10026,7 @@ textarea {
  * marge supérieure ni de l’interligne des activités grammaticales normales. */
 .reader-activity-flow .word-class-reader-text.has-agreement-relations {
   padding-top: 2px !important;
-  padding-bottom: 24px !important;
+  padding-bottom: var(--reader-sentence-padding-bottom) !important;
   line-height: .98 !important;
 }
 
@@ -10047,6 +10051,15 @@ textarea {
   border-radius: 20px !important;
   background: #fff !important;
   box-shadow: 0 10px 24px rgb(17 58 88 / 7%) !important;
+}
+
+/* Les lecteurs historiques de groupes sont des grilles. Sans alignement
+ * explicite, leur carte peut s'étirer sur la hauteur disponible du lecteur.
+ * La carte universelle doit toujours épouser son contenu réel. */
+.reader-activity-flow .word-group-reader,
+.reader-activity-flow .word-group-drawing-surface {
+  height: auto !important;
+  align-self: start !important;
 }
 
 .reader-scene .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text {
