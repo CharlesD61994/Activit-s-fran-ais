@@ -1381,7 +1381,7 @@ export function WordClassReader({
       </ReaderChromePortal>
       <div
         ref={textContainerRef}
-        className={`word-class-reader-text ${relationTasks.length > 0 ? "has-agreement-relations" : ""} ${currentTask ? "drawing-agreement" : ""}`}
+        className={`word-class-reader-text shared-grammar-reader-text ${relationTasks.length > 0 ? "has-agreement-relations" : ""} ${currentTask ? "drawing-agreement" : ""}`}
         style={
           relationTasks.length > 0
             ? ({

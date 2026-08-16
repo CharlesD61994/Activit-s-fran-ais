@@ -18,9 +18,13 @@ export type RangePosition = {
   startX: number;
   startY: number;
   startHeight: number;
+  markStartY: number;
+  markStartHeight: number;
   endX: number;
   endY: number;
   endHeight: number;
+  markEndY: number;
+  markEndHeight: number;
   segments: RangeSegment[];
 };
 
@@ -132,6 +136,8 @@ export function useRangeTargetPositions(
         });
         const first = rects[0];
         const last = rects[rects.length - 1];
+        const firstGlyph = glyphRects[0];
+        const lastGlyph = glyphRects[glyphRects.length - 1];
         const minLeft = Math.min(...rects.map((rect) => rect.left));
         const maxRight = Math.max(...rects.map((rect) => rect.right));
         const minTop = Math.min(...rects.map((rect) => rect.top));
@@ -150,9 +156,13 @@ export function useRangeTargetPositions(
           startX: first.left - surfaceRect.left,
           startY: first.top - surfaceRect.top,
           startHeight: first.height,
+          markStartY: firstGlyph.top - surfaceRect.top,
+          markStartHeight: firstGlyph.height,
           endX: last.right - surfaceRect.left,
           endY: last.top - surfaceRect.top,
           endHeight: last.height,
+          markEndY: lastGlyph.top - surfaceRect.top,
+          markEndHeight: lastGlyph.height,
           // Les cadres suivent les glyphes; les crochets et les gestes gardent
           // les rectangles de ligne complets afin de rester faciles à tracer.
           segments: buildRangeSegments(glyphRects, surfaceRect)

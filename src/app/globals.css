@@ -6285,11 +6285,11 @@ textarea {
 }
 
 .word-group-range-bracket.left {
-  border-left: 4px solid var(--primary);
+  border-left: 3px solid var(--primary);
 }
 
 .word-group-range-bracket.right {
-  border-right: 4px solid var(--primary);
+  border-right: 3px solid var(--primary);
 }
 
 .word-group-confirmed-frame {
@@ -10838,30 +10838,81 @@ textarea {
 }
 
 .reader-activity-flow .shared-grammar-reader-text {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  padding: 32px 44px 38px;
+  font-size: clamp(1.75rem, 3.85vw, 4.45rem);
   font-weight: 900;
+  line-height: 1.5;
+  letter-spacing: -.03em;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
-.reader-activity-flow.geometry-plain .shared-grammar-reader-text {
-  line-height: 1.48;
+/* La correction utilise exactement les mêmes lignes que les autres phases.
+ * Les anciens espaces réservés aux codes sont remplacés par une superposition. */
+.reader-activity-flow .interactive-reader-sentence .interactive-line,
+.reader-activity-flow .interactive-reader-sentence .interactive-line-empty {
+  min-height: 0;
+  padding-top: 0;
+  line-height: inherit;
 }
 
-.reader-activity-flow.geometry-brackets .shared-grammar-reader-text {
-  line-height: 1.64;
+.reader-activity-flow .interactive-reader-sentence .interactive-line + .interactive-line {
+  margin-top: 0;
 }
 
-.reader-activity-flow.geometry-frames .shared-grammar-reader-text {
-  line-height: 1.76;
+.reader-activity-flow .interactive-reader-sentence .interactive-segment {
+  margin: 0;
+  padding: 0;
 }
 
-.reader-activity-flow.geometry-above .shared-grammar-reader-text {
-  padding-top: 48px;
+.reader-activity-flow .interactive-reader-sentence .interactive-code-box {
+  bottom: calc(100% + 2px);
+  width: 1.45em;
+  height: 1.45em;
+  min-width: 1.45em;
+  min-height: 1.45em;
+  padding: 0;
+  border-width: 2px;
+  font-size: .34em;
+  line-height: 1;
+}
+
+.reader-activity-flow .interactive-reader-sentence .interactive-code-box.filled {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  border-width: 0;
+}
+
+/* Les classes de mots partagent la même fonte et la même respiration. Les
+ * flèches conservent seulement leur bande de dessin, calculée par le lecteur. */
+.reader-activity-flow .word-class-reader-text.shared-grammar-reader-text {
+  padding-top: 32px !important;
+  padding-bottom: 38px;
+}
+
+.reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token {
+  margin-top: 0;
+}
+
+.reader-activity-flow .word-class-reader-text.has-agreement-relations {
+  padding-top: 18px !important;
+  padding-bottom: 38px;
+  line-height: 1.18;
 }
 
 /* Les surfaces qui étaient transparentes dans Mixte redeviennent les cartes
  * adaptatives natives, sans carte supplémentaire autour d’elles. */
 .reader-scene .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text,
 .reader-scene .word-group-reader.embedded .word-group-drawing-surface,
-.reader-scene .grammar-extension-reader .grammar-extension-surface {
+.reader-scene .grammar-extension-reader .grammar-extension-surface,
+.reader-scene .word-class-reader-text.shared-grammar-reader-text {
   min-height: 0;
   border: 1px solid #cfdeea;
   border-radius: 20px;

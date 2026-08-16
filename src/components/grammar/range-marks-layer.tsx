@@ -77,11 +77,11 @@ export function RangeMarksLayer({
               candidate.end <= target.start &&
               positions[candidate.id] &&
               Math.abs(
-                positions[candidate.id].endY - position.startY
+                positions[candidate.id].markEndY - position.markStartY
               ) <
                 Math.min(
-                  positions[candidate.id].endHeight,
-                  position.startHeight
+                  positions[candidate.id].markEndHeight,
+                  position.markStartHeight
                 ) * .5
           )
           .sort((a, b) => b.end - a.end)[0];
@@ -93,11 +93,11 @@ export function RangeMarksLayer({
               candidate.start >= target.end &&
               positions[candidate.id] &&
               Math.abs(
-                positions[candidate.id].startY - position.endY
+                positions[candidate.id].markStartY - position.markEndY
               ) <
                 Math.min(
-                  positions[candidate.id].startHeight,
-                  position.endHeight
+                  positions[candidate.id].markStartHeight,
+                  position.markEndHeight
                 ) * .5
           )
           .sort((a, b) => a.start - b.start)[0];
@@ -113,8 +113,6 @@ export function RangeMarksLayer({
         const rightSpacing = bracketSpacing(
           nextPosition ? nextPosition.startX - position.endX : undefined
         );
-        const leftInset = Math.max(3, position.startHeight * .08);
-        const rightInset = Math.max(3, position.endHeight * .08);
         const marks: React.ReactNode[] = [];
 
         if (leftIds.includes(target.id)) {
@@ -127,13 +125,11 @@ export function RangeMarksLayer({
                   position.startX -
                   leftSpacing.gap -
                   leftSpacing.cap -
-                  leftDepth * (leftSpacing.cap + leftSpacing.gap),
-                top: position.startY + leftInset,
+                  leftDepth * (leftSpacing.cap + leftSpacing.gap) +
+                  (previousPosition ? 1 : 0),
+                top: position.markStartY - 2,
                 width: leftSpacing.cap,
-                height: Math.max(
-                  34,
-                  position.startHeight - leftInset * 2
-                )
+                height: Math.max(34, position.markStartHeight + 4)
               }}
             />
           );
@@ -148,13 +144,11 @@ export function RangeMarksLayer({
                 left:
                   position.endX +
                   rightSpacing.gap +
-                  rightDepth * (rightSpacing.cap + rightSpacing.gap),
-                top: position.endY + rightInset,
+                  rightDepth * (rightSpacing.cap + rightSpacing.gap) -
+                  (nextPosition ? 1 : 0),
+                top: position.markEndY - 2,
                 width: rightSpacing.cap,
-                height: Math.max(
-                  34,
-                  position.endHeight - rightInset * 2
-                )
+                height: Math.max(34, position.markEndHeight + 4)
               }}
             />
           );
