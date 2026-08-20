@@ -9053,7 +9053,21 @@ textarea {
 .activity-type-badge.objective-worksheet { background: #f1e2ff; color: #71379b; }
 .worksheet-bank-preview { display: flex; align-items: center; gap: 14px; }
 .worksheet-bank-preview span { color: var(--muted); }
-.worksheet-table-toolbar { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.worksheet-table-toolbar {
+  position: sticky;
+  z-index: 29;
+  top: 66px;
+  display: grid;
+  max-height: min(42vh, 370px);
+  gap: 10px;
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgb(16 48 74 / 12%);
+}
 .worksheet-table-toolbar-row, .worksheet-table-dimensions, .worksheet-cell-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
 .worksheet-table-toolbar-row > span { flex: 1 1 260px; color: var(--muted-foreground); font-size: .9rem; }
 .worksheet-table-toolbar label, .worksheet-score-toolbar label, .worksheet-band-toolbar label { display: grid; gap: 4px; font-size: .82rem; font-weight: 800; }
@@ -9112,24 +9126,72 @@ textarea {
 
 @media print {
   @page { size: letter portrait; margin: 0; }
-  body:has(.worksheet-editor) > * { display: block !important; }
-  .worksheet-editor .tree-analysis-page-shell.builder,
-  .worksheet-editor .tree-analysis-page-shell.builder * { visibility: visible !important; }
-  .worksheet-editor .tree-analysis-page-shell.builder {
-    position: fixed;
-    inset: 0;
-    width: 8.5in;
-    height: 11in;
-    padding: 0;
-    overflow: hidden;
-    border-radius: 0;
-    background: #fff;
+  html:has(.worksheet-editor),
+  body:has(.worksheet-editor) {
+    width: 8.5in !important;
+    height: 11in !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
   }
-  .worksheet-editor .tree-analysis-page-shell.builder .tree-analysis-page {
-    width: 8.5in;
-    height: 11in;
-    min-width: 0;
-    box-shadow: none;
+  body:has(.worksheet-editor) > * { display: block !important; }
+  body:has(.worksheet-editor) * { visibility: hidden !important; }
+  body:has(.worksheet-editor) .worksheet-editor,
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-builder-card,
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-workspace,
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-page-shell.builder,
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-page-shell.builder * { visibility: visible !important; }
+  body:has(.worksheet-editor) .worksheet-editor {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 8.5in !important;
+    height: 11in !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body:has(.worksheet-editor) .worksheet-editor > :not(.tree-analysis-builder-card),
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-builder-card > :not(.tree-analysis-workspace) {
+    display: none !important;
+  }
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-builder-card,
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-workspace {
+    position: static !important;
+    display: block !important;
+    width: 8.5in !important;
+    height: 11in !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-page-shell.builder {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 8.5in !important;
+    height: 11in !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-page-shell.builder .tree-analysis-page {
+    width: 8.5in !important;
+    height: 11in !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    box-shadow: none !important;
   }
   .worksheet-editor .worksheet-answer-lines.selected { outline: 0; }
   .worksheet-editor .tree-analysis-text-delete,
