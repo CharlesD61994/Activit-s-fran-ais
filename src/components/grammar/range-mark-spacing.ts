@@ -28,3 +28,28 @@ export function bracketSpacing(availableSpace?: number) {
     gap
   };
 }
+
+/**
+ * Places two neighbouring bracket strokes around the real midpoint between
+ * words.  Both brackets use the same calculation, so their vertical strokes
+ * can never collapse into one shared line.
+ */
+export function adjacentBracketPair(
+  leftWordEnd: number,
+  rightWordStart: number
+) {
+  const availableSpace = Math.max(0, rightWordStart - leftWordEnd);
+  const strokeSeparation = Math.max(4, Math.min(8, availableSpace * .28));
+  const cap = Math.max(
+    3,
+    Math.min(DEFAULT_BRACKET_CAP, (availableSpace - strokeSeparation - 2) / 2)
+  );
+  const midpoint = (leftWordEnd + rightWordStart) / 2;
+
+  return {
+    cap,
+    rightBracketLeft: midpoint - strokeSeparation / 2 - cap,
+    leftBracketLeft: midpoint + strokeSeparation / 2,
+    strokeSeparation
+  };
+}

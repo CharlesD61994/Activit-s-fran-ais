@@ -1,7 +1,10 @@
 "use client";
 
 import type { RangePosition } from "@/components/grammar/use-range-target-positions";
-import { bracketSpacing } from "@/components/grammar/range-mark-spacing";
+import {
+  adjacentBracketPair,
+  bracketSpacing
+} from "@/components/grammar/range-mark-spacing";
 
 type Target = { id: string; start: number; end: number };
 type Props = {
@@ -113,6 +116,12 @@ export function RangeMarksLayer({
         const rightSpacing = bracketSpacing(
           nextPosition ? nextPosition.startX - position.endX : undefined
         );
+        const leftPair = previousPosition
+          ? adjacentBracketPair(previousPosition.endX, position.startX)
+          : undefined;
+        const rightPair = nextPosition
+          ? adjacentBracketPair(position.endX, nextPosition.startX)
+          : undefined;
         const marks: React.ReactNode[] = [];
 
         if (leftIds.includes(target.id)) {
@@ -122,12 +131,14 @@ export function RangeMarksLayer({
               className="word-group-range-bracket left"
               style={{
                 left:
-                  position.startX -
-                  leftSpacing.gap -
-                  leftSpacing.cap -
-                  leftDepth * (leftSpacing.cap + leftSpacing.gap),
+                  leftPair && leftDepth === 0
+                    ? leftPair.leftBracketLeft
+                    : position.startX -
+                      leftSpacing.gap -
+                      leftSpacing.cap -
+                      leftDepth * (leftSpacing.cap + leftSpacing.gap),
                 top: position.markStartY - 1,
-                width: leftSpacing.cap,
+                width: leftPair && leftDepth === 0 ? leftPair.cap : leftSpacing.cap,
                 height: Math.max(34, position.markStartHeight + 2)
               }}
             />
@@ -141,11 +152,13 @@ export function RangeMarksLayer({
               className="word-group-range-bracket right"
               style={{
                 left:
-                  position.endX +
-                  rightSpacing.gap +
-                  rightDepth * (rightSpacing.cap + rightSpacing.gap),
+                  rightPair && rightDepth === 0
+                    ? rightPair.rightBracketLeft
+                    : position.endX +
+                      rightSpacing.gap +
+                      rightDepth * (rightSpacing.cap + rightSpacing.gap),
                 top: position.markEndY - 1,
-                width: rightSpacing.cap,
+                width: rightPair && rightDepth === 0 ? rightPair.cap : rightSpacing.cap,
                 height: Math.max(34, position.markEndHeight + 2)
               }}
             />

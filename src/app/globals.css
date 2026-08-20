@@ -9916,14 +9916,14 @@ textarea {
  * dessine rien : chaque mécanique conserve uniquement sa propre feuille. */
 .reader-activity-flow {
   display: contents;
-  --reader-sentence-padding-top: 30px;
+  --reader-sentence-padding-top: 44px;
   --reader-sentence-padding-inline: 44px;
   --reader-sentence-padding-bottom: 36px;
   --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
   --reader-sentence-font-weight: 800;
   --reader-sentence-line-height: 1.48;
-  --reader-annotation-gap: 3px;
-  --reader-annotation-leading-compensation: clamp(10px, 1vw, 17px);
+  --reader-annotation-gap: 10px;
+  --reader-annotation-leading-compensation: 0px;
 }
 
 .reader-activity-flow .interactive-reader,
@@ -9988,7 +9988,7 @@ textarea {
 }
 
 .reader-activity-flow .interactive-reader-sentence .interactive-code-box {
-  bottom: calc(100% - var(--reader-annotation-leading-compensation) + var(--reader-annotation-gap)) !important;
+  bottom: calc(100% + var(--reader-annotation-gap)) !important;
   width: 1.45em;
   height: 1.45em;
   min-width: 1.45em;
@@ -10014,12 +10014,12 @@ textarea {
 }
 
 .reader-activity-flow .word-class-reader-label {
-  bottom: calc(100% - var(--reader-annotation-leading-compensation) + var(--reader-annotation-gap)) !important;
+  bottom: calc(100% + var(--reader-annotation-gap)) !important;
 }
 
 .reader-activity-flow .word-group-label-anchor,
 .reader-activity-flow .word-group-label-anchor.contracted-result {
-  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap))) !important;
+  transform: translate(-50%, calc(-100% - var(--reader-annotation-gap))) !important;
 }
 
 /* Les accords gardent une bande réservée aux flèches, sans hériter de la
@@ -10042,7 +10042,7 @@ textarea {
 
 /* Les surfaces qui étaient transparentes dans Mixte redeviennent les cartes
  * adaptatives natives, sans carte supplémentaire autour d’elles. */
-.reader-scene .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text,
+.reader-scene .interactive-reader .interactive-sentence.shared-grammar-reader-text,
 .reader-scene .reader-activity-flow .word-group-drawing-surface,
 .reader-scene .grammar-extension-reader .grammar-extension-surface,
 .reader-scene .word-class-reader-text.shared-grammar-reader-text {
@@ -10062,9 +10062,22 @@ textarea {
   align-self: start !important;
 }
 
-.reader-scene .interactive-reader-sentence .interactive-sentence.shared-grammar-reader-text {
+.reader-scene .interactive-reader .interactive-sentence.shared-grammar-reader-text {
   width: 100% !important;
   margin-inline: 0 !important;
+}
+
+/* Un texte long garde la même feuille blanche, mais emploie une taille et une
+ * respiration adaptées aux codes placés au-dessus de chaque ligne. */
+.reader-activity-flow .interactive-reader-text {
+  --reader-sentence-font-size: clamp(1.45rem, 2.7vw, 3.2rem);
+  --reader-sentence-line-height: 1.62;
+  --reader-sentence-padding-top: 54px;
+  --reader-sentence-padding-bottom: 42px;
+}
+
+.reader-activity-flow .interactive-reader-text.has-above-marks .interactive-line + .interactive-line {
+  margin-top: .18em !important;
 }
 
 /* V91 — pauses collectives, libellés de fonctions et corrigé enseignant. */
@@ -10123,7 +10136,7 @@ textarea {
 .resolved-correction-label {
   position: absolute;
   z-index: 10;
-  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap)));
+  transform: translate(-50%, calc(-100% - var(--reader-annotation-gap)));
   color: #315f84;
   font-size: clamp(15px, .34em, 23px);
   font-weight: 900;
@@ -10289,6 +10302,25 @@ textarea {
   margin: 0;
 }
 
+/* La capture conserve le geste fin et sa pointe. Les anciens filtres et
+ * animations SVG pouvaient épaissir le tracé pendant la conversion en PNG. */
+.correction-print-capture-source .agreement-arrow-path,
+.correction-print-capture-source .agreement-arrow-tip {
+  animation: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: none !important;
+  stroke-dashoffset: 0 !important;
+  vector-effect: non-scaling-stroke;
+}
+
+.correction-arrow-author .agreement-arrow-path.frozen,
+.correction-arrow-author .agreement-arrow-tip.frozen {
+  stroke-width: 2.2px !important;
+  filter: none !important;
+}
+
 .correction-print-captured-image {
   display: none;
   width: 100%;
@@ -10297,7 +10329,7 @@ textarea {
 
 .word-class-reader-text .resolved-correction-label,
 .word-class-reader-text .persistent-range-label:not(.function-label-anchor) {
-  transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap))) !important;
+  transform: translate(-50%, calc(-100% - var(--reader-annotation-gap))) !important;
 }
 
 .reader-activity-flow .word-class-reader-text .function-label-anchor {

@@ -32,6 +32,7 @@ import { CorrectionPause } from "@/components/presentation/correction-pause";
 import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
 import { reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
+import { protectFrenchElisionBreaks } from "@/lib/french-typography";
 
 type Point = InteractionPoint;
 type Boundary = "left" | "right";
@@ -651,7 +652,7 @@ export function GrammarExtensionReader({
                         }
                       }}
                     >
-                      {token.text}
+                      {protectFrenchElisionBreaks(token.text)}
                     </button>
                   ) : (
                     <span
@@ -660,7 +661,7 @@ export function GrammarExtensionReader({
                         measurable ? token.id : undefined
                       }
                     >
-                      {token.text}
+                      {protectFrenchElisionBreaks(token.text)}
                     </span>
                   )}
                 </span>

@@ -18,6 +18,7 @@ import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correcti
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import { reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
+import { protectFrenchElisionBreaks } from "@/lib/french-typography";
 import type { Sentence, WordGroupTarget, WordGroupType } from "@/types";
 
 type Boundary = "left_bracket" | "right_bracket";
@@ -1283,7 +1284,7 @@ export function WordGroupReader({
                     : undefined
                 }
               >
-                {token.text}
+                {protectFrenchElisionBreaks(token.text)}
               </span>
               </span>
             );

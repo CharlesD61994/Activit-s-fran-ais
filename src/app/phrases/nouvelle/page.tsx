@@ -49,7 +49,7 @@ export default function NewSentencePage() {
         <span className="eyebrow">Création</span>
         <h1>
           {primaryObjective === "mixed_grammar"
-            ? "Nouvelle activité grammaticale mixte"
+            ? "Nouvelle activité grammaticale"
             : activityType === "tree_analysis"
             ? "Nouvelle analyse en arbre"
             : activityType === "word_groups"

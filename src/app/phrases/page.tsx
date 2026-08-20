@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Copy, FileText, Pencil, Plus, Search, Tags, TextCursorInput, Trash2, Users, X } from "lucide-react";
+import { Check, Copy, Pencil, Plus, Search, Tags, Trash2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SentenceRenderer } from "@/components/sentence-renderer";
@@ -211,79 +211,17 @@ export default function SentencesPage() {
 
             <div className="activity-type-choice-grid">
               <Link
-                href="/phrases/nouvelle?type=sentence_correction"
+                href="/phrases/nouvelle?type=sentence_correction&objective=mixed_grammar"
                 className="activity-type-choice"
                 onClick={() => setShowTypeModal(false)}
               >
                 <span className="activity-choice-icon">
-                  <TextCursorInput size={29} />
+                  <Plus size={29} />
                 </span>
                 <div>
-                  <strong>Phrase à corriger</strong>
-                  <p>Une phrase courte où les élèves repèrent et corrigent les fautes.</p>
+                  <strong>Activité grammaticale</strong>
+                  <p>Crée une activité simple ou compose plusieurs phases à partir d’une phrase ou d’un texte.</p>
                 </div>
-              </Link>
-
-              <Link
-                href="/phrases/nouvelle?type=text_correction"
-                className="activity-type-choice"
-                onClick={() => setShowTypeModal(false)}
-              >
-                <span className="activity-choice-icon">
-                  <FileText size={29} />
-                </span>
-                <div>
-                  <strong>Texte à corriger</strong>
-                  <p>Un texte plus long utilisant le même système de corrections interactives.</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/phrases/nouvelle?type=word_classes"
-                className="activity-type-choice"
-                onClick={() => setShowTypeModal(false)}
-              >
-                <span className="activity-choice-icon">
-                  <Tags size={29} />
-                </span>
-                <div>
-                  <strong>Classes de mots</strong>
-                  <p>
-                    Une phrase ou un texte où l’on identifie les noms,
-                    déterminants, verbes et autres classes.
-                  </p>
-                </div>
-              </Link>
-
-              <Link
-                href="/phrases/nouvelle?type=word_groups"
-                className="activity-type-choice"
-                onClick={() => setShowTypeModal(false)}
-              >
-                <span className="activity-choice-icon">
-                  <Tags size={29} />
-                </span>
-                <div>
-                  <strong>Groupes de mots</strong>
-                  <p>
-                    Délimite les groupes, choisis leur type et identifie leur noyau.
-                  </p>
-                </div>
-              </Link>
-
-              <Link href="/phrases/nouvelle?type=sentence_correction&objective=functions" className="activity-type-choice" onClick={() => setShowTypeModal(false)}>
-                <span className="activity-choice-icon"><Tags size={29} /></span>
-                <div><strong>Fonctions</strong><p>Encadre les fonctions, puis ajoute librement groupes, noyaux, accords ou tableaux.</p></div>
-              </Link>
-
-              <Link href="/phrases/nouvelle?type=sentence_correction&objective=agreements" className="activity-type-choice" onClick={() => setShowTypeModal(false)}>
-                <span className="activity-choice-icon"><Tags size={29} /></span>
-                <div><strong>Donneurs et receveurs</strong><p>Construis une activité centrée sur les relations et les accords.</p></div>
-              </Link>
-
-              <Link href="/phrases/nouvelle?type=sentence_correction&objective=mixed_grammar" className="activity-type-choice" onClick={() => setShowTypeModal(false)}>
-                <span className="activity-choice-icon"><Plus size={29} /></span>
-                <div><strong>Activité grammaticale mixte</strong><p>Pars d’une phrase ou d’un texte et compose toi-même toutes les phases.</p></div>
               </Link>
 
               <Link

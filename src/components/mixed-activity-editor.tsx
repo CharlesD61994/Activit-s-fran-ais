@@ -234,7 +234,7 @@ export function MixedActivityEditor({
           : "sentence_correction",
       primaryObjective,
       isMixedActivity: true,
-      title: title.trim() || "Activité mixte",
+      title: title.trim() || "Activité grammaticale",
       levelId,
       difficulty,
       tags: initialSentence?.tags ?? [],

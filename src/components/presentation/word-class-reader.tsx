@@ -21,6 +21,7 @@ import {
   uniqueClassTargetsByRange
 } from "@/lib/word-class-target-selection";
 import { getAgreementWorkflowSettings, reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
+import { protectFrenchElisionBreaks } from "@/lib/french-typography";
 import type {
   AgreementCorrectionArrow,
   Sentence,
@@ -266,6 +267,20 @@ export function WordClassReader({
         )
     )
   );
+  const identifyGender = !hasExplicitWorkflow || Boolean(
+    sentence.workflowPhases?.some(
+      (phase) => phase.kind === "gender_number" && phase.actions.some(
+        (action) => action.kind === "identify_gender" && action.enabled
+      )
+    )
+  );
+  const identifyNumber = !hasExplicitWorkflow || Boolean(
+    sentence.workflowPhases?.some(
+      (phase) => phase.kind === "gender_number" && phase.actions.some(
+        (action) => action.kind === "identify_number" && action.enabled
+      )
+    )
+  );
   const classTargets = useMemo(
     () => identifyWordClasses
       ? uniqueClassTargetsByRange(analysisTargets)
@@ -279,11 +294,6 @@ export function WordClassReader({
   const hasClassChoiceTargets = classTargets.some((target) =>
     usesClassChoice(target, multipleClasses, hasExplicitClassModes)
   );
-  const hasDirectFindTargets = classTargets.some(
-    (target) =>
-      !usesClassChoice(target, multipleClasses, hasExplicitClassModes)
-  );
-
   const relations = useMemo(
     () => sentence.agreementRelations ?? [],
     [sentence.agreementRelations]
@@ -862,8 +872,8 @@ export function WordClassReader({
   );
 
   const genderNumberComplete = analysisTargets.every((target) =>
-    (!target.grammaticalGender || resolvedGenderIds.includes(target.id)) &&
-    (!target.grammaticalNumber || resolvedNumberIds.includes(target.id))
+    (!identifyGender || !target.grammaticalGender || resolvedGenderIds.includes(target.id)) &&
+    (!identifyNumber || !target.grammaticalNumber || resolvedNumberIds.includes(target.id))
   );
 
   const rawComplete =
@@ -926,14 +936,14 @@ export function WordClassReader({
   }
 
   function startTargetFollowup(target: WordClassTarget) {
-    if (target.grammaticalGender && !resolvedGenderIds.includes(target.id)) {
+    if (identifyGender && target.grammaticalGender && !resolvedGenderIds.includes(target.id)) {
       setGenderNumberTargetId(target.id);
       setGenderNumberStep("gender");
       setGenderNumberFeedback("");
       return;
     }
 
-    if (target.grammaticalNumber && !resolvedNumberIds.includes(target.id)) {
+    if (identifyNumber && target.grammaticalNumber && !resolvedNumberIds.includes(target.id)) {
       setGenderNumberTargetId(target.id);
       setGenderNumberStep("number");
       setGenderNumberFeedback("");
@@ -953,8 +963,14 @@ export function WordClassReader({
       setResolvedGenderIds((current) => current.includes(target.id) ? current : [...current, target.id]);
       setGenderNumberFeedback(correct ? "Bonne réponse." : "Le genre attendu a été affiché. Le point est perdu.");
       window.setTimeout(() => {
-        setGenderNumberStep("number");
-        setGenderNumberFeedback("");
+        if (identifyNumber && target.grammaticalNumber && !resolvedNumberIds.includes(target.id)) {
+          setGenderNumberStep("number");
+          setGenderNumberFeedback("");
+        } else {
+          setGenderNumberTargetId(null);
+          setGenderNumberFeedback("");
+          startRoleOrContinue(target);
+        }
       }, 650);
       return;
     }
@@ -1436,6 +1452,9 @@ export function WordClassReader({
   const unresolvedTargets = classTargets.filter(
     (target) => !foundIds.includes(target.id)
   );
+  const unresolvedClassChoiceTargets = unresolvedTargets.filter((target) =>
+    usesClassChoice(target, multipleClasses, hasExplicitClassModes)
+  );
   const unresolvedDirectClasses = Array.from(new Set(
     unresolvedTargets
       .filter((target) => !usesClassChoice(target, multipleClasses, hasExplicitClassModes))
@@ -1444,11 +1463,11 @@ export function WordClassReader({
   const directClassNames = unresolvedDirectClasses.map(
     (wordClass) => wordClassPluralLabels[wordClass]
   );
-  const instruction = hasClassChoiceTargets && hasDirectFindTargets
-    ? directClassNames.length > 0
+  const instruction = unresolvedTargets.length === 0
+    ? "Toutes les classes de mots demandées ont été trouvées."
+    : unresolvedClassChoiceTargets.length > 0 && directClassNames.length > 0
       ? `Trouve les ${directClassNames.join(" et les ")}. Pour les autres mots demandés, choisis ensuite leur classe.`
-      : "Clique sur le prochain mot à analyser, puis choisis sa classe."
-    : hasClassChoiceTargets
+    : unresolvedClassChoiceTargets.length > 0
       ? "Clique sur le prochain mot à analyser, puis choisis sa classe."
       : directClassNames.length === 1
         ? `Trouve tous les ${directClassNames[0]} dans la phrase.`
@@ -1608,7 +1627,7 @@ export function WordClassReader({
 
         {tokens.map((token) => {
           if (!token.isWord) {
-            return <span key={token.id} data-class-token-id={token.text.trim().length > 0 ? token.id : undefined}>{token.text}</span>;
+            return <span key={token.id} data-class-token-id={token.text.trim().length > 0 ? token.id : undefined}>{protectFrenchElisionBreaks(token.text)}</span>;
           }
 
           const target = findTarget(token);
@@ -1656,6 +1675,7 @@ export function WordClassReader({
                 if (currentTask) return;
 
                 const clickedTarget = findTarget(token);
+                if (!clickedTarget || foundIds.includes(clickedTarget.id)) return;
                 const shouldChooseClass = clickedTarget
                   ? usesClassChoice(
                       clickedTarget,
@@ -1687,7 +1707,7 @@ export function WordClassReader({
                   )}
                 </span>
               )}
-              {token.text}
+              {protectFrenchElisionBreaks(token.text)}
                 {relationSelected && (
                   <span
                     className="agreement-found-indicator"
@@ -1701,10 +1721,6 @@ export function WordClassReader({
           );
         })}
       </div>
-
-      {message && (
-        <p className="word-class-reader-message">{message}</p>
-      )}
 
       {!reviewActive && (!embedded || (complete && finishControl)) && (
         <ReaderChromePortal slot="actions">

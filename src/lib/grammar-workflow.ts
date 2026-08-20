@@ -29,7 +29,7 @@ export const grammarObjectiveLabels: Record<GrammarObjective, string> = {
   word_groups: "Groupes de mots",
   functions: "Fonctions",
   agreements: "Accords — donneurs et receveurs",
-  mixed_grammar: "Activité grammaticale mixte"
+  mixed_grammar: "Activité grammaticale"
 };
 
 export const grammarPhaseLabels: Record<GrammarPhaseKind, string> = {

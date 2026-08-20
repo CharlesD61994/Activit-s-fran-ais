@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bracketSpacing } from "./range-mark-spacing";
+import { adjacentBracketPair, bracketSpacing } from "./range-mark-spacing";
 
 describe("bracketSpacing", () => {
   it("keeps the normal gap when boundaries have enough room", () => {
@@ -22,5 +22,18 @@ describe("bracketSpacing", () => {
     const spacing = bracketSpacing(availableSpace);
     const usedByBrackets = (spacing.cap + spacing.gap) * 2;
     expect(availableSpace - usedByBrackets).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("adjacentBracketPair", () => {
+  it("always gives adjacent brackets two distinct vertical strokes", () => {
+    const pair = adjacentBracketPair(100, 118);
+    const rightStroke = pair.rightBracketLeft + pair.cap;
+    const leftStroke = pair.leftBracketLeft;
+    expect(leftStroke - rightStroke).toBeGreaterThanOrEqual(4);
+  });
+
+  it("keeps visible arms even when the word space is narrow", () => {
+    expect(adjacentBracketPair(100, 110).cap).toBeGreaterThanOrEqual(3);
   });
 });

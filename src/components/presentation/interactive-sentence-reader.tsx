@@ -11,6 +11,10 @@ import { WordGroupReader } from "@/components/presentation/word-group-reader";
 import { resolveCorrectionBounds } from "@/lib/correction-ranges";
 import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
 import { reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
+import {
+  endsWithFrenchElision,
+  protectFrenchElisionBreaks
+} from "@/lib/french-typography";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
 import type { CorrectionCode, Sentence, SentenceCorrection, WordClassTarget, WordGroupTarget, WordGroupType } from "@/types";
 
@@ -477,10 +481,19 @@ export function InteractiveSentenceReader({
             ) + (Number.parseFloat(styles.fontSize) || 0) * 0.06
           : measureTextWidth(token.text, context, letterSpacing);
 
+        const previousKey = currentLine[currentLine.length - 1];
+        const previousToken = previousKey
+          ? layoutTokens.find((candidate) => candidate.key === previousKey)
+          : undefined;
+        const previousText = previousToken?.correction
+          ? previousToken.correction.correctedText
+          : previousToken?.text ?? "";
+
         if (
           currentLine.length > 0 &&
           currentWidth + width > availableWidth &&
-          token.text.trim().length > 0
+          token.text.trim().length > 0 &&
+          !endsWithFrenchElision(previousText)
         ) {
           lines.push(currentLine);
           currentLine = [];
@@ -630,7 +643,7 @@ export function InteractiveSentenceReader({
     if (token.type === "break") return null;
 
     if (token.type === "text") {
-      return <span key={token.key}>{token.text}</span>;
+      return <span key={token.key}>{protectFrenchElisionBreaks(token.text)}</span>;
     }
 
     const correction = token.correction!;
@@ -677,10 +690,10 @@ export function InteractiveSentenceReader({
           }
         >
           {corrected
-            ? correction.correctedText
+            ? protectFrenchElisionBreaks(correction.correctedText)
             : isPunctuationInsertion
               ? "·"
-              : correction.originalText}
+              : protectFrenchElisionBreaks(correction.originalText)}
         </button>
       </span>
     );
