@@ -108,7 +108,7 @@ export default function SentencesPage() {
           const targetCount =
             getWordClassAnalysisTargetCount(sentence);
           const wordGroupCount = sentence.wordGroupTargets?.length ?? 0;
-          const worksheetStepCount = (sentence.worksheetAnswerLines?.length ?? 0) + (sentence.treeAnalysisTables?.filter((table) => table.cells.some((cell) => cell.isCorrect)).length ?? 0);
+          const worksheetStepCount = (sentence.worksheetAnswerLines?.length ?? 0) + (sentence.treeAnalysisTables?.filter((table) => table.cells.some((cell) => cell.isCorrect || Boolean(cell.answer?.trim()))).length ?? 0);
           const maxPoints = isWordClassActivity
             ? getWordClassActivityPointTotal(sentence)
             : isWordGroupActivity

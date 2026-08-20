@@ -10,7 +10,7 @@ type Props = {
 export function SentenceRenderer({ sentence, highlightErrors = true, showCorrected = false }: Props) {
   if (sentence.activityType === "worksheet") {
     const pageCount = sentence.treeAnalysisDocumentPages?.length ?? 1;
-    const interactiveCount = (sentence.worksheetAnswerLines?.length ?? 0) + (sentence.treeAnalysisTables?.filter((table) => table.cells.some((cell) => cell.isCorrect)).length ?? 0);
+    const interactiveCount = (sentence.worksheetAnswerLines?.length ?? 0) + (sentence.treeAnalysisTables?.filter((table) => table.cells.some((cell) => cell.isCorrect || Boolean(cell.answer?.trim()))).length ?? 0);
     return <div className="sentence-preview worksheet-bank-preview"><strong>{pageCount} page{pageCount > 1 ? "s" : ""} en portrait</strong><span>{interactiveCount} élément{interactiveCount > 1 ? "s" : ""} interactif{interactiveCount > 1 ? "s" : ""}</span></div>;
   }
 

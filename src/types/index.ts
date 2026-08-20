@@ -253,13 +253,36 @@ export type TreeAnalysisScoreBox = {
   total: number;
   earned?: number;
   size?: "normal" | "large";
+  /** Worksheet-only geometry. Kept optional for legacy tree activities. */
+  width?: number;
+  height?: number;
   pageId?: string;
 };
+
+export type WorksheetTableCellRole =
+  | "text"
+  | "answer"
+  | "choice"
+  | "order"
+  | "score"
+  | "criterion"
+  | "total"
+  | "header";
 
 export type TreeAnalysisTableCell = {
   text: string;
   isCorrect: boolean;
   columnSpan?: number;
+  rowSpan?: number;
+  role?: WorksheetTableCellRole;
+  answer?: string;
+  background?: "white" | "gray" | "black";
+  textColor?: "black" | "white";
+  textAlign?: "left" | "center" | "right";
+  verticalAlign?: "top" | "center" | "bottom";
+  fontSize?: number;
+  bold?: boolean;
+  borderWidth?: 0 | 1 | 2 | 3;
 };
 
 export type TreeAnalysisPhrase = {
@@ -369,6 +392,10 @@ export type TreeAnalysisTable = {
   rows: number;
   columns: number;
   cells: TreeAnalysisTableCell[];
+  width?: number;
+  rowHeights?: number[];
+  columnWidths?: number[];
+  kind?: "free" | "structured" | "choice" | "sequence" | "association" | "compact_rubric" | "rubric";
   pageId?: string;
 };
 
@@ -390,6 +417,16 @@ export type WorksheetAnswerLines = {
   lineSpacing: number;
   answer: string;
   answerFontSize: number;
+};
+
+export type WorksheetDimensionBand = {
+  id: string;
+  pageId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  dimension: "Compréhension" | "Interprétation" | "Réaction" | "Appréciation";
 };
 
 export type SentenceCorrection = {
@@ -435,6 +472,7 @@ export type Sentence = {
   treeAnalysisInteractions?: TreeAnalysisInteraction[];
   treeAnalysisFlow?: TreeAnalysisFlow;
   worksheetAnswerLines?: WorksheetAnswerLines[];
+  worksheetDimensionBands?: WorksheetDimensionBand[];
   worksheetReaderOrder?: string[];
   assignedGroupIds: string[];
   competitionEnabled?: boolean;
