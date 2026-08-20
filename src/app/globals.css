@@ -5821,12 +5821,16 @@ textarea {
   grid-template-columns: 77.92% 22.08%;
 }
 
+.tree-analysis-document-header-top {
+  border-bottom: 1px solid #111;
+}
+
 .tree-analysis-student-fields {
   display: flex;
   align-items: end;
   justify-content: space-between;
   padding: 0 .6cqw .55cqw 0;
-  border-bottom: 1px solid #111;
+  border-bottom: 0;
   font-family: Arial, sans-serif;
   font-size: 1.31cqw;
 }
@@ -5836,7 +5840,8 @@ textarea {
 }
 
 .tree-analysis-document-header .tree-analysis-page-badge {
-  top: 0;
+  top: auto;
+  bottom: -.05cqw;
   right: .6cqw;
   width: 3.55cqw;
   height: 3.55cqw;
@@ -5848,7 +5853,7 @@ textarea {
   display: flex;
   align-items: center;
   padding: .3cqw .6cqw 0;
-  border-top: 1px solid #111;
+  border-top: 0;
   font-size: 1.14cqw;
   letter-spacing: .02em;
 }
@@ -9103,6 +9108,8 @@ textarea {
 .worksheet-table-cell { display: flex; min-width: 0; min-height: 0; box-sizing: border-box; }
 .worksheet-table-cell.background-gray, .worksheet-reader-table .background-gray { background: #d9d9d9; }
 .worksheet-table-cell.background-black, .worksheet-reader-table .background-black { background: #050505; color: #fff; }
+.worksheet-activity-table.fixed-format .worksheet-table-cell.role-header.background-black,
+.worksheet-reader-table.fixed-format .role-header.background-black { z-index: 1; border-color: #050505 !important; background: #050505; background-clip: border-box; box-shadow: inset 0 0 0 1px #050505, 0 0 0 1px #050505; }
 .worksheet-table-cell.correct:not(.background-black) { background: #fff; }
 .worksheet-table-cell.correct textarea { color: inherit; }
 .worksheet-table-cell.cell-selected { box-shadow: inset 0 0 0 3px #3976bf; }
