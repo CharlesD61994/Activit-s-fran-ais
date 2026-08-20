@@ -9044,6 +9044,9 @@ textarea {
 .worksheet-answer-lines.reader { cursor: pointer; }
 .worksheet-answer-lines.reader.active { border-radius: 4px; background: color-mix(in srgb, var(--primary) 6%, transparent); }
 .worksheet-answer-lines.reader:disabled { opacity: 1; cursor: default; }
+.worksheet-lines-delete { top: -13px; right: -13px; }
+.worksheet-lines-resize { right: -6px; bottom: -7px; width: 16px; height: 16px; }
+.worksheet-answer-lines.selected > span { border-top-color: #275d88; }
 .worksheet-flow-panel { margin-top: 0; }
 .worksheet-page-navigation { display: flex; align-items: center; gap: 8px; }
 .worksheet-page-navigation button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }

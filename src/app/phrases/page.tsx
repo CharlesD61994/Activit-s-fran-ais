@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Copy, Pencil, Plus, Search, Tags, Trash2, Users, X } from "lucide-react";
+import { Check, Copy, FileText, Pencil, Plus, Search, Tags, Trash2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SentenceRenderer } from "@/components/sentence-renderer";
@@ -248,8 +248,8 @@ export default function SentencesPage() {
                 </div>
               </Link>
               <Link href="/phrases/nouvelle?type=worksheet" className="activity-type-choice">
-                <span className="activity-type-choice-icon">☷</span>
-                <span><strong>Feuille d’activité</strong><small>Crée une feuille portrait avec du texte, des tableaux et des réponses révélables.</small></span>
+                <span className="activity-choice-icon"><FileText size={29}/></span>
+                <div><strong>Feuille d’activité</strong><p>Crée une feuille portrait avec du texte, des tableaux et des réponses révélables.</p></div>
               </Link>
             </div>
           </Card>
