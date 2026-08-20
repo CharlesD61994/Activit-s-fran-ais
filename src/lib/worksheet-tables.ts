@@ -2,6 +2,20 @@ import type { TreeAnalysisTable, TreeAnalysisTableCell } from "@/types";
 
 export type WorksheetTableTemplate = NonNullable<TreeAnalysisTable["kind"]>;
 
+export const WORKSHEET_RUBRIC_WIDTH = 770;
+
+export function isFixedWorksheetTable(table: Pick<TreeAnalysisTable, "kind">) {
+  return table.kind === "rubric" || table.kind === "compact_rubric";
+}
+
+export function worksheetTableWidth(table: Pick<TreeAnalysisTable, "kind" | "width">) {
+  return isFixedWorksheetTable(table) ? WORKSHEET_RUBRIC_WIDTH : (table.width ?? 360);
+}
+
+function fixedRubricRowHeights(columns: number) {
+  return [32, 30, columns >= 6 ? 160 : 70];
+}
+
 const cell = (text = "", patch: Partial<TreeAnalysisTableCell> = {}): TreeAnalysisTableCell => ({
   text,
   isCorrect: false,
@@ -66,13 +80,14 @@ export function createWorksheetTable(input: {
       rows: 2,
       columns: 2,
       cells: [
-        cell(input.dimension.toUpperCase(), { role: "header", columnSpan: 2, background: "black", textColor: "white", bold: true, textAlign: "left" }),
+        cell(input.dimension.toUpperCase(), { role: "header", columnSpan: 2, background: "black", textColor: "white", bold: true, textAlign: "center", fontSize: 13 }),
         cell("", { columnSpan: 0 }),
         cell("1 point par bonne réponse", { role: "criterion", textAlign: "left" }),
-        cell(`/${input.maxPoints}`, { role: "total", bold: true })
+        cell(`/${input.maxPoints}`, { role: "total", bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center" })
       ],
-      columnWidths: [676, 80],
-      rowHeights: [38, 48]
+      width: WORKSHEET_RUBRIC_WIDTH,
+      columnWidths: [718, 52],
+      rowHeights: [32, 30]
     };
   }
 
@@ -80,17 +95,17 @@ export function createWorksheetTable(input: {
     const levels = Math.max(2, input.columns);
     const columns = levels + 1;
     const cells = Array.from({ length: 3 * columns }, () => cell());
-    cells[0] = cell(input.dimension.toUpperCase(), { role: "header", columnSpan: levels, background: "black", textColor: "white", bold: true, textAlign: "left" });
+    cells[0] = cell(input.dimension.toUpperCase(), { role: "header", columnSpan: levels, background: "black", textColor: "white", bold: true, textAlign: "center", fontSize: 13, verticalAlign: "center" });
     for (let index = 1; index < levels; index += 1) cells[index] = cell("", { columnSpan: 0 });
-    cells[levels] = cell(`/${input.maxPoints}`, { role: "total", rowSpan: 3, bold: true, fontSize: 19 });
+    cells[levels] = cell(`/${input.maxPoints}`, { role: "total", rowSpan: 3, bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center" });
     cells[columns + levels] = cell("", { columnSpan: 0, rowSpan: 0 });
     cells[columns * 2 + levels] = cell("", { columnSpan: 0, rowSpan: 0 });
     for (let index = 0; index < levels; index += 1) {
       const points = Math.max(0, input.maxPoints - index);
-      cells[columns + index] = cell(`${points} point${points === 1 ? "" : "s"}`, { role: "score", background: "gray", bold: true });
-      cells[columns * 2 + index] = cell(index === 0 ? "Réponse complète et précise." : index === levels - 1 ? "Réponse absente ou inadéquate." : "Réponse partielle.", { role: "criterion", fontSize: 14 });
+      cells[columns + index] = cell(`${points} point${points === 1 ? "" : "s"}`, { role: "score", background: "gray", bold: false, fontSize: 13 });
+      cells[columns * 2 + index] = cell(index === 0 ? "Réponse complète et précise." : index === levels - 1 ? "Réponse absente ou inadéquate." : "Réponse partielle.", { role: "criterion", fontSize: 13 });
     }
-    return { ...base, rows: 3, columns, cells, columnWidths: [...Array(levels).fill(676 / levels), 80], rowHeights: [38, 42, 92] };
+    return { ...base, width: WORKSHEET_RUBRIC_WIDTH, rows: 3, columns, cells, columnWidths: [...Array(levels).fill(718 / levels), 52], rowHeights: fixedRubricRowHeights(columns) };
   }
 
   const rows = Math.max(1, input.rows);
@@ -99,12 +114,16 @@ export function createWorksheetTable(input: {
 }
 
 export function normalizedColumnWidths(table: TreeAnalysisTable) {
+  if (table.kind === "compact_rubric") return [718, 52];
+  if (table.kind === "rubric") return [...Array(Math.max(1, table.columns - 1)).fill(718 / Math.max(1, table.columns - 1)), 52];
   const width = table.width ?? 360;
   if (table.columnWidths?.length === table.columns) return table.columnWidths;
   return Array(table.columns).fill(width / table.columns);
 }
 
 export function normalizedRowHeights(table: TreeAnalysisTable) {
+  if (table.kind === "compact_rubric") return [32, 30];
+  if (table.kind === "rubric") return fixedRubricRowHeights(table.columns);
   if (table.rowHeights?.length === table.rows) return table.rowHeights;
   return Array(table.rows).fill(54);
 }
