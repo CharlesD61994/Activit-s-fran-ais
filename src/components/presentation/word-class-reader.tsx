@@ -13,6 +13,7 @@ import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
+import { tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import { wordClassLabels } from "@/lib/activity-types";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import { buildRelationTasks } from "@/lib/word-class-relations";
@@ -104,23 +105,6 @@ const wordClassPluralLabels: Record<WordClass, string> = {
 
 const DEFAULT_AGREEMENT_INK_COLOR =
   AGREEMENT_INK_COLORS[0].value;
-
-function tokenize(text: string): WordToken[] {
-  return Array.from(
-    text.matchAll(/[\p{L}\p{M}]+|[^\p{L}\p{M}]+/gu)
-  ).map((match, index) => {
-    const value = match[0];
-    const start = match.index ?? 0;
-
-    return {
-      id: `token-${index}-${start}`,
-      start,
-      end: start + value.length,
-      text: value,
-      isWord: /[\p{L}\p{M}]/u.test(value)
-    };
-  });
-}
 
 function normalizeTargets(
   text: string,
@@ -237,7 +221,7 @@ export function WordClassReader({
   );
 
   const tokens = useMemo(
-    () => tokenize(sentence.originalText),
+    () => tokenizeGrammarText(sentence.originalText, "class-token"),
     [sentence.originalText]
   );
 

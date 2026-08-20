@@ -1,0 +1,166 @@
+/*
+ * Géométrie commune des lecteurs grammaticaux.
+ *
+ * Ce fichier est chargé après globals.css afin que la correction, les groupes,
+ * les classes et les fonctions partagent une seule feuille et une seule
+ * métrique. Les arbres et les relations donneur/receveur conservent leurs
+ * adaptations explicites.
+ */
+
+.reader-scene-main {
+  padding-bottom: 112px;
+}
+
+.reader-activity-flow {
+  display: contents;
+  --reader-sentence-padding-top: 44px;
+  --reader-sentence-padding-inline: 44px;
+  --reader-sentence-padding-bottom: 36px;
+  --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
+  --reader-sentence-font-weight: 800;
+  --reader-sentence-line-height: 1.48;
+  --reader-annotation-gap: 10px;
+  --reader-annotation-leading-compensation: 0px;
+}
+
+.reader-activity-flow .interactive-reader,
+.reader-activity-flow .word-group-reader,
+.reader-activity-flow .word-class-reader,
+.reader-activity-flow .grammar-extension-reader {
+  width: min(1460px, 100%) !important;
+  max-width: 1460px !important;
+  margin-inline: auto !important;
+}
+
+.reader-activity-flow .shared-grammar-reader-text {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding:
+    var(--reader-sentence-padding-top)
+    var(--reader-sentence-padding-inline)
+    var(--reader-sentence-padding-bottom) !important;
+  font-size: var(--reader-sentence-font-size) !important;
+  font-weight: var(--reader-sentence-font-weight) !important;
+  line-height: var(--reader-sentence-line-height) !important;
+  letter-spacing: -.03em !important;
+  text-align: center !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+/* La correction utilise les mêmes lignes que les autres phases. Les codes se
+ * superposent au texte et ne réservent jamais une largeur supplémentaire. */
+.reader-activity-flow .interactive-sentence .interactive-line,
+.reader-activity-flow .interactive-sentence .interactive-line-empty {
+  width: max-content !important;
+  max-width: 100% !important;
+  min-height: 0 !important;
+  margin-inline: auto !important;
+  padding-top: 0 !important;
+  line-height: var(--reader-sentence-line-height) !important;
+  text-align: center !important;
+}
+
+.reader-activity-flow .interactive-sentence .interactive-line + .interactive-line {
+  margin-top: 0 !important;
+}
+
+.reader-activity-flow .interactive-sentence .interactive-segment {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.reader-activity-flow .interactive-sentence .interactive-word,
+.reader-activity-flow .word-group-reader-token,
+.reader-activity-flow .word-group-reader-token.group-confirmed {
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+}
+
+.reader-activity-flow .interactive-sentence .interactive-code-box {
+  bottom: calc(100% + var(--reader-annotation-gap)) !important;
+  width: 1.45em;
+  height: 1.45em;
+  min-width: 1.45em;
+  min-height: 1.45em;
+  padding: 0;
+  border-width: 2px;
+  font-size: .34em;
+  line-height: 1;
+}
+
+.reader-activity-flow .interactive-sentence .interactive-code-box.filled {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  border-width: 0;
+}
+
+.reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token {
+  margin-top: 0 !important;
+}
+
+.reader-activity-flow .word-class-reader-label {
+  bottom: calc(100% + var(--reader-annotation-gap)) !important;
+}
+
+.reader-activity-flow .word-group-label-anchor,
+.reader-activity-flow .word-group-label-anchor.contracted-result {
+  transform: translate(-50%, calc(-100% - var(--reader-annotation-gap))) !important;
+}
+
+/* Les accords gardent une bande réservée aux flèches. */
+.reader-activity-flow .word-class-reader-text.has-agreement-relations {
+  padding-top: 2px !important;
+  padding-bottom: var(--reader-sentence-padding-bottom) !important;
+  line-height: .98 !important;
+}
+
+.reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-token {
+  margin-top: .08em !important;
+  padding-top: var(--agreement-band-height, 36px) !important;
+  line-height: 1 !important;
+}
+
+.reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-label {
+  bottom: calc(100% + 2px) !important;
+}
+
+.reader-scene .interactive-reader .interactive-sentence.shared-grammar-reader-text,
+.reader-scene .reader-activity-flow .word-group-drawing-surface,
+.reader-scene .grammar-extension-reader .grammar-extension-surface,
+.reader-scene .word-class-reader-text.shared-grammar-reader-text {
+  min-height: 0 !important;
+  border: 1px solid #cfdeea !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  box-shadow: 0 10px 24px rgb(17 58 88 / 7%) !important;
+}
+
+.reader-activity-flow .word-group-reader,
+.reader-activity-flow .word-group-drawing-surface {
+  height: auto !important;
+  align-self: start !important;
+}
+
+.reader-scene .interactive-reader .interactive-sentence.shared-grammar-reader-text {
+  width: 100% !important;
+  margin-inline: 0 !important;
+}
+
+/* Les textes longs gardent la feuille commune avec une métrique plus compacte. */
+.reader-activity-flow .interactive-reader-text {
+  --reader-sentence-font-size: clamp(1.45rem, 2.7vw, 3.2rem);
+  --reader-sentence-line-height: 1.62;
+  --reader-sentence-padding-top: 54px;
+  --reader-sentence-padding-bottom: 42px;
+}
+
+.reader-activity-flow .interactive-reader-text.has-above-marks .interactive-line + .interactive-line {
+  margin-top: .18em !important;
+}

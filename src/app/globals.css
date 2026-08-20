@@ -1527,13 +1527,6 @@ textarea {
   gap: 32px;
 }
 
-.interactive-reader-actions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .interactive-word {
   position: relative;
   display: inline-block;
@@ -1720,10 +1713,6 @@ textarea {
   gap: 18px;
 }
 
-.interactive-reader-actions {
-  gap: 6px;
-}
-
 .interactive-segment {
   position: relative;
   display: inline-block;
@@ -1804,10 +1793,6 @@ textarea {
 }
 
 .interactive-reader {
-  margin-top: 0;
-}
-
-.interactive-reader-actions {
   margin-top: 0;
 }
 
@@ -2064,11 +2049,6 @@ textarea {
   gap: 22px;
 }
 
-.reader-scene .interactive-reader-actions {
-  order: 2;
-  margin-top: 8px;
-}
-
 .reader-scene .interactive-sentence {
   order: 1;
 }
@@ -2122,10 +2102,6 @@ textarea {
   background: var(--secondary);
   border-color: var(--primary);
   font-size: 1rem;
-}
-
-.reader-scene .interactive-reader-actions {
-  align-items: center;
 }
 
 .reader-dialog-actions {
@@ -2707,33 +2683,6 @@ textarea {
   background: var(--surface-elevated);
 }
 
-.grammar-reader-progress {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 12px;
-}
-
-.grammar-reader-progress span {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--text-muted);
-  font-size: .72rem;
-  font-weight: 900;
-}
-
-.grammar-reader-progress span.active { background: var(--primary); color: var(--primary-contrast); }
-.grammar-reader-progress span.done { background: #15803d; color: white; }
-
-.grammar-reader-instruction { display: grid; gap: 2px; margin-bottom: 16px; }
-.grammar-reader-instruction small { color: var(--text-muted); font-weight: 800; }
-.grammar-reader-instruction strong { font-size: 1.15rem; }
-.grammar-reader-instruction span { color: var(--text-muted); }
-
 .grammar-reader-text {
   position: relative;
   display: block;
@@ -2778,8 +2727,6 @@ textarea {
 .grammar-reader-text button:hover,
 .grammar-reader-text button.anchor { border-color: var(--primary); background: var(--secondary); }
 .grammar-reader-text button.solved { border-color: #15803d; background: rgb(21 128 61 / 12%); }
-.grammar-reader-message { margin: 10px 0 0; color: var(--text-muted); font-weight: 800; }
-
 .editor-preview {
   max-height: calc(100vh - 30px);
   overflow: auto;
@@ -3987,16 +3934,6 @@ textarea {
 }
 
 
-/* V40 — reprise fiable et phrase plus resserrée */
-.interactive-reader-sentence {
-  gap: 12px;
-}
-
-.interactive-reader-sentence .interactive-reader-actions {
-  margin-top: 2px;
-}
-
-
 /* V42 — hiérarchie visuelle simplifiée */
 
 .section-completed-menu {
@@ -4491,45 +4428,6 @@ textarea {
   margin: 0 auto;
 }
 
-.word-class-reader-progress {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 11px 14px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-}
-
-.word-class-reader-progress strong,
-.word-class-reader-progress span,
-.word-class-reader-progress small {
-  display: block;
-}
-
-.word-class-reader-progress > div:first-child strong {
-  margin-top: 3px;
-  font-size: 1rem;
-}
-
-.word-class-progress-count {
-  min-width: 150px;
-  text-align: right;
-}
-
-.word-class-progress-count span,
-.word-class-progress-count small {
-  color: var(--text-muted);
-  font-size: .76rem;
-  font-weight: 800;
-}
-
-.word-class-progress-count strong {
-  margin: 2px 0;
-  font-size: 1.35rem;
-}
-
 .word-class-reader-text {
   width: 100%;
   border: 1px solid var(--border);
@@ -4592,19 +4490,6 @@ textarea {
   min-height: 48px;
   font-size: 1rem;
 }
-
-@media (max-width: 760px) {
-  .word-class-reader-progress {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .word-class-progress-count {
-    min-width: 0;
-    text-align: left;
-  }
-}
-
 
 /* V49 — relations d’accord */
 .agreement-editor-card {
@@ -4734,10 +4619,6 @@ textarea {
   color: var(--danger);
 }
 
-.word-class-progress-count.agreement {
-  min-width: 180px;
-}
-
 .word-class-reader-token.agreement-focus {
   color: var(--text);
   background: color-mix(
@@ -4747,11 +4628,6 @@ textarea {
   );
   box-shadow: 0 0 0 2px
     color-mix(in srgb, var(--warning) 45%, transparent);
-}
-
-.word-class-progress-count.complete strong {
-  color: var(--primary);
-  font-size: 1rem;
 }
 
 @media (max-width: 850px) {
@@ -4783,108 +4659,6 @@ textarea {
 
 
 /* V50 — polissage du module Classes de mots */
-.word-class-phase-strip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.word-class-phase {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--text-muted);
-  font-size: .82rem;
-}
-
-.word-class-phase > span {
-  width: 27px;
-  height: 27px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  font-weight: 900;
-}
-
-.word-class-phase.active {
-  color: var(--text);
-}
-
-.word-class-phase.active > span {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--primary-contrast);
-}
-
-.word-class-phase.done > span {
-  border-color: var(--primary);
-  background: var(--secondary);
-  color: var(--primary);
-}
-
-.word-class-phase-line {
-  width: 48px;
-  height: 2px;
-  background: var(--border);
-}
-
-.word-class-reader-progress {
-  position: relative;
-  overflow: hidden;
-  padding-bottom: 22px;
-}
-
-.word-class-progress-track {
-  position: absolute;
-  right: 14px;
-  bottom: 9px;
-  left: 14px;
-  height: 5px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--surface-elevated);
-}
-
-.word-class-progress-track span {
-  height: 100%;
-  display: block;
-  border-radius: inherit;
-  background: var(--primary);
-  transition: width .28s ease;
-}
-
-.word-class-requested-classes {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.word-class-requested-classes span {
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: var(--surface-elevated);
-  color: var(--text-muted);
-  font-size: .75rem;
-  font-weight: 800;
-}
-
-.word-class-active-relation {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--text-muted);
-  font-size: .84rem;
-}
-
-.word-class-active-relation svg {
-  color: var(--primary);
-}
-
 .word-class-reader-token {
   transition:
     color .16s ease,
@@ -4955,31 +4729,6 @@ textarea {
 }
 
 @media (max-width: 760px) {
-  .word-class-phase-strip {
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-
-  .word-class-phase {
-    flex: 0 0 auto;
-  }
-
-  .word-class-phase-line {
-    width: 28px;
-    flex: 0 0 28px;
-  }
-
-  .word-class-reader-progress {
-    display: grid;
-    gap: 12px;
-  }
-
-  .word-class-requested-classes,
-  .word-class-active-relation {
-    grid-column: auto;
-  }
-
   .word-class-selection-summary {
     align-items: flex-start;
     flex-direction: column;
@@ -4990,39 +4739,6 @@ textarea {
 /* V51 — correctifs du lecteur Classes de mots */
 .word-class-reader {
   gap: 12px;
-}
-
-.word-class-reader-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  min-height: 48px;
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.word-class-reader-toolbar > strong {
-  font-size: .94rem;
-  line-height: 1.35;
-}
-
-.word-class-reader-counter {
-  flex: 0 0 auto;
-  min-width: 78px;
-  padding: 6px 9px;
-  border-radius: 999px;
-  background: var(--surface-elevated);
-  color: var(--text-muted);
-  font-size: .78rem;
-  font-weight: 900;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.word-class-reader-counter.complete {
-  color: var(--primary);
-  background: var(--secondary);
 }
 
 .word-class-reader-text {
@@ -5063,17 +4779,6 @@ textarea {
   overflow-y: auto;
   align-content: start;
 }
-
-@media (max-width: 760px) {
-  .word-class-reader-toolbar {
-    align-items: flex-start;
-  }
-
-  .word-class-reader-toolbar > strong {
-    max-width: 75%;
-  }
-}
-
 
 /* V52 — rôle donneur/receveur après chaque mot */
 .word-role-dialog {
@@ -5221,244 +4926,8 @@ textarea {
 }
 
 
-/* V55 — ancrage précis des flèches */
-.agreement-arrow-path {
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 1px 0 var(--surface));
-}
-
-.word-class-reader-token.agreement-focus {
-  position: relative;
-}
-
-
-/* V56 — flèches entièrement visibles sous la phrase */
-.word-class-reader-text {
-  overflow: visible;
-}
-
-.agreement-arrow-layer {
-  inset: 0;
-  display: block;
-  overflow: visible;
-}
-
-.agreement-arrow-path {
-  stroke-width: 2.5;
-}
-
-@media (max-width: 760px) {
-
-  .agreement-arrow-path {
-    stroke-width: 2;
-  }
-}
-
-
-/* V57 — flèches compactes au-dessus de la phrase */
-.word-class-reader-text {
-  overflow: visible;
-}
-
-.agreement-arrow-layer {
-  inset: 0;
-  overflow: visible;
-}
-
-.agreement-arrow-path {
-  stroke-width: 2.35;
-}
-
-
-/* V58 — flèches persistantes et arrivée verticale */
-
-.agreement-arrow-path {
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-
-/* V58 — flèches persistantes et pointe recourbée */
-
-.agreement-arrow-path {
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-
-/* V59 — routage des flèches autour des lignes */
-.word-class-reader-text {
-  padding-right: 38px;
-  padding-left: 38px;
-}
-
-.agreement-arrow-path {
-  stroke-width: 2.25;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-@media (max-width: 760px) {
-  .word-class-reader-text {
-    padding-right: 28px;
-    padding-left: 28px;
-  }
-
-  .agreement-arrow-path {
-    stroke-width: 1.9;
-  }
-}
-
-
-/* V60 — corridors orthogonaux hors du texte */
-.word-class-reader-text {
-  padding-right: 48px;
-  padding-left: 48px;
-}
-
-.agreement-arrow-path {
-  stroke-width: 2.2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-@media (max-width: 760px) {
-  .word-class-reader-text {
-    padding-right: 36px;
-    padding-left: 36px;
-  }
-}
-
-
-/* V62 — rails latéraux obligatoires entre les lignes */
-.word-class-reader-text {
-  padding-right: 64px;
-  padding-left: 64px;
-}
-
-.agreement-arrow-layer {
-  overflow: visible;
-}
-
-.agreement-arrow-path {
-  stroke-width: 2.35;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-@media (max-width: 760px) {
-  .word-class-reader-text {
-    padding-right: 46px;
-    padding-left: 46px;
-  }
-
-  .agreement-arrow-path {
-    stroke-width: 2;
-  }
-}
-
-
-/* V63 — grille d’obstacles pour les relations */
-.word-class-reader-text {
-  padding-right: 54px;
-  padding-left: 54px;
-}
-
-.agreement-arrow-path {
-  stroke-width: 2.25;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-@media (max-width: 760px) {
-  .word-class-reader-text {
-    padding-right: 40px;
-    padding-left: 40px;
-  }
-
-  .agreement-arrow-path {
-    stroke-width: 1.95;
-  }
-}
-
-
-/* V64 — entrée contrôlée dans la protection du receveur */
-.agreement-arrow-path {
-  overflow: visible;
-}
-
-
-/* V65 — consigne et progression rapprochées */
-.word-class-reader-toolbar {
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 12px;
-}
-
-.word-class-reader-instruction-group {
-  display: inline-flex;
-  max-width: 100%;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.word-class-reader-instruction-group > strong {
-  font-size: 1.08rem;
-  font-weight: 700;
-  line-height: 1.35;
-  text-align: center;
-}
-
-.word-class-reader-counter {
-  min-width: 0;
-  padding: 7px 11px;
-  font-size: .96rem;
-  font-weight: 850;
-  line-height: 1;
-}
-
-.word-class-reader-counter.complete {
-  color: var(--primary);
-  background: var(--secondary);
-  animation: wordClassCounterComplete .2s ease both;
-}
-
-@keyframes wordClassCounterComplete {
-  from {
-    transform: scale(.94);
-  }
-
-  to {
-    transform: scale(1);
-  }
-}
-
-@media (max-width: 620px) {
-  .word-class-reader-toolbar {
-    justify-content: flex-start;
-  }
-
-  .word-class-reader-instruction-group {
-    justify-content: flex-start;
-    gap: 8px;
-  }
-
-  .word-class-reader-instruction-group > strong {
-    font-size: 1rem;
-    text-align: left;
-  }
-
-  .word-class-reader-counter {
-    font-size: .9rem;
-  }
-}
-
-
-/* V66 — reduce top whitespace above sentence */
+/* Le moteur actuel des flèches et son quai sont définis une seule fois dans
+ * la section « lecteur grammatical partagé » plus bas. */
 
 /* V67 — éditeur Groupes de mots */
 .word-group-editor textarea{width:100%;margin-top:8px}
@@ -5481,37 +4950,6 @@ textarea {
   display: grid;
   gap: 12px;
   margin: 0 auto;
-}
-
-.word-group-reader-toolbar {
-  display: flex;
-  justify-content: center;
-  padding: 8px 12px;
-}
-
-.word-group-reader-instruction {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.word-group-reader-instruction > strong {
-  font-size: 1.08rem;
-  line-height: 1.35;
-}
-
-.word-group-reader-counter {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--surface-elevated);
-  color: var(--text-muted);
-  font-size: .94rem;
-  font-weight: 850;
 }
 
 .word-group-drawing-surface {
@@ -5540,10 +4978,6 @@ textarea {
   border: 0;
   background: transparent;
   box-shadow: none;
-}
-
-.word-group-reader.embedded .word-group-reader-toolbar {
-  padding: 0 12px 4px;
 }
 
 .word-group-reader-token {
@@ -5611,20 +5045,6 @@ textarea {
   color: var(--primary);
   cursor: crosshair;
   touch-action: none;
-}
-
-@media (max-width: 760px) {
-  .word-group-reader-toolbar {
-    justify-content: flex-start;
-  }
-
-  .word-group-reader-instruction {
-    justify-content: flex-start;
-  }
-
-  .word-group-reader-instruction > strong {
-    font-size: 1rem;
-  }
 }
 
 /* V69/V70 — Groupes de mots : type du groupe + noyau */
@@ -8517,27 +7937,6 @@ textarea {
   gap: 12px;
 }
 
-.grammar-reader-progress {
-  justify-content: center;
-  margin: 0;
-}
-
-.grammar-reader-instruction {
-  width: 100%;
-  margin: 0;
-  padding: 10px 18px 12px;
-  text-align: center;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--secondary) 42%, var(--surface));
-}
-
-.grammar-reader-message {
-  margin: 0;
-  padding-inline: 18px;
-  text-align: center;
-}
-
 @media (max-width: 1100px) {
   .mixed-workspace-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9907,179 +9306,6 @@ textarea {
     grid-row: 2;
   }
 }
-/* V904 — quai réellement fixé au bas de l’écran */
-.reader-scene-main {
-  padding-bottom: 112px;
-}
-
-/* La géométrie est choisie une fois pour toute l’activité. Le conteneur ne
- * dessine rien : chaque mécanique conserve uniquement sa propre feuille. */
-.reader-activity-flow {
-  display: contents;
-  --reader-sentence-padding-top: 44px;
-  --reader-sentence-padding-inline: 44px;
-  --reader-sentence-padding-bottom: 36px;
-  --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
-  --reader-sentence-font-weight: 800;
-  --reader-sentence-line-height: 1.48;
-  --reader-annotation-gap: 10px;
-  --reader-annotation-leading-compensation: 0px;
-}
-
-.reader-activity-flow .interactive-reader,
-.reader-activity-flow .word-group-reader,
-.reader-activity-flow .word-class-reader,
-.reader-activity-flow .grammar-extension-reader {
-  width: min(1460px, 100%) !important;
-  max-width: 1460px !important;
-  margin-inline: auto !important;
-}
-
-.reader-activity-flow .shared-grammar-reader-text {
-  box-sizing: border-box !important;
-  width: 100% !important;
-  max-width: none !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding:
-    var(--reader-sentence-padding-top)
-    var(--reader-sentence-padding-inline)
-    var(--reader-sentence-padding-bottom) !important;
-  font-size: var(--reader-sentence-font-size) !important;
-  font-weight: var(--reader-sentence-font-weight) !important;
-  line-height: var(--reader-sentence-line-height) !important;
-  letter-spacing: -.03em !important;
-  text-align: center !important;
-  white-space: pre-wrap !important;
-  overflow-wrap: normal !important;
-  word-break: normal !important;
-}
-
-/* La correction utilise exactement les mêmes lignes que les autres phases.
- * Les anciens espaces réservés aux codes sont remplacés par une superposition. */
-.reader-activity-flow .interactive-reader-sentence .interactive-line,
-.reader-activity-flow .interactive-reader-sentence .interactive-line-empty {
-  width: max-content !important;
-  max-width: 100% !important;
-  min-height: 0 !important;
-  margin-inline: auto !important;
-  padding-top: 0 !important;
-  line-height: var(--reader-sentence-line-height) !important;
-  text-align: center !important;
-}
-
-.reader-activity-flow .interactive-reader-sentence .interactive-line + .interactive-line {
-  margin-top: 0 !important;
-}
-
-.reader-activity-flow .interactive-reader-sentence .interactive-segment {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.reader-activity-flow .interactive-reader-sentence .interactive-word,
-.reader-activity-flow .word-group-reader-token {
-  font-weight: inherit !important;
-  letter-spacing: inherit !important;
-}
-
-.reader-activity-flow .word-group-reader-token.group-confirmed {
-  font-weight: inherit !important;
-}
-
-.reader-activity-flow .interactive-reader-sentence .interactive-code-box {
-  bottom: calc(100% + var(--reader-annotation-gap)) !important;
-  width: 1.45em;
-  height: 1.45em;
-  min-width: 1.45em;
-  min-height: 1.45em;
-  padding: 0;
-  border-width: 2px;
-  font-size: .34em;
-  line-height: 1;
-}
-
-.reader-activity-flow .interactive-reader-sentence .interactive-code-box.filled {
-  width: auto;
-  height: auto;
-  min-width: 0;
-  min-height: 0;
-  border-width: 0;
-}
-
-/* Les classes de mots partagent la même fonte et la même respiration. Les
- * flèches conservent seulement leur bande de dessin, calculée par le lecteur. */
-.reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token {
-  margin-top: 0 !important;
-}
-
-.reader-activity-flow .word-class-reader-label {
-  bottom: calc(100% + var(--reader-annotation-gap)) !important;
-}
-
-.reader-activity-flow .word-group-label-anchor,
-.reader-activity-flow .word-group-label-anchor.contracted-result {
-  transform: translate(-50%, calc(-100% - var(--reader-annotation-gap))) !important;
-}
-
-/* Les accords gardent une bande réservée aux flèches, sans hériter de la
- * marge supérieure ni de l’interligne des activités grammaticales normales. */
-.reader-activity-flow .word-class-reader-text.has-agreement-relations {
-  padding-top: 2px !important;
-  padding-bottom: var(--reader-sentence-padding-bottom) !important;
-  line-height: .98 !important;
-}
-
-.reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-token {
-  margin-top: .08em !important;
-  padding-top: var(--agreement-band-height, 36px) !important;
-  line-height: 1 !important;
-}
-
-.reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-label {
-  bottom: calc(100% + 2px) !important;
-}
-
-/* Les surfaces qui étaient transparentes dans Mixte redeviennent les cartes
- * adaptatives natives, sans carte supplémentaire autour d’elles. */
-.reader-scene .interactive-reader .interactive-sentence.shared-grammar-reader-text,
-.reader-scene .reader-activity-flow .word-group-drawing-surface,
-.reader-scene .grammar-extension-reader .grammar-extension-surface,
-.reader-scene .word-class-reader-text.shared-grammar-reader-text {
-  min-height: 0 !important;
-  border: 1px solid #cfdeea !important;
-  border-radius: 20px !important;
-  background: #fff !important;
-  box-shadow: 0 10px 24px rgb(17 58 88 / 7%) !important;
-}
-
-/* Les lecteurs historiques de groupes sont des grilles. Sans alignement
- * explicite, leur carte peut s'étirer sur la hauteur disponible du lecteur.
- * La carte universelle doit toujours épouser son contenu réel. */
-.reader-activity-flow .word-group-reader,
-.reader-activity-flow .word-group-drawing-surface {
-  height: auto !important;
-  align-self: start !important;
-}
-
-.reader-scene .interactive-reader .interactive-sentence.shared-grammar-reader-text {
-  width: 100% !important;
-  margin-inline: 0 !important;
-}
-
-/* Un texte long garde la même feuille blanche, mais emploie une taille et une
- * respiration adaptées aux codes placés au-dessus de chaque ligne. */
-.reader-activity-flow .interactive-reader-text {
-  --reader-sentence-font-size: clamp(1.45rem, 2.7vw, 3.2rem);
-  --reader-sentence-line-height: 1.62;
-  --reader-sentence-padding-top: 54px;
-  --reader-sentence-padding-bottom: 42px;
-}
-
-.reader-activity-flow .interactive-reader-text.has-above-marks .interactive-line + .interactive-line {
-  margin-top: .18em !important;
-}
-
 /* V91 — pauses collectives, libellés de fonctions et corrigé enseignant. */
 .workflow-phase:has(.workflow-review-settings) {
   border-color: #e5b83f;
