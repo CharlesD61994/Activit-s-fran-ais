@@ -1,0 +1,28 @@
+import { describe, expect, it } from "vitest";
+import type { TreeAnalysisTextBox, WorksheetImage } from "@/types";
+import { worksheetTextWrap } from "./worksheet-images";
+
+const box: TreeAnalysisTextBox = {
+  id: "text",
+  pageId: "page",
+  x: 100,
+  y: 100,
+  width: 500,
+  height: 240,
+  text: "Un texte",
+  fontSize: 20,
+  annotations: []
+};
+
+describe("worksheetTextWrap", () => {
+  it("creates a left floating space for an overlapping image", () => {
+    const image: WorksheetImage = { id: "image", pageId: "page", x: 120, y: 130, width: 140, height: 100, src: "data:image/png;base64,x", alt: "", wrapText: true };
+    expect(worksheetTextWrap(box, [image])).toEqual({ side: "left", width: 150, height: 108, marginTop: 30 });
+  });
+
+  it("ignores images on another page or with wrapping disabled", () => {
+    const image: WorksheetImage = { id: "image", pageId: "other", x: 120, y: 130, width: 140, height: 100, src: "data:image/png;base64,x", alt: "", wrapText: true };
+    expect(worksheetTextWrap(box, [image])).toBeUndefined();
+    expect(worksheetTextWrap(box, [{ ...image, pageId: "page", wrapText: false }])).toBeUndefined();
+  });
+});

@@ -429,6 +429,18 @@ export type WorksheetDimensionBand = {
   dimension: "Compréhension" | "Interprétation" | "Réaction" | "Appréciation";
 };
 
+export type WorksheetImage = {
+  id: string;
+  pageId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  src: string;
+  alt: string;
+  wrapText: boolean;
+};
+
 export type SentenceCorrection = {
   id: string;
   start: number;
@@ -473,6 +485,7 @@ export type Sentence = {
   treeAnalysisFlow?: TreeAnalysisFlow;
   worksheetAnswerLines?: WorksheetAnswerLines[];
   worksheetDimensionBands?: WorksheetDimensionBand[];
+  worksheetImages?: WorksheetImage[];
   worksheetReaderOrder?: string[];
   assignedGroupIds: string[];
   competitionEnabled?: boolean;

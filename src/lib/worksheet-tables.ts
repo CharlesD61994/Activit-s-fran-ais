@@ -129,5 +129,5 @@ export function normalizedRowHeights(table: TreeAnalysisTable) {
 }
 
 export function tableHasInteraction(table: TreeAnalysisTable) {
-  return table.cells.some((item) => item.isCorrect || ((item.role === "answer" || item.role === "order") && Boolean(item.answer?.trim())));
+  return table.cells.some((item) => item.isCorrect || Boolean(item.answer?.trim()));
 }
