@@ -233,7 +233,7 @@ export default function ClassroomGroupPage({
     return (
       <Card
         className={
-          "classroom-mission-card activity-theme-" +
+          "classroom-mission-card activity-accent-" +
           objectiveKey
         }
         key={activity.id}

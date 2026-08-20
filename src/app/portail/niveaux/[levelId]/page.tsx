@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, UsersRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
-import { getTheme } from "@/themes/themes";
 
 export default function StudentLevelPage({
   params
@@ -48,7 +47,6 @@ export default function StudentLevelPage({
 
       <div className="student-card-grid">
         {groups.map((group) => {
-          const theme = getTheme(group.themeId);
           const activityCount = data.sentences.filter((sentence) =>
             sentence.assignedGroupIds.includes(group.id)
           ).length;
@@ -59,15 +57,12 @@ export default function StudentLevelPage({
               href={`/portail/groupes/${group.id}`}
               className="student-card-link"
             >
-              <Card
-                className="student-group-card"
-                data-preview-theme={group.themeId}
-              >
+              <Card className="student-group-card">
                 <div className="student-card-icon">
                   <UsersRound size={28} />
                 </div>
                 <div>
-                  <span className="student-card-label">{theme.name}</span>
+                  <span className="student-card-label">Groupe</span>
                   <h2>{group.name}</h2>
                   <p>{group.description ?? "Groupe"}</p>
                 </div>

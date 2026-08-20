@@ -13,15 +13,12 @@ import {
   getWordClassActivityPointTotal,
   getWordClassAnalysisTargetCount
 } from "@/lib/activity-types";
-import { themes } from "@/themes/themes";
 import { buildCodeStats, getCompletedSentenceIds, getPerfectSentenceCount, getWeeklyPoints, groupEventsBySession } from "@/lib/stats";
-import type { ThemeId } from "@/types";
 
 export default function GroupPage({ params }: { params: Promise<{ groupId: string }> }) {
   const { groupId } = use(params);
   const {
     data,
-    updateGroupTheme,
     saveTeam,
     deleteTeam,
     saveReviewState,
@@ -163,13 +160,6 @@ export default function GroupPage({ params }: { params: Promise<{ groupId: strin
           <p>Activités marquées pour une reprise ultérieure.</p>
         </Card>
       </div>
-
-      <Card className="settings-card">
-        <div><span className="eyebrow">Apparence du groupe</span><h2>Choisir un thème permanent</h2><p>Le mode présentation utilisera ce thème par défaut.</p></div>
-        <select value={group.themeId} onChange={(event) => updateGroupTheme(group.id, event.target.value as ThemeId)} aria-label="Thème permanent du groupe">
-          {themes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-      </Card>
 
       <div className="group-section-block">
         <TeamManager

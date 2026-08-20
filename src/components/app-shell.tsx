@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, BookOpenCheck, CalendarDays, Home, MonitorPlay, Palette, Tags } from "lucide-react";
+import { BarChart3, BookOpenCheck, CalendarDays, Home, MonitorPlay, Tags } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { SyncStatus } from "@/components/sync-status";
 import { useAppStore } from "@/store/app-store";
@@ -12,7 +12,6 @@ const items = [
   { href: "/seances", label: "Séances", icon: CalendarDays },
   { href: "/progression", label: "Progression", icon: BarChart3 },
   { href: "/parametres/codes", label: "Codes", icon: Tags },
-  { href: "/parametres/apparence", label: "Apparence", icon: Palette },
   { href: "/classe", label: "Ouvrir Classe", icon: MonitorPlay }
 ];
 

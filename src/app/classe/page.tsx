@@ -93,7 +93,6 @@ export default function ClassePage() {
             >
               <Card
                 className={"classroom-portal-group-card accent-" + ((index % 4) + 1)}
-                data-preview-theme={group.themeId}
               >
                 <div className="classroom-portal-group-card-main">
                   <ClassroomGroupEmblem label={groupCode} />

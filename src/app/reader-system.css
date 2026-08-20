@@ -34,7 +34,14 @@
 }
 
 .correction-arrow-reader .word-class-reader {
-  min-width: 1180px;
+  width: 100%;
+  min-width: 0;
+}
+
+.reader-activity-flow .french-elision-unit {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
 }
 
 .reader-activity-flow .interactive-reader,

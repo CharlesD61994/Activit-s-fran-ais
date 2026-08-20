@@ -1,13 +1,3 @@
-export type ThemeId =
-  | "colorful"
-  | "notebook"
-  | "neutral"
-  | "minimal"
-  | "dark"
-  | "halloween"
-  | "christmas"
-  | "winter";
-
 export type SchoolLevel = {
   id: string;
   name: string;
@@ -28,7 +18,6 @@ export type ClassGroup = {
   description?: string;
   weeklyObjective?: string;
   weeklyObjectivePoints?: number;
-  themeId: ThemeId;
   totalPoints: number;
   sentenceCount: number;
   studentPortalEnabled?: boolean;
@@ -136,6 +125,13 @@ export type AgreementCorrectionArrow = {
   color: string;
   /** Points normalized against the sentence surface (0..1). */
   points: Array<{ x: number; y: number }>;
+  /** Geometry of the authoring surface, used to re-anchor the stroke after reflow. */
+  sourceGeometry?: {
+    width: number;
+    height: number;
+    startAnchor: { x: number; y: number };
+    endAnchor: { x: number; y: number };
+  };
 };
 
 export type GrammarAnnotationKind =
@@ -537,9 +533,4 @@ export type AppData = {
   competitionResults: CompetitionResult[];
   dashboardTitle: string;
   dashboardSectionLabel: string;
-  globalThemeId: ThemeId;
 };
-
-
-export type PresentationMode = "classic" | "hint" | "teacher";
-export type PresentationAnimation = "none" | "fade" | "slide" | "highlight";

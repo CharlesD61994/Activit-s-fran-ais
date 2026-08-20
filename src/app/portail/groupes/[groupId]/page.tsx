@@ -109,10 +109,7 @@ export default function StudentGroupPage({
   const firstSentence = assignedSentences[0];
 
   return (
-    <div
-      className="student-group-theme"
-      data-preview-theme={group.themeId}
-    >
+    <div className="student-group-root">
       <div className="student-page">
         <Link href={`/portail/niveaux/${level.id}`} className="student-back-link">
           <ArrowLeft size={18} />
@@ -128,7 +125,7 @@ export default function StudentGroupPage({
         <div className="student-action-grid">
           {firstSentence && (
             <Link
-              href={`/portail/presentation/${group.id}/${firstSentence.id}`}
+              href={`/presentation/${group.id}/${firstSentence.id}?from=portail`}
               className="student-action-link"
             >
               <Card className="student-action-card featured">
@@ -149,7 +146,7 @@ export default function StudentGroupPage({
             return (
               <Link
                 key={session.id}
-                href={`/portail/presentation/${group.id}/${first.id}?plan=${session.id}`}
+                href={`/presentation/${group.id}/${first.id}?plan=${session.id}&from=portail`}
                 className="student-action-link"
               >
                 <Card className="student-action-card">

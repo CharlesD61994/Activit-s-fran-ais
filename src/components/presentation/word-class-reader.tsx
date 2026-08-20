@@ -3,7 +3,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
-  PointerEvent as ReactPointerEvent
+  PointerEvent as ReactPointerEvent,
+  ReactNode
 } from "react";
 import { Check, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,8 @@ import {
   uniqueClassTargetsByRange
 } from "@/lib/word-class-target-selection";
 import { getAgreementWorkflowSettings, reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
-import { protectFrenchElisionBreaks } from "@/lib/french-typography";
+import { projectAgreementArrowPoints } from "@/lib/agreement-arrow-geometry";
+import { endsWithFrenchElision, protectFrenchElisionBreaks } from "@/lib/french-typography";
 import type {
   AgreementCorrectionArrow,
   Sentence,
@@ -274,9 +276,6 @@ export function WordClassReader({
 
   const hasExplicitClassModes = classTargets.some(
     (target) => Boolean(target.wordClassInteractionMode)
-  );
-  const hasClassChoiceTargets = classTargets.some((target) =>
-    usesClassChoice(target, multipleClasses, hasExplicitClassModes)
   );
   const relations = useMemo(
     () => sentence.agreementRelations ?? [],
@@ -774,18 +773,23 @@ export function WordClassReader({
           return [];
         }
 
+        const task = taskMap.get(arrow.taskTargetId);
+        const startTargetId = task?.role === "receiver" ? arrow.answerId : arrow.taskTargetId;
+        const endTargetId = task?.role === "receiver" ? arrow.taskTargetId : arrow.answerId;
         const rendered = buildAgreementArrow(
           arrow.id,
-          arrow.points.map((point) => ({
-            x: point.x * arrowCanvas.width,
-            y: point.y * arrowCanvas.height
-          })),
+          projectAgreementArrowPoints(
+            arrow,
+            arrowCanvas,
+            targetAnchor(startTargetId),
+            targetAnchor(endTargetId)
+          ),
           arrow.color
         );
 
         return rendered ? [rendered] : [];
       }) : [],
-    [agreementArrowsVisible, arrowCanvas.height, arrowCanvas.width, drawnAgreementArrows]
+    [agreementArrowsVisible, arrowCanvas, drawnAgreementArrows, taskMap]
   );
 
   const draftAgreementArrow = useMemo(
@@ -839,6 +843,39 @@ export function WordClassReader({
       observer.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      !correctionArrowAuthoring ||
+      !onAgreementCorrectionArrowsChange ||
+      arrowCanvas.width <= 0 ||
+      arrowCanvas.height <= 0
+    ) return;
+
+    setDrawnAgreementArrows((current) => {
+      let changed = false;
+      const next = current.map((arrow) => {
+        if (arrow.sourceGeometry) return arrow;
+        const task = taskMap.get(arrow.taskTargetId);
+        const startTargetId = task?.role === "receiver" ? arrow.answerId : arrow.taskTargetId;
+        const endTargetId = task?.role === "receiver" ? arrow.taskTargetId : arrow.answerId;
+        const startAnchor = targetAnchor(startTargetId);
+        const endAnchor = targetAnchor(endTargetId);
+        if (!startAnchor || !endAnchor) return arrow;
+        changed = true;
+        return {
+          ...arrow,
+          sourceGeometry: {
+            width: arrowCanvas.width,
+            height: arrowCanvas.height,
+            startAnchor,
+            endAnchor
+          }
+        };
+      });
+      return changed ? next : current;
+    });
+  }, [arrowCanvas, correctionArrowAuthoring, onAgreementCorrectionArrowsChange, taskMap]);
 
 
   const classesComplete = classTargets.every((target) =>
@@ -1137,6 +1174,22 @@ export function WordClassReader({
     };
   }
 
+  function targetAnchor(targetId: string): AgreementPoint | null {
+    const container = textContainerRef.current;
+    if (!container) return null;
+    const element = container.querySelector<HTMLElement>(
+      `.word-class-reader-token[data-target-id="${CSS.escape(targetId)}"]`
+    );
+    if (!element) return null;
+    const glyph = element.querySelector<HTMLElement>("[data-word-glyph]") ?? element;
+    const containerRect = container.getBoundingClientRect();
+    const rect = glyph.getBoundingClientRect();
+    return {
+      x: rect.left - containerRect.left + container.scrollLeft + rect.width / 2,
+      y: rect.top - containerRect.top + container.scrollTop + rect.height / 2
+    };
+  }
+
   function targetIdNearPoint(clientX: number, clientY: number) {
     const container = textContainerRef.current;
     if (!container) return null;
@@ -1327,7 +1380,13 @@ export function WordClassReader({
             points: points.map((point) => ({
               x: point.x / width,
               y: point.y / height
-            }))
+            })),
+            sourceGeometry: {
+              width,
+              height,
+              startAnchor: targetAnchor(correctStartId ?? currentTask.targetId) ?? points[0],
+              endAnchor: targetAnchor(correctEndId ?? answerId) ?? points[points.length - 1]
+            }
           }
         ]);
         setRelationAnswers((current) => ({
@@ -1470,6 +1529,88 @@ export function WordClassReader({
     : complete
       ? "Activité terminée — toutes les réponses ont été trouvées."
       : instruction;
+
+  function renderToken(token: WordToken): ReactNode {
+    if (!token.isWord) {
+      return <span key={token.id} data-class-token-id={token.text.trim().length > 0 ? token.id : undefined}>{protectFrenchElisionBreaks(token.text)}</span>;
+    }
+
+    const target = findTarget(token);
+    const found = target ? foundIds.includes(target.id) : false;
+    const relationSelected = target ? agreementColorByTargetId.has(target.id) : false;
+    const agreementColor = target ? agreementColorByTargetId.get(target.id) : undefined;
+    const answerConfirmed = target ? confirmedWordIds.includes(target.id) : false;
+    const focus = Boolean(currentTask && target?.id === currentTask.targetId);
+    const grammarDetails = target ? grammaticalDetails(target) : "";
+    const priorNucleus = persistentNucleusAnnotations.some(
+      (annotation) => token.start < annotation.end && token.end > annotation.start
+    );
+
+    return (
+      <button
+        type="button"
+        className={`word-class-reader-token ${found ? "found" : ""} ${relationSelected ? "agreement-colored" : ""} ${answerConfirmed ? "answer-confirmed" : ""} ${focus ? "agreement-focus" : ""} ${grammarDetails ? "has-grammar-details" : ""} ${priorNucleus ? "persistent-nucleus" : ""}`}
+        key={token.id}
+        style={agreementColor ? ({ "--agreement-word-color": agreementColor } as CSSProperties) : undefined}
+        data-word-token="true"
+        data-class-token-id={token.id}
+        data-target-id={target?.id}
+        aria-pressed={found || relationSelected}
+        onClick={() => {
+          if (currentTask) return;
+          const clickedTarget = findTarget(token);
+          if (!clickedTarget || foundIds.includes(clickedTarget.id)) return;
+          const shouldChooseClass = usesClassChoice(
+            clickedTarget,
+            multipleClasses,
+            hasExplicitClassModes
+          );
+          if (shouldChooseClass) openClassDialog(token);
+          else validateSingleClass(token);
+        }}
+      >
+        <span className="word-class-reader-word" data-word-glyph="true">
+          {found && target && (
+            <span
+              className={`word-class-reader-label ${grammarDetails ? "has-grammar-details" : ""}`}
+              data-target-label-id={target.id}
+            >
+              <span className="word-class-reader-label-code">{wordClassLabels[target.wordClass]}</span>
+              {grammarDetails && <span className="word-class-reader-label-grammar">({grammarDetails})</span>}
+            </span>
+          )}
+          {protectFrenchElisionBreaks(token.text)}
+          {relationSelected && (
+            <span className="agreement-found-indicator" aria-label="Bonne réponse">
+              <Check size={13} />
+            </span>
+          )}
+        </span>
+      </button>
+    );
+  }
+
+  const renderedTokens: ReactNode[] = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    const next = tokens[index + 1];
+    if (
+      token.isWord &&
+      endsWithFrenchElision(token.text) &&
+      next?.isWord &&
+      token.end === next.start
+    ) {
+      renderedTokens.push(
+        <span className="french-elision-unit" key={`elision-${token.id}-${next.id}`}>
+          {renderToken(token)}
+          {renderToken(next)}
+        </span>
+      );
+      index += 1;
+    } else {
+      renderedTokens.push(renderToken(token));
+    }
+  }
 
   return (
     <div className={`word-class-reader ${embedded ? "embedded" : ""}`}>
@@ -1625,101 +1766,7 @@ export function WordClassReader({
           </svg>
         )}
 
-        {tokens.map((token) => {
-          if (!token.isWord) {
-            return <span key={token.id} data-class-token-id={token.text.trim().length > 0 ? token.id : undefined}>{protectFrenchElisionBreaks(token.text)}</span>;
-          }
-
-          const target = findTarget(token);
-          const found = target
-            ? foundIds.includes(target.id)
-            : false;
-          const relationSelected = target
-            ? agreementColorByTargetId.has(target.id)
-            : false;
-          const agreementColor = target
-            ? agreementColorByTargetId.get(target.id)
-            : undefined;
-          const answerConfirmed = target
-            ? confirmedWordIds.includes(target.id)
-            : false;
-          const focus =
-            currentTask &&
-            target?.id === currentTask.targetId;
-          const grammarDetails = target
-            ? grammaticalDetails(target)
-            : "";
-          const priorNucleus = persistentNucleusAnnotations.some((annotation) => token.start < annotation.end && token.end > annotation.start);
-
-          return (
-            <button
-              type="button"
-              className={`word-class-reader-token ${
-                found ? "found" : ""
-              } ${relationSelected ? "agreement-colored" : ""} ${
-                answerConfirmed ? "answer-confirmed" : ""
-              } ${focus ? "agreement-focus" : ""} ${grammarDetails ? "has-grammar-details" : ""} ${priorNucleus ? "persistent-nucleus" : ""}`}
-              key={token.id}
-              style={
-                agreementColor
-                  ? ({
-                      "--agreement-word-color": agreementColor
-                    } as CSSProperties)
-                  : undefined
-              }
-              data-word-token="true"
-              data-class-token-id={token.id}
-              data-target-id={target?.id}
-              aria-pressed={found || relationSelected}
-              onClick={() => {
-                if (currentTask) return;
-
-                const clickedTarget = findTarget(token);
-                if (!clickedTarget || foundIds.includes(clickedTarget.id)) return;
-                const shouldChooseClass = clickedTarget
-                  ? usesClassChoice(
-                      clickedTarget,
-                      multipleClasses,
-                      hasExplicitClassModes
-                    )
-                  : !hasExplicitClassModes && hasClassChoiceTargets;
-
-                if (shouldChooseClass) {
-                  openClassDialog(token);
-                } else {
-                  validateSingleClass(token);
-                }
-              }}
-            >
-              <span className="word-class-reader-word" data-word-glyph="true">
-                {found && target && (
-                <span
-                  className={`word-class-reader-label ${grammarDetails ? "has-grammar-details" : ""}`}
-                  data-target-label-id={target.id}
-                >
-                  <span className="word-class-reader-label-code">
-                    {wordClassLabels[target.wordClass]}
-                  </span>
-                  {grammarDetails && (
-                    <span className="word-class-reader-label-grammar">
-                      ({grammarDetails})
-                    </span>
-                  )}
-                </span>
-              )}
-              {protectFrenchElisionBreaks(token.text)}
-                {relationSelected && (
-                  <span
-                    className="agreement-found-indicator"
-                    aria-label="Bonne réponse"
-                  >
-                    <Check size={13} />
-                  </span>
-                )}
-              </span>
-            </button>
-          );
-        })}
+        {renderedTokens}
       </div>
 
       {!reviewActive && (!embedded || (complete && finishControl)) && (

@@ -16,8 +16,7 @@ import type {
   Sentence,
   SentenceCollection,
   SentenceReviewState,
-  Team,
-  ThemeId
+  Team
 } from "@/types";
 
 type AppStoreValue = {
@@ -30,9 +29,7 @@ type AppStoreValue = {
   setGroupPoints: (groupId: string, points: number) => void;
   saveSchoolYear: (schoolYear: SchoolYear) => void;
   deleteSchoolYear: (schoolYearId: string) => void;
-  updateGroupTheme: (groupId: string, themeId: ThemeId) => void;
   updateGroupObjective: (groupId: string, objective: string, targetPoints: number) => void;
-  setGlobalTheme: (themeId: ThemeId) => void;
   setDashboardTitle: (title: string) => void;
   setDashboardSectionLabel: (label: string) => void;
   saveSentence: (sentence: Sentence) => void;
@@ -107,8 +104,6 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    document.documentElement.dataset.theme = data.globalThemeId;
-
     if (firstSave.current) {
       firstSave.current = false;
       return;
@@ -232,13 +227,6 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           }))
         };
       }),
-    updateGroupTheme: (groupId, themeId) =>
-      setData((current) => ({
-        ...current,
-        groups: current.groups.map((group) =>
-          group.id === groupId ? { ...group, themeId } : group
-        )
-      })),
     updateGroupObjective: (groupId, weeklyObjective, weeklyObjectivePoints) =>
       setData((current) => ({
         ...current,
@@ -248,7 +236,6 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
             : group
         )
       })),
-    setGlobalTheme: (themeId) => setData((current) => ({ ...current, globalThemeId: themeId })),
     setDashboardTitle: (dashboardTitle) =>
       setData((current) => ({ ...current, dashboardTitle })),
     setDashboardSectionLabel: (dashboardSectionLabel) =>

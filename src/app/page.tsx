@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
 import { getCompletedSentenceIds, getWeeklyPoints } from "@/lib/stats";
-import { themes } from "@/themes/themes";
-import type { ThemeId } from "@/types";
 
 export default function HomePage() {
   const {
@@ -27,7 +25,6 @@ export default function HomePage() {
   const [groupYearId, setGroupYearId] = useState<string | null>(null);
   const [groupName, setGroupName] = useState("");
   const [groupLevelId, setGroupLevelId] = useState(data.levels[0]?.id ?? "");
-  const [groupThemeId, setGroupThemeId] = useState<ThemeId>("neutral");
   const [groupMenuId, setGroupMenuId] = useState<string | null>(null);
   const [scoreGroupId, setScoreGroupId] = useState<string | null>(null);
   const [scoreDraft, setScoreDraft] = useState("0");
@@ -60,7 +57,6 @@ export default function HomePage() {
       levelId: groupLevelId,
       name,
       description: "",
-      themeId: groupThemeId,
       totalPoints: 0,
       sentenceCount: 0,
       studentPortalEnabled: false
@@ -68,7 +64,6 @@ export default function HomePage() {
 
     setGroupName("");
     setGroupLevelId(data.levels[0]?.id ?? "");
-    setGroupThemeId("neutral");
     setGroupYearId(null);
   }
 
@@ -125,7 +120,6 @@ export default function HomePage() {
                         setGroupYearId(year.id);
                         setGroupName("");
                         setGroupLevelId(data.levels[0]?.id ?? "");
-                        setGroupThemeId("neutral");
                       }}
                     >
                       <Plus size={17} />
@@ -143,7 +137,7 @@ export default function HomePage() {
                     return (
                       <div key={group.id} className="group-card-wrapper">
                         <Link href={`/groupes/${group.id}`} className="card-link">
-                          <Card className="group-hub-card compact" data-preview-theme={group.themeId}>
+                          <Card className="group-hub-card compact">
                             <div className="group-card-title-block">
                             <span className="eyebrow">{level?.name ?? "Niveau"}</span>
                             <h2>{group.name}</h2>
@@ -387,19 +381,6 @@ export default function HomePage() {
                   </select>
                 </label>
 
-                <label>
-                  Thème
-                  <select
-                    value={groupThemeId}
-                    onChange={(event) => setGroupThemeId(event.target.value as ThemeId)}
-                  >
-                    {themes.map((theme) => (
-                      <option key={theme.id} value={theme.id}>
-                        {theme.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
 
               <div className="form-actions">

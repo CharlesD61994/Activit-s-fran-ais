@@ -66,6 +66,7 @@ export default function PresentationPage({
   const sentence = data.sentences.find((item) => item.id === sentenceId);
   const plannedSessionId = searchParams.get("plan");
   const launchedFromClasse = searchParams.get("from") === "classe";
+  const launchedFromPortal = searchParams.get("from") === "portail";
   const competitionMode = searchParams.get("competition");
   const competitionSourceId = searchParams.get("source");
   const competitionActive =
@@ -137,14 +138,6 @@ export default function PresentationPage({
     // The assignment should change only when the displayed activity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, sentenceId, plannedSession?.sourceSessionId]);
-
-  useEffect(() => {
-    if (!group) return;
-    document.documentElement.dataset.theme = group.themeId;
-    return () => {
-      document.documentElement.dataset.theme = data.globalThemeId;
-    };
-  }, [data.globalThemeId, group]);
 
   const pendingTotal = pendingPoints.reduce((sum, item) => sum + item.points, 0);
   const isTextActivity = sentence?.activityType === "text_correction";
@@ -401,6 +394,7 @@ export default function PresentationPage({
       const params = new URLSearchParams();
       if (plannedSessionId) params.set("plan", plannedSessionId);
       if (launchedFromClasse) params.set("from", "classe");
+      if (launchedFromPortal) params.set("from", "portail");
       if (competitionActive && competitionMode && competitionSourceId) {
         params.set("competition", competitionMode);
         params.set("source", competitionSourceId);
@@ -511,6 +505,8 @@ export default function PresentationPage({
           href={
             launchedFromClasse
               ? `/classe/groupes/${groupId}`
+              : launchedFromPortal
+                ? `/portail/groupes/${groupId}`
               : `/groupes/${groupId}`
           }
           className="presentation-back"
