@@ -13,5 +13,6 @@ describe("typographie française", () => {
 
   it("ajoute un caractère anti-coupure invisible", () => {
     expect(protectFrenchElisionBreaks("l'")).toBe("l'\u2060");
+    expect(protectFrenchElisionBreaks("’")).toBe("\u2060’\u2060");
   });
 });

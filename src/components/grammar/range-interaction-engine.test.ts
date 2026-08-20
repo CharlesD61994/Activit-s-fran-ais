@@ -22,6 +22,18 @@ describe("moteur partagé des plages grammaticales", () => {
     ).toEqual(["Hier", " ", "soir", ",", " ", "les"]);
   });
 
+  it("garde une élision française attachée au mot suivant", () => {
+    expect(
+      tokenizeGrammarText("l’ami d'école").map(({ text, start, end }) => ({ text, start, end }))
+    ).toEqual([
+      { text: "l’", start: 0, end: 2 },
+      { text: "ami", start: 2, end: 5 },
+      { text: " ", start: 5, end: 6 },
+      { text: "d'", start: 6, end: 8 },
+      { text: "école", start: 8, end: 13 }
+    ]);
+  });
+
   it("choisit une seule cible lorsque des limites sont voisines", () => {
     const targets = [{ id: "first", start: 0, end: 2 }, { id: "second", start: 3, end: 7 }];
     const result = chooseBracketTarget([{ x: 12, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 20 }, { x: 12, y: 20 }], targets, [], [], undefined, (target) => ({ x: target.id === "first" ? 2 : 42, y: 10, height: 30 }));

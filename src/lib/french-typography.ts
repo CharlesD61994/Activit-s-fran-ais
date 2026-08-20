@@ -6,5 +6,6 @@ export function endsWithFrenchElision(text: string) {
 
 /** Prevents the browser from separating an elided prefix from its word. */
 export function protectFrenchElisionBreaks(text: string) {
+  if (/^['’]$/u.test(text)) return `\u2060${text}\u2060`;
   return text.replace(/([\p{L}\p{M}]['’])(?=\s*$)/gu, "$1\u2060");
 }

@@ -4276,11 +4276,6 @@ textarea {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.word-class-editor {
-  display: grid;
-  gap: 16px;
-}
-
 .editor-section-card {
   display: grid;
   gap: 14px;
@@ -4295,121 +4290,12 @@ textarea {
   color: var(--text-muted);
 }
 
-.word-class-choice-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
-}
-
-.word-class-choice {
-  min-height: 45px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--surface-elevated);
-  font-weight: 800;
-}
-
-.word-class-choice.selected {
-  border-color: var(--primary);
-  background: var(--secondary);
-}
-
-.word-class-choice input {
-  width: auto;
-}
-
-.word-class-target-list {
-  display: grid;
-  gap: 8px;
-}
-
-.word-class-target-row {
-  min-height: 54px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 11px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--surface-elevated);
-}
-
-.word-class-target-row strong,
-.word-class-target-row span {
-  display: block;
-}
-
-.word-class-target-row span {
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: .82rem;
-}
-
-.word-class-target-row button {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--danger);
-}
-
-.word-class-editor-preview {
-  white-space: pre-wrap;
-  font-size: 1.25rem;
-  line-height: 2.1;
-}
-
-.word-class-preview-target {
-  position: relative;
-  display: inline-block;
-  padding: 0 .06em;
-  border-bottom: 2px solid var(--primary);
-  color: var(--primary);
-}
-
-.word-class-preview-target small {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% - .1em);
-  transform: translateX(-50%);
-  font-size: .55em;
-  white-space: nowrap;
-}
-
 .word-class-bank-highlight {
   border-bottom: 2px solid var(--primary);
 }
 
-.editor-error-message {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  color: var(--danger);
-  font-weight: 800;
-}
-
-.editor-save-row {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.word-class-reader-placeholder {
-  gap: 12px;
-  text-align: center;
-}
-
 @media (max-width: 900px) {
-  .activity-type-choice-grid,
-  .word-class-choice-grid {
+  .activity-type-choice-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -4492,133 +4378,6 @@ textarea {
 }
 
 /* V49 — relations d’accord */
-.agreement-editor-card {
-  gap: 18px;
-}
-
-.agreement-editor-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.editor-toggle {
-  display: inline-flex;
-  width: max-content;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-elevated);
-  font-weight: 800;
-}
-
-.editor-toggle input {
-  width: auto;
-}
-
-.word-analysis-toggle {
-  margin-top: 2px;
-}
-
-.agreement-builder {
-  display: grid;
-  gap: 15px;
-  padding: 15px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface-elevated);
-}
-
-.agreement-builder-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 800;
-}
-
-.agreement-receiver-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.agreement-receiver-choice {
-  min-height: 54px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--surface);
-}
-
-.agreement-receiver-choice.selected {
-  border-color: var(--primary);
-  background: var(--secondary);
-}
-
-.agreement-receiver-choice input {
-  width: auto;
-}
-
-.agreement-receiver-choice strong,
-.agreement-receiver-choice small {
-  display: block;
-}
-
-.agreement-receiver-choice small {
-  margin-top: 2px;
-  color: var(--text-muted);
-}
-
-.agreement-relation-list {
-  display: grid;
-  gap: 8px;
-}
-
-.agreement-relation-row {
-  display: grid;
-  grid-template-columns: minmax(0, .8fr) auto minmax(0, 1.4fr) auto;
-  align-items: center;
-  gap: 12px;
-  min-height: 66px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-elevated);
-}
-
-.agreement-relation-row span,
-.agreement-relation-row strong {
-  display: block;
-}
-
-.agreement-relation-row > div > span {
-  color: var(--text-muted);
-  font-size: .75rem;
-  font-weight: 800;
-}
-
-.agreement-arrow {
-  color: var(--primary);
-  font-size: 1.25rem;
-  font-weight: 900;
-}
-
-.agreement-relation-row > button {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--danger);
-}
-
 .word-class-reader-token.agreement-focus {
   color: var(--text);
   background: color-mix(
@@ -4629,34 +4388,6 @@ textarea {
   box-shadow: 0 0 0 2px
     color-mix(in srgb, var(--warning) 45%, transparent);
 }
-
-@media (max-width: 850px) {
-  .agreement-editor-heading {
-    flex-direction: column;
-  }
-
-  .agreement-receiver-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .agreement-relation-row {
-    grid-template-columns: 1fr auto;
-  }
-
-  .agreement-relation-row .agreement-arrow {
-    display: none;
-  }
-
-  .agreement-relation-row > div:nth-of-type(2) {
-    grid-column: 1;
-  }
-
-  .agreement-relation-row > button {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-}
-
 
 /* V50 — polissage du module Classes de mots */
 .word-class-reader-token {
@@ -4695,47 +4426,6 @@ textarea {
   min-height: 24px;
 }
 
-.word-class-selection-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 11px;
-  border-top: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: .84rem;
-}
-
-.word-class-selection-summary strong {
-  color: var(--text);
-}
-
-.agreement-relation-list-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 2px;
-}
-
-.agreement-relation-list-heading > span {
-  min-width: 31px;
-  min-height: 31px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--secondary);
-  font-weight: 900;
-}
-
-@media (max-width: 760px) {
-  .word-class-selection-summary {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-
-
 /* V51 — correctifs du lecteur Classes de mots */
 .word-class-reader {
   gap: 12px;
@@ -4772,12 +4462,6 @@ textarea {
   text-decoration-thickness: 2px;
   text-underline-offset: .13em;
   text-decoration-color: var(--warning);
-}
-
-.agreement-receiver-grid {
-  max-height: 310px;
-  overflow-y: auto;
-  align-content: start;
 }
 
 /* V52 — rôle donneur/receveur après chaque mot */
@@ -4930,20 +4614,6 @@ textarea {
  * la section « lecteur grammatical partagé » plus bas. */
 
 /* V67 — éditeur Groupes de mots */
-.word-group-editor textarea{width:100%;margin-top:8px}
-.word-group-draft{display:grid;gap:16px}
-.word-group-nucleus-step{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.word-group-nucleus-step p{width:100%;margin:0}
-.word-group-nucleus-chip,.word-group-type-chip{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;background:var(--secondary);font-weight:800}
-.word-group-configured-list{display:grid;gap:10px}
-.word-group-configured-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
-.word-group-configured-row>div{display:grid;gap:3px}
-.word-group-configured-row>div span{font-size:.9rem;color:var(--muted-foreground)}
-.word-group-configured-row button{border:0;background:transparent;cursor:pointer}
-.word-group-preview{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:grid;gap:7px}
-.word-group-preview p{font-size:1.08rem}
-
-
 /* V68 — lecteur Groupes de mots : dessin des crochets */
 .word-group-reader {
   width: min(1320px, 100%);
@@ -5199,37 +4869,6 @@ textarea {
   .word-group-code-box.filled {
     font-size: .9rem;
   }
-}
-
-
-/* V75 — création Groupes de mots : choix direct du noyau */
-.word-group-nucleus-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  width: 100%;
-}
-
-.word-group-nucleus-option {
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--foreground);
-  padding: 7px 11px;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  transition: border-color .12s ease, background .12s ease, color .12s ease;
-}
-
-.word-group-nucleus-option:hover {
-  border-color: var(--primary);
-}
-
-.word-group-nucleus-option.selected {
-  border-color: var(--primary);
-  background: var(--secondary);
-  color: var(--primary);
 }
 
 
@@ -9409,7 +9048,7 @@ textarea {
   display: block;
   min-width: 0;
   min-height: 0;
-  padding: 20px 22px;
+  padding: 24px 28px 36px;
   overflow: auto;
 }
 

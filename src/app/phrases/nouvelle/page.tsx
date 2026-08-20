@@ -3,35 +3,16 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { SentenceEditor } from "@/components/sentence-editor";
-import { WordClassEditor } from "@/components/word-class-editor";
-import { WordGroupEditor } from "@/components/word-group-editor";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
 import { MixedActivityEditor } from "@/components/mixed-activity-editor";
 import { useAppStore } from "@/store/app-store";
-import type { ActivityType, GrammarObjective } from "@/types";
 
 export default function NewSentencePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data, saveSentence } = useAppStore();
 
-  const requestedType = searchParams.get("type");
-  const activityType: ActivityType =
-    requestedType === "text_correction"
-      ? "text_correction"
-      : requestedType === "word_classes"
-        ? "word_classes"
-        : requestedType === "word_groups"
-          ? "word_groups"
-          : requestedType === "tree_analysis"
-            ? "tree_analysis"
-            : "sentence_correction";
-  const requestedObjective = searchParams.get("objective");
-  const primaryObjective: GrammarObjective | undefined =
-    requestedObjective === "functions" || requestedObjective === "agreements" || requestedObjective === "mixed_grammar"
-      ? requestedObjective
-      : undefined;
+  const isTreeAnalysis = searchParams.get("type") === "tree_analysis";
 
   const saveAndReturn = (sentence: Parameters<typeof saveSentence>[0]) => {
     saveSentence(sentence);
@@ -47,63 +28,22 @@ export default function NewSentencePage() {
 
       <div className="page-header">
         <span className="eyebrow">Création</span>
-        <h1>
-          {primaryObjective === "mixed_grammar"
-            ? "Nouvelle activité grammaticale"
-            : activityType === "tree_analysis"
-            ? "Nouvelle analyse en arbre"
-            : activityType === "word_groups"
-            ? "Nouvelle activité sur les groupes de mots"
-            : activityType === "word_classes"
-            ? "Nouvelle activité sur les classes de mots"
-            : activityType === "text_correction"
-              ? "Nouveau texte à corriger"
-              : "Nouvelle phrase à corriger"}
-        </h1>
+        <h1>{isTreeAnalysis ? "Nouvelle analyse en arbre" : "Nouvelle activité grammaticale"}</h1>
         <p>
-          {primaryObjective === "mixed_grammar"
-            ? "Sélectionne les réponses dans la phrase, configure leurs gestes, puis organise les phases du lecteur."
-            : activityType === "tree_analysis"
+          {isTreeAnalysis
             ? "Écris une phrase compatible avec une feuille Lettre en paysage, puis construis son arbre."
-            : activityType === "word_groups"
-            ? "Écris la phrase, délimite chaque groupe, choisis son type et identifie son noyau."
-            : activityType === "word_classes"
-            ? "Choisis les classes travaillées, écris le contenu, puis identifie les mots et leur classe."
-            : activityType === "text_correction"
-              ? "Ajoute un texte, puis identifie les fautes et leurs corrections."
-              : "Ajoute une phrase, puis sélectionne précisément les segments fautifs."}
+            : "Sélectionne les réponses dans la phrase ou le texte, configure leurs gestes, puis organise les phases du lecteur."}
         </p>
       </div>
 
-      {primaryObjective === "mixed_grammar" ? (
-        <MixedActivityEditor levels={data.levels} correctionCodes={data.correctionCodes} onSave={saveAndReturn}/>
-      ) : activityType === "tree_analysis" ? (
+      {isTreeAnalysis ? (
         <TreeAnalysisEditor
           levels={data.levels}
           groups={data.groups}
           onSave={saveAndReturn}
         />
-      ) : activityType === "word_groups" ? (
-        <WordGroupEditor
-          levels={data.levels}
-          groups={data.groups}
-          onSave={saveAndReturn}
-        />
-      ) : activityType === "word_classes" ? (
-        <WordClassEditor
-          levels={data.levels}
-          groups={data.groups}
-          onSave={saveAndReturn}
-        />
       ) : (
-        <SentenceEditor
-          activityType={activityType}
-          primaryObjective={primaryObjective}
-          levels={data.levels}
-          groups={data.groups}
-          correctionCodes={data.correctionCodes}
-          onSave={saveAndReturn}
-        />
+        <MixedActivityEditor levels={data.levels} correctionCodes={data.correctionCodes} onSave={saveAndReturn}/>
       )}
     </div>
   );

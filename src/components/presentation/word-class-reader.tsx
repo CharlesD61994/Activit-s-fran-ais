@@ -1582,11 +1582,19 @@ export function WordClassReader({
                 <path
                   className="agreement-arrow-path frozen"
                   d={arrow.path}
+                  fill="none"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   style={{ stroke: arrow.color }}
                 />
                 <path
                   className="agreement-arrow-tip frozen"
                   d={arrow.tipPath}
+                  fill="none"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   style={{ stroke: arrow.color }}
                 />
               </g>
@@ -1597,11 +1605,19 @@ export function WordClassReader({
                 <path
                   className="agreement-arrow-path draft"
                   d={draftAgreementArrow.path}
+                  fill="none"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   style={{ stroke: draftAgreementArrow.color }}
                 />
                 <path
                   className="agreement-arrow-tip draft"
                   d={draftAgreementArrow.tipPath}
+                  fill="none"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   style={{ stroke: draftAgreementArrow.color }}
                 />
               </g>

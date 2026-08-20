@@ -5,7 +5,7 @@ export type BoundaryAnchor = { x: number; y: number; height: number };
 
 export function tokenizeGrammarText(text: string, prefix = "grammar-token"): GrammarRangeToken[] {
   return Array.from(
-    text.matchAll(/[\p{L}\p{M}]+|\s+|[^\p{L}\p{M}\s]+/gu)
+    text.matchAll(/[\p{L}\p{M}]+['’](?=[\p{L}\p{M}])|[\p{L}\p{M}]+|\s+|[^\p{L}\p{M}\s]+/gu)
   ).map((match, index) => {
     const value = match[0];
     const start = match.index ?? 0;

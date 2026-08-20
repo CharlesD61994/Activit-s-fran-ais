@@ -23,6 +23,20 @@
   --reader-annotation-leading-compensation: 0px;
 }
 
+/* Dans l’éditeur du corrigé, le flux occupe une vraie rangée défilable. Il ne
+ * doit pas devenir `display: contents`, sinon la phrase traverse le pied de la
+ * fenêtre et les outils recouvrent le texte. */
+.correction-arrow-reader.reader-activity-flow {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.correction-arrow-reader .word-class-reader {
+  min-width: 1180px;
+}
+
 .reader-activity-flow .interactive-reader,
 .reader-activity-flow .word-group-reader,
 .reader-activity-flow .word-class-reader,

@@ -11,7 +11,12 @@ import { createPortal } from "react-dom";
 import { toPng } from "html-to-image";
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
-import { grammarObjectiveLabels, getSentenceObjective } from "@/lib/grammar-workflow";
+import {
+  getSecondaryObjectives,
+  grammarObjectiveLabels,
+  grammarPhaseLabels,
+  getSentenceObjective
+} from "@/lib/grammar-workflow";
 import type { Sentence } from "@/types";
 
 export type CorrectionPrintSheetHandle = {
@@ -36,6 +41,12 @@ export const CorrectionPrintSheet = forwardRef<CorrectionPrintSheetHandle, Props
     const [mounted, setMounted] = useState(false);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const captureRef = useRef<HTMLDivElement>(null);
+    const secondaryTags = getSecondaryObjectives(sentence).map(
+      (objective) => grammarPhaseLabels[objective]
+    );
+    const printedTags = Array.from(
+      new Set([...secondaryTags, ...(sentence.tags ?? [])])
+    );
 
     useEffect(() => setMounted(true), []);
 
@@ -68,7 +79,7 @@ export const CorrectionPrintSheet = forwardRef<CorrectionPrintSheetHandle, Props
           <h1>{sentence.title}</h1>
           <div className="correction-print-tags">
             <strong>{grammarObjectiveLabels[getSentenceObjective(sentence)]}</strong>
-            {(sentence.tags ?? []).map((tag) => <i key={tag}>{tag}</i>)}
+            {printedTags.map((tag) => <i key={tag}>{tag}</i>)}
           </div>
         </header>
 

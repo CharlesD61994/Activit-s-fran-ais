@@ -26,8 +26,10 @@ import {
 } from "@/components/grammar/shared-annotated-text";
 import {
   createWorkflowPhase,
+  getSentenceWorkflow,
   grammarObjectiveLabels,
-  normalizeGrammarWorkflow
+  normalizeGrammarWorkflow,
+  objectiveFromActivityType
 } from "@/lib/grammar-workflow";
 import {
   grammarAnnotationAnswers,
@@ -168,7 +170,11 @@ export function MixedActivityEditor({
     initialSentence?.difficulty ?? "medium"
   );
   const [primaryObjective, setPrimaryObjective] = useState<GrammarObjective>(
-    initialSentence?.primaryObjective ?? "mixed_grammar"
+    initialSentence?.primaryObjective ?? (
+      initialSentence
+        ? objectiveFromActivityType(initialSentence.activityType)
+        : "mixed_grammar"
+    )
   );
   const [text, setText] = useState(initialSentence?.originalText ?? "");
   const [annotations, setAnnotations] = useState<GrammarAnnotation[]>(() => {
@@ -192,7 +198,7 @@ export function MixedActivityEditor({
   );
   const [phases, setPhases] = useState<GrammarWorkflowPhase[]>(() =>
     normalizeGrammarWorkflow(
-      initialSentence?.workflowPhases ?? [],
+      initialSentence ? getSentenceWorkflow(initialSentence) : [],
       Boolean(
         initialSentence?.grammarAnnotations?.some(
           (annotation) => annotation.kind === "nucleus"
