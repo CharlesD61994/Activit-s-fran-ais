@@ -544,7 +544,7 @@ export default function PresentationPage({
             : ""
         }`}
       >
-        <section className="reader-command-ribbon">
+        <section className={`reader-command-ribbon ${isWorksheetActivity ? "worksheet-reader-ribbon" : ""}`}>
           <div className="reader-command-instruction">
             <span className="reader-command-number"><Target size={25} /></span>
             <div>
@@ -603,7 +603,7 @@ export default function PresentationPage({
         )}
         </section>
 
-        <section className="reader-command-dock">
+        <section className={`reader-command-dock ${isWorksheetActivity ? "worksheet-reader-dock" : ""}`}>
           <ReaderChromeTarget slot="progress" className="reader-command-progress-slot" />
           <ReaderChromeTarget slot="contextTools" className="reader-command-context-slot" />
           <ReaderChromeTarget slot="actions" className="reader-command-actions-slot" />

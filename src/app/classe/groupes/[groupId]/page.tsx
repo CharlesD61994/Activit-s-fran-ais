@@ -7,6 +7,7 @@ import {
   BookOpen,
   CalendarDays,
   ChevronRight,
+  FileText,
   Flag,
   Play,
   Pencil,
@@ -247,7 +248,9 @@ export default function ClassroomGroupPage({
 
         <div className="classroom-mission-body">
           <div className="classroom-mission-icon">
-            {objectiveKey === "mixed_grammar" ? (
+            {objectiveKey === "worksheet" ? (
+              <FileText size={28} />
+            ) : objectiveKey === "mixed_grammar" ? (
               <Sparkles size={28} />
             ) : objectiveKey === "functions" ? (
               <Flag size={28} />
