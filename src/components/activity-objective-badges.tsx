@@ -15,6 +15,8 @@ type Props = {
 export function getActivityObjectiveKey(sentence: Sentence) {
   return sentence.activityType === "tree_analysis"
     ? "tree_analysis" as const
+    : sentence.activityType === "worksheet"
+      ? "worksheet" as const
     : getSentenceObjective(sentence);
 }
 
@@ -24,13 +26,15 @@ export function ActivityObjectiveBadges({
   primaryOnly = false
 }: Props) {
   const secondaryObjectives =
-    sentence.activityType === "tree_analysis"
+    sentence.activityType === "tree_analysis" || sentence.activityType === "worksheet"
       ? []
       : getSecondaryObjectives(sentence);
   const primaryKey = getActivityObjectiveKey(sentence);
   const primaryLabel =
     primaryKey === "tree_analysis"
       ? "Analyse en arbre"
+      : primaryKey === "worksheet"
+        ? "Feuille d’activité"
       : grammarObjectiveLabels[primaryKey];
 
   return (

@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
 import { MixedActivityEditor } from "@/components/mixed-activity-editor";
+import { WorksheetEditor } from "@/components/worksheet-editor";
 import { Card } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
 
@@ -20,6 +21,7 @@ export default function EditSentencePage({ params }: { params: Promise<{ sentenc
   }
 
   const isTreeAnalysisActivity = sentence.activityType === "tree_analysis";
+  const isWorksheetActivity = sentence.activityType === "worksheet";
 
   return (
     <div className="page">
@@ -30,7 +32,7 @@ export default function EditSentencePage({ params }: { params: Promise<{ sentenc
         <p>
           {isTreeAnalysisActivity
             ? "Modifie la phrase et sa mise en page d’analyse en arbre."
-            : "Modifie le contenu, les réponses et le déroulement dans l’éditeur grammatical unifié."}
+            : isWorksheetActivity ? "Modifie la mise en page, les réponses et le déroulement de la feuille." : "Modifie le contenu, les réponses et le déroulement dans l’éditeur grammatical unifié."}
         </p>
       </div>
       {isTreeAnalysisActivity ? (
@@ -43,6 +45,8 @@ export default function EditSentencePage({ params }: { params: Promise<{ sentenc
             router.push("/phrases");
           }}
         />
+      ) : isWorksheetActivity ? (
+        <WorksheetEditor initialSentence={sentence} levels={data.levels} onSave={(updated) => { saveSentence(updated); router.push("/phrases"); }}/>
       ) : (
         <MixedActivityEditor
           initialSentence={sentence}

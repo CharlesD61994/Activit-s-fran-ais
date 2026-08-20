@@ -5,7 +5,8 @@ export const activityTypeLabels: Record<ActivityType, string> = {
   text_correction: "Texte à corriger",
   word_classes: "Classes de mots",
   word_groups: "Groupes de mots",
-  tree_analysis: "Analyse en arbre"
+  tree_analysis: "Analyse en arbre",
+  worksheet: "Feuille d’activité"
 };
 
 export const wordClassLabels: Record<WordClass, string> = {

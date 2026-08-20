@@ -88,6 +88,7 @@ export default function SentencesPage() {
           <option value="word_classes">Classes de mots</option>
           <option value="word_groups">Groupes de mots</option>
           <option value="tree_analysis">Analyse en arbre</option>
+          <option value="worksheet">Feuille d’activité</option>
         </select>
 
         <select value={difficulty} onChange={(event) => setDifficulty(event.target.value as SentenceDifficulty | "all")} aria-label="Filtrer par difficulté">
@@ -103,13 +104,17 @@ export default function SentencesPage() {
           const level = data.levels.find((item) => item.id === sentence.levelId);
           const isWordClassActivity = sentence.activityType === "word_classes";
           const isWordGroupActivity = sentence.activityType === "word_groups";
+          const isWorksheetActivity = sentence.activityType === "worksheet";
           const targetCount =
             getWordClassAnalysisTargetCount(sentence);
           const wordGroupCount = sentence.wordGroupTargets?.length ?? 0;
+          const worksheetStepCount = (sentence.worksheetAnswerLines?.length ?? 0) + (sentence.treeAnalysisTables?.filter((table) => table.cells.some((cell) => cell.isCorrect)).length ?? 0);
           const maxPoints = isWordClassActivity
             ? getWordClassActivityPointTotal(sentence)
             : isWordGroupActivity
               ? wordGroupCount * 2
+              : isWorksheetActivity
+                ? worksheetStepCount
               : sentence.corrections.reduce(
                 (sum, correction) => sum + correction.points,
                 0
@@ -179,6 +184,8 @@ export default function SentencesPage() {
                     ? `${targetCount} mot${targetCount > 1 ? "s" : ""}`
                     : isWordGroupActivity
                       ? `${wordGroupCount} groupe${wordGroupCount > 1 ? "s" : ""}`
+                      : isWorksheetActivity
+                        ? `${sentence.treeAnalysisDocumentPages?.length ?? 1} page${(sentence.treeAnalysisDocumentPages?.length ?? 1) > 1 ? "s" : ""}`
                       : `${sentence.corrections.length} erreur${sentence.corrections.length > 1 ? "s" : ""}`}
                 </span>
                 <span>{maxPoints} points</span>
@@ -239,6 +246,10 @@ export default function SentencesPage() {
                     et à l’impression en format paysage.
                   </p>
                 </div>
+              </Link>
+              <Link href="/phrases/nouvelle?type=worksheet" className="activity-type-choice">
+                <span className="activity-type-choice-icon">☷</span>
+                <span><strong>Feuille d’activité</strong><small>Crée une feuille portrait avec du texte, des tableaux et des réponses révélables.</small></span>
               </Link>
             </div>
           </Card>

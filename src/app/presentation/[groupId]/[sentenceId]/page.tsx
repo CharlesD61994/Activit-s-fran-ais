@@ -14,6 +14,7 @@ import { InteractiveSentenceReader } from "@/components/presentation/interactive
 import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
 import { TreeAnalysisReader } from "@/components/presentation/tree-analysis-reader";
+import { WorksheetReader } from "@/components/presentation/worksheet-reader";
 import {
   ReaderChromeProvider,
   ReaderChromeTarget
@@ -144,6 +145,7 @@ export default function PresentationPage({
   const isWordClassActivity = sentence?.activityType === "word_classes";
   const isWordGroupActivity = sentence?.activityType === "word_groups";
   const isTreeAnalysisActivity = sentence?.activityType === "tree_analysis";
+  const isWorksheetActivity = sentence?.activityType === "worksheet";
 
   const restorePendingPoints = useCallback((points: PendingPoint[]) => {
     setPendingPoints(points);
@@ -537,7 +539,7 @@ export default function PresentationPage({
         className={`reader-scene-main ${
           isTextActivity ? "reader-scene-main-text" : ""
         } ${
-          isWordClassActivity || isWordGroupActivity || isTreeAnalysisActivity
+          isWordClassActivity || isWordGroupActivity || isTreeAnalysisActivity || isWorksheetActivity
             ? "reader-scene-main-word-classes"
             : ""
         }`}
@@ -560,7 +562,9 @@ export default function PresentationPage({
         </section>
 
         <section className="reader-activity-flow">
-        {isTreeAnalysisActivity ? (
+        {isWorksheetActivity ? (
+          <WorksheetReader sentence={sentence} persistenceKey={readerPersistenceKey} finishControl={finishControl}/>
+        ) : isTreeAnalysisActivity ? (
           <TreeAnalysisReader
             sentence={sentence}
             persistenceKey={readerPersistenceKey}

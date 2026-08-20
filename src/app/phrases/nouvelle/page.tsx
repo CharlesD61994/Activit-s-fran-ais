@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
 import { MixedActivityEditor } from "@/components/mixed-activity-editor";
+import { WorksheetEditor } from "@/components/worksheet-editor";
 import { useAppStore } from "@/store/app-store";
 
 export default function NewSentencePage() {
@@ -13,6 +14,7 @@ export default function NewSentencePage() {
   const { data, saveSentence } = useAppStore();
 
   const isTreeAnalysis = searchParams.get("type") === "tree_analysis";
+  const isWorksheet = searchParams.get("type") === "worksheet";
 
   const saveAndReturn = (sentence: Parameters<typeof saveSentence>[0]) => {
     saveSentence(sentence);
@@ -28,10 +30,12 @@ export default function NewSentencePage() {
 
       <div className="page-header">
         <span className="eyebrow">Création</span>
-        <h1>{isTreeAnalysis ? "Nouvelle analyse en arbre" : "Nouvelle activité grammaticale"}</h1>
+        <h1>{isTreeAnalysis ? "Nouvelle analyse en arbre" : isWorksheet ? "Nouvelle feuille d’activité" : "Nouvelle activité grammaticale"}</h1>
         <p>
           {isTreeAnalysis
             ? "Écris une phrase compatible avec une feuille Lettre en paysage, puis construis son arbre."
+            : isWorksheet
+              ? "Compose une feuille Lettre en portrait et ajoute des réponses révélables dans le lecteur."
             : "Sélectionne les réponses dans la phrase ou le texte, configure leurs gestes, puis organise les phases du lecteur."}
         </p>
       </div>
@@ -42,6 +46,8 @@ export default function NewSentencePage() {
           groups={data.groups}
           onSave={saveAndReturn}
         />
+      ) : isWorksheet ? (
+        <WorksheetEditor levels={data.levels} onSave={saveAndReturn}/>
       ) : (
         <MixedActivityEditor levels={data.levels} correctionCodes={data.correctionCodes} onSave={saveAndReturn}/>
       )}

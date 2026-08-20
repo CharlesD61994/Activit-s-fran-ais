@@ -61,7 +61,8 @@ export type ActivityType =
   | "text_correction"
   | "word_classes"
   | "word_groups"
-  | "tree_analysis";
+  | "tree_analysis"
+  | "worksheet";
 
 export type GrammarObjective =
   | "sentence_correction"
@@ -379,6 +380,18 @@ export type AgreementRelation = {
   arrowReceiverIds?: string[];
 };
 
+export type WorksheetAnswerLines = {
+  id: string;
+  pageId: string;
+  x: number;
+  y: number;
+  width: number;
+  lineCount: number;
+  lineSpacing: number;
+  answer: string;
+  answerFontSize: number;
+};
+
 export type SentenceCorrection = {
   id: string;
   start: number;
@@ -421,6 +434,8 @@ export type Sentence = {
   treeAnalysisTextBoxes?: TreeAnalysisTextBox[];
   treeAnalysisInteractions?: TreeAnalysisInteraction[];
   treeAnalysisFlow?: TreeAnalysisFlow;
+  worksheetAnswerLines?: WorksheetAnswerLines[];
+  worksheetReaderOrder?: string[];
   assignedGroupIds: string[];
   competitionEnabled?: boolean;
   assignmentStatusByGroup?: Record<string, AssignmentStatus>;

@@ -9029,3 +9029,50 @@ textarea {
   gap: 10px;
   padding-top: 4px;
 }
+.worksheet-editor { display: grid; gap: 22px; }
+.worksheet-editor .tree-analysis-builder-card { overflow: visible; }
+.worksheet-canvas, .worksheet-reader-page { background: #fff; }
+.worksheet-lines-toolbar { display: grid; grid-template-columns: repeat(4,minmax(120px,1fr)); gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.worksheet-lines-toolbar label { display: grid; gap: 5px; font-weight: 800; }
+.worksheet-lines-toolbar input, .worksheet-lines-toolbar textarea { width: 100%; }
+.worksheet-lines-toolbar .worksheet-answer-field { grid-column: 1 / -1; }
+.worksheet-lines-toolbar textarea { min-height: 72px; resize: vertical; }
+.worksheet-answer-lines { position: absolute; display: block; padding: 0; border: 0; background: transparent; color: #111; cursor: move; }
+.worksheet-answer-lines.selected { outline: 2px dashed #2f658e; outline-offset: 5px; }
+.worksheet-answer-lines > span { position: absolute; left: 0; right: 0; height: 1px; border-top: 1px solid #111; }
+.worksheet-answer-copy { position: absolute; inset: 0 4px auto; z-index: 1; white-space: pre-wrap; line-height: 1.65; color: #ed18e8; text-align: left; pointer-events: none; }
+.worksheet-answer-lines.reader { cursor: pointer; }
+.worksheet-answer-lines.reader.active { border-radius: 4px; background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.worksheet-answer-lines.reader:disabled { opacity: 1; cursor: default; }
+.worksheet-flow-panel { margin-top: 0; }
+.worksheet-page-navigation { display: flex; align-items: center; gap: 8px; }
+.worksheet-page-navigation button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.activity-type-badge.objective-worksheet { background: #f1e2ff; color: #71379b; }
+.worksheet-bank-preview { display: flex; align-items: center; gap: 14px; }
+.worksheet-bank-preview span { color: var(--muted); }
+.worksheet-table-toolbar { align-items: center; gap: 12px; }
+@media (max-width: 900px) { .worksheet-lines-toolbar { grid-template-columns: 1fr 1fr; } }
+
+@media print {
+  @page { size: letter portrait; margin: 0; }
+  body:has(.worksheet-editor) > * { display: block !important; }
+  .worksheet-editor .tree-analysis-page-shell.builder,
+  .worksheet-editor .tree-analysis-page-shell.builder * { visibility: visible !important; }
+  .worksheet-editor .tree-analysis-page-shell.builder {
+    position: fixed;
+    inset: 0;
+    width: 8.5in;
+    height: 11in;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 0;
+    background: #fff;
+  }
+  .worksheet-editor .tree-analysis-page-shell.builder .tree-analysis-page {
+    width: 8.5in;
+    height: 11in;
+    min-width: 0;
+    box-shadow: none;
+  }
+  .worksheet-editor .worksheet-answer-lines.selected { outline: 0; }
+}
