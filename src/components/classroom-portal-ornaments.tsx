@@ -16,14 +16,6 @@ export function ClassroomGroupEmblem({
     >
       <svg viewBox="0 0 156 156" role="img" aria-hidden="true">
         <path
-          className="classroom-ornament-laurel"
-          d="M30 128C13 106 12 77 25 54M126 128c17-22 18-51 5-74"
-        />
-        <path
-          className="classroom-ornament-leaves"
-          d="M24 113l-13-3m17-12-14-7m17-8-12-10m17-5-9-13m105 58 13-3m-17-12 14-7m-17-8 12-10m-17-5 9-13"
-        />
-        <path
           className="classroom-ornament-shield-body"
           d="M78 10 129 29l-5 73c-12 20-27 34-46 44-19-10-34-24-46-44l-5-73Z"
         />
