@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 export type SharedTextRange = { start: number; end: number };
-export type SharedTextMark = SharedTextRange & { id?: string; color?: string | null; backgroundColor?: string; underlineColor?: string; framed?: boolean; bold?: boolean };
+export type SharedTextMark = SharedTextRange & { id?: string; color?: string | null; backgroundColor?: string; underlineColor?: string; framed?: boolean; bold?: boolean; fontScale?: number };
 
 export function rebaseSharedTextRange(previousText: string, nextText: string, start: number, end: number): SharedTextRange {
   if (previousText === nextText) return { start, end };
@@ -45,7 +45,8 @@ export function groupSharedTextMarks(text: string, marks: SharedTextMark[]) {
       backgroundColor: [...active].reverse().find((mark) => mark.backgroundColor !== undefined)?.backgroundColor,
       underlineColor: [...active].reverse().find((mark) => mark.underlineColor !== undefined)?.underlineColor,
       framed: active.some((mark) => mark.framed === true),
-      bold: active.some((mark) => mark.bold === true)
+      bold: active.some((mark) => mark.bold === true),
+      fontScale: [...active].reverse().find((mark) => mark.fontScale !== undefined)?.fontScale
     };
   });
   return segments.reduce<Array<{ framed: boolean; segments: typeof segments }>>((result, segment) => {
@@ -60,7 +61,7 @@ export function renderSharedAnnotatedText(text: string, marks: SharedTextMark[],
   const groups = groupSharedTextMarks(text, marks);
   return groups.map((group, groupIndex) => (
     <span key={`${groupIndex}-${group.segments[0]?.start ?? 0}`} className={group.framed ? framedClassName : undefined}>
-      {group.segments.map((segment) => <span key={`${segment.start}-${segment.end}`} style={{ color: segment.color ?? undefined, backgroundColor: segment.backgroundColor, fontWeight: segment.bold ? 700 : undefined, textDecoration: segment.underlineColor ? "underline" : undefined, textDecorationColor: segment.underlineColor }}>{segment.text}</span>)}
+      {group.segments.map((segment) => <span key={`${segment.start}-${segment.end}`} style={{ color: segment.color ?? undefined, backgroundColor: segment.backgroundColor, fontWeight: segment.bold ? 700 : undefined, fontSize: segment.fontScale ? `${segment.fontScale}em` : undefined, textDecoration: segment.underlineColor ? "underline" : undefined, textDecorationColor: segment.underlineColor }}>{segment.text}</span>)}
     </span>
   ));
 }

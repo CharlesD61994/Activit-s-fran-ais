@@ -346,6 +346,7 @@ export type TreeAnalysisTextAnnotation = {
   color?: string | null;
   framed?: boolean;
   bold?: boolean;
+  fontScale?: number;
 };
 
 export type TreeAnalysisTextBox = {

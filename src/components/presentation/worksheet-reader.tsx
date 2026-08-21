@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Minus, Plus, RotateCcw } from "lucide-react";
@@ -10,14 +10,45 @@ import type { Sentence, TreeAnalysisTable, TreeAnalysisTableCell, TreeAnalysisTe
 import { isFixedWorksheetTable, normalizedColumnWidths, normalizedRowHeights, tableHasInteraction, worksheetTableWidth } from "@/lib/worksheet-tables";
 import { worksheetDimensionAsset } from "@/lib/worksheet-dimensions";
 import { worksheetTextWrap } from "@/lib/worksheet-images";
+import { renderSharedAnnotatedText } from "@/components/grammar/shared-annotated-text";
 
 type Props = { sentence: Sentence; persistenceKey?: string; finishControl?: ReactNode };
 const W = 1056;
 const H = 816;
-const WORKSHEET_TEXT_LINE_HEIGHT = 1.15;
+const WORKSHEET_TEXT_LINE_HEIGHT = 1.1;
 
 function ReaderText({ box, wrap }: { box: TreeAnalysisTextBox; wrap: ReturnType<typeof worksheetTextWrap> }) {
-  return <>{wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} style={{ width: `${wrap.width / box.width * 100}%`, height: `${wrap.height / box.height * 100}%`, marginTop: `${wrap.marginTop / box.height * 100}%` }}/>}<>{box.text}</></>;
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [lineCenters, setLineCenters] = useState<number[]>([]);
+  useLayoutEffect(() => {
+    const element = contentRef.current;
+    if (!element || !box.showLineNumbers) { setLineCenters([]); return; }
+    const measure = () => {
+      const root = element.getBoundingClientRect();
+      const centers: number[] = [];
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      let node = walker.nextNode();
+      while (node) {
+        const value = node.textContent ?? "";
+        for (let index = 0; index < value.length; index += 1) {
+          if (/\s/u.test(value[index]) && value[index] !== "\u00a0") continue;
+          const range = document.createRange();
+          range.setStart(node, index); range.setEnd(node, index + 1);
+          const rect = range.getClientRects()[0];
+          if (rect?.height) {
+            const center = rect.top - root.top + rect.height / 2;
+            if (!centers.some((candidate) => Math.abs(candidate - center) < 2)) centers.push(center);
+          }
+        }
+        node = walker.nextNode();
+      }
+      setLineCenters(centers.sort((a,b)=>a-b));
+    };
+    measure();
+    const observer = new ResizeObserver(measure); observer.observe(element);
+    return () => observer.disconnect();
+  }, [box.annotations, box.fontSize, box.height, box.showLineNumbers, box.text, box.width, wrap]);
+  return <>{box.showLineNumbers&&<div className="worksheet-line-numbers" aria-hidden>{lineCenters.map((top,index)=>(index+1)%5===0?<span key={index} style={{top}}>{index+1}</span>:null)}</div>}<div ref={contentRef} className="worksheet-reader-text-content">{wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} style={{ width: `${wrap.width / box.width * 100}%`, height: `${wrap.height / box.height * 100}%`, marginTop: `${wrap.marginTop / box.height * 100}%` }}/>}<>{renderSharedAnnotatedText(box.text,box.annotations,"tree-analysis-framed-text")}</></div></>;
 }
 
 function ReaderCell({ cell, revealed }: { cell: TreeAnalysisTableCell; revealed: boolean }) {
@@ -95,7 +126,7 @@ export function WorksheetReader({ sentence, persistenceKey, finishControl }: Pro
       <div className="tree-analysis-document-header" style={{ left: `${page.margins.left / W * 100}%`, right: `${page.margins.right / W * 100}%`, top: `${(page.header?.nameY ?? 25) / H * 100}%` }}><div className="tree-analysis-document-header-top"><div className="tree-analysis-student-fields"><span>NOM</span><span>GROUPE</span></div><div className="tree-analysis-page-cell"><div className="tree-analysis-page-badge">{pageIndex + 1}</div></div></div><div className="tree-analysis-document-header-bottom"><div>{page.header?.activityType || "EXERCICES"}</div><div>{page.header?.activityTitle || sentence.title}</div></div></div>
       {(page.mainTitle?.enabled ?? true) && <div className="tree-analysis-document-title-banner" style={{ left: `${(page.margins.left - 53) / W * 100}%`, right: `${(page.margins.right - 53) / W * 100}%`, top: `${82 / H * 100}%` }}><div className="tree-analysis-document-title-line">{page.mainTitle?.prefix} <span>–</span> {page.mainTitle?.title}</div><div className="tree-analysis-document-title-label">{page.mainTitle?.subtitle}</div>{page.mainTitle?.scoreTotal !== undefined && <div className="worksheet-main-title-score"><span>Total :</span><span className="worksheet-main-title-score-box"><i aria-hidden="true"/><b>/{page.mainTitle.scoreTotal}</b></span></div>}</div>}
       {badges.filter((item) => item.pageId === pageId).map((item) => <div key={item.id} className="tree-analysis-question-badge reader" style={{ left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%` }}><span>{item.number}</span></div>)}
-      {textBoxes.filter((item) => item.pageId === pageId).map((item) => <div key={item.id} className="tree-reader-text worksheet-reader-text" style={{ left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%`, width: `${item.width / W * 100}%`, height: `${item.height / H * 100}%`, fontSize: `${item.fontSize / W * 100}cqw`, fontWeight: item.bold ? 800 : 400, textAlign: item.textAlign ?? "left", "--worksheet-text-line-height": WORKSHEET_TEXT_LINE_HEIGHT } as React.CSSProperties}>{item.showLineNumbers && <div className="worksheet-line-numbers">{Array.from({ length: Math.floor(item.height / (item.fontSize * WORKSHEET_TEXT_LINE_HEIGHT) / 5) }, (_, index) => <span key={index} style={{ top: `${((index + 1) * 5 * item.fontSize * WORKSHEET_TEXT_LINE_HEIGHT) / item.height * 100}%` }}>{(index + 1) * 5}</span>)}</div>}<ReaderText box={item} wrap={worksheetTextWrap(item, images)}/></div>)}
+      {textBoxes.filter((item) => item.pageId === pageId).map((item) => <div key={item.id} className="tree-reader-text worksheet-reader-text" style={{ left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%`, width: `${item.width / W * 100}%`, height: `${item.height / H * 100}%`, fontSize: `${item.fontSize / W * 100}cqw`, fontWeight: item.bold ? 800 : 400, textAlign: item.textAlign ?? "left", "--worksheet-text-line-height": WORKSHEET_TEXT_LINE_HEIGHT } as React.CSSProperties}><ReaderText box={item} wrap={worksheetTextWrap(item, images)}/></div>)}
       {images.filter((item) => item.pageId === pageId).map((item) => { const mode = item.layoutMode ?? (item.wrapText ? "wrap" : "front"); return <div key={item.id} className={`worksheet-page-image reader layout-${mode}`} style={{ left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%`, width: `${item.width / W * 100}%`, height: `${item.height / H * 100}%` }}><Image src={item.src} alt={item.alt} fill sizes="50vw" unoptimized/></div>; })}
       {scoreBoxes.filter((item) => (item.pageId ?? pages[0]?.id) === pageId).map((item) => <div key={item.id} className="tree-analysis-score-box worksheet-score-box" style={{ left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%`, width: `${(item.width ?? 120) / W * 100}%`, height: `${(item.height ?? 42) / H * 100}%`, fontSize: `${Math.max(12, Math.min((item.height ?? 42) * .46, (item.width ?? 120) / (String(item.total).length + 5))) / W * 100}cqw` }}><span>{item.earned ?? "___"} / {item.total}</span></div>)}
       {bands.filter((item) => item.pageId === pageId).map((item) => { const asset = worksheetDimensionAsset(item.dimension); return <div key={item.id} className="worksheet-dimension-band reader" style={{ left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%`, width: `${asset.width / W * 100}%`, height: `${asset.height / H * 100}%` }}><Image src={asset.src} alt={item.dimension} width={asset.width} height={asset.height} unoptimized/></div>; })}
