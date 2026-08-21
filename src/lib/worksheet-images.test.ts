@@ -17,7 +17,12 @@ const box: TreeAnalysisTextBox = {
 describe("worksheetTextWrap", () => {
   it("creates a left floating space for an overlapping image", () => {
     const image: WorksheetImage = { id: "image", pageId: "page", x: 120, y: 130, width: 140, height: 100, src: "data:image/png;base64,x", alt: "", wrapText: true };
-    expect(worksheetTextWrap(box, [image])).toEqual({ side: "left", width: 150, height: 108, marginTop: 30 });
+    expect(worksheetTextWrap(box, [image])).toEqual({ side: "left", width: 170, height: 108, marginTop: 30 });
+  });
+
+  it("reserves the complete right side when an image sits inside the text box", () => {
+    const image: WorksheetImage = { id: "image", pageId: "page", x: 430, y: 130, width: 100, height: 100, src: "data:image/png;base64,x", alt: "", wrapText: true };
+    expect(worksheetTextWrap(box, [image])).toEqual({ side: "right", width: 180, height: 108, marginTop: 30 });
   });
 
   it("ignores images on another page or with wrapping disabled", () => {

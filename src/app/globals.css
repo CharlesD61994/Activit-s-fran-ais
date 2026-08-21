@@ -9046,7 +9046,7 @@ textarea {
 .worksheet-answer-lines { position: absolute; display: block; padding: 0; border: 0; background: transparent; color: #111; cursor: move; }
 .worksheet-answer-lines.selected { outline: 2px dashed #2f658e; outline-offset: 5px; }
 .worksheet-answer-lines > span { position: absolute; left: 0; right: 0; height: 1px; border-top: 1px solid #111; }
-.worksheet-answer-copy { position: absolute; inset: 0 4px auto; z-index: 1; white-space: pre-wrap; line-height: 1.65; color: #ed18e8; text-align: left; pointer-events: none; }
+.worksheet-answer-copy { position: absolute; inset: 0 4px auto; z-index: 1; white-space: pre-wrap; line-height: 1.65; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; text-align: left; pointer-events: none; }
 .worksheet-answer-lines.reader { cursor: pointer; }
 .worksheet-answer-lines.reader.active { border-radius: 4px; background: color-mix(in srgb, var(--primary) 6%, transparent); }
 .worksheet-answer-lines.reader:disabled { opacity: 1; cursor: default; }
@@ -9078,25 +9078,28 @@ textarea {
   display: grid;
   gap: 10px;
   padding: 14px;
-  overflow: visible;
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
   box-shadow: 0 12px 30px rgb(16 48 74 / 12%);
 }
-.worksheet-table-toolbar-row, .worksheet-cell-toolbar { display: flex; flex-wrap: nowrap; align-items: end; gap: 8px; }
-.worksheet-table-toolbar-row button { flex: 0 1 auto; min-height: 36px; padding: 6px 9px; white-space: nowrap; }
-.worksheet-table-toolbar-row > span { flex: 1 1 260px; color: var(--muted-foreground); font-size: .9rem; }
+.worksheet-table-toolbar-row { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 7px; }
+.worksheet-table-toolbar-row strong { margin-right: 4px; white-space: nowrap; }
+.worksheet-table-toolbar-row button { flex: 0 0 auto; min-height: 32px; padding: 5px 8px; font-size: .78rem; white-space: nowrap; }
+.worksheet-table-toolbar-row > span { flex: 1 1 240px; min-width: 180px; color: var(--muted-foreground); font-size: .78rem; line-height: 1.25; }
 .worksheet-table-toolbar label, .worksheet-score-toolbar label, .worksheet-band-toolbar label { display: grid; gap: 4px; font-size: .82rem; font-weight: 800; }
 .worksheet-table-toolbar input, .worksheet-table-toolbar select, .worksheet-score-toolbar input, .worksheet-band-toolbar input, .worksheet-band-toolbar select { min-height: 38px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--foreground); }
-.worksheet-cell-toolbar { padding: 10px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 7%, var(--surface)); }
-.worksheet-cell-toolbar label { flex: 1 1 0; min-width: 86px; }
+.worksheet-cell-toolbar { display: grid; grid-template-columns: repeat(5, minmax(96px, 1fr)) minmax(72px, .65fr) auto auto; align-items: end; gap: 7px; min-width: 0; padding: 9px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 7%, var(--surface)); }
+.worksheet-cell-toolbar label { min-width: 0; }
+.worksheet-cell-toolbar select, .worksheet-cell-toolbar input[type="number"] { width: 100%; min-width: 0; }
 .worksheet-cell-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 7px; min-height: 38px; }
 .worksheet-cell-toolbar .worksheet-checkbox input { min-height: 0; }
 .worksheet-cell-toolbar .worksheet-cell-answer { flex: 1 1 260px; }
 .worksheet-text-box { min-height: 0; }
-.worksheet-textarea { display: block; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; padding: 1px 3px; resize: none; border: 0; background: transparent; color: inherit; font: inherit; line-height: 1.2; text-align: inherit; overflow: hidden; }
-.worksheet-wrapped-text, .worksheet-reader-text { box-sizing: border-box; height: 100%; overflow: hidden; white-space: pre-wrap; line-height: 1.2; }
+.worksheet-textarea { display: block; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; padding: 1px 3px; resize: none; border: 0; background: transparent; color: inherit; font: inherit; line-height: var(--worksheet-text-line-height, 1.15); text-align: inherit; overflow: hidden; }
+.worksheet-wrapped-text, .worksheet-reader-text { box-sizing: border-box; height: 100%; overflow: hidden; white-space: pre-wrap; line-height: var(--worksheet-text-line-height, 1.15); }
 .worksheet-wrapped-text { padding: 1px 3px; outline: 0; }
 .worksheet-text-wrap-space { display: block; pointer-events: none; }
 .worksheet-text-wrap-space.left { float: left; clear: left; }
@@ -9113,9 +9116,12 @@ textarea {
 .worksheet-image-delete { top: -11px; right: -11px; }
 .worksheet-image-resize { right: -5px; bottom: -5px; }
 .worksheet-image-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 7px; }
-.worksheet-main-title-score { position: absolute; right: 4.4cqw; bottom: 1.4cqw; font-family: Arial, Helvetica, sans-serif; font-size: 1.35cqw; font-weight: 700; }
-.worksheet-line-numbers { position: absolute; z-index: 1; top: 0; bottom: 0; left: -2.3cqw; width: 1.9cqw; color: #555; font-size: .58em; font-weight: 500; line-height: 1; text-align: right; pointer-events: none; }
-.worksheet-line-numbers span { position: absolute; right: 0; transform: translateY(-100%); }
+.worksheet-main-title-score { position: absolute; right: 4.4cqw; bottom: 1.25cqw; display: flex; align-items: center; gap: .45cqw; font-family: Arial, Helvetica, sans-serif; font-size: 1.35cqw; font-weight: 400; }
+.worksheet-main-title-score-box { display: grid; width: 9.4cqw; height: 3.9cqw; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 2px solid #111; background: #fff; }
+.worksheet-main-title-score-box i { display: block; height: 1px; margin: 0 .45cqw; border-top: 1px solid #111; }
+.worksheet-main-title-score-box b { padding-right: .5cqw; font-size: 1.55cqw; font-weight: 400; }
+.worksheet-line-numbers { position: absolute; z-index: 1; top: 0; bottom: 0; left: -2.45cqw; width: 1.9cqw; color: #555; font-family: Arial, Helvetica, sans-serif; font-size: .62em; font-weight: 400; line-height: 1; text-align: right; pointer-events: none; }
+.worksheet-line-numbers span { position: absolute; right: 0; transform: translateY(-50%); }
 .worksheet-score-box { display: grid; min-width: 0; min-height: 0; place-items: center; font-weight: 750; }
 .worksheet-score-box.selected { outline: 2px dashed #3976bf; outline-offset: 4px; }
 .worksheet-score-delete, .worksheet-band-delete { top: -11px !important; right: -11px !important; }
@@ -9126,6 +9132,7 @@ textarea {
 .worksheet-dimension-band.reader { cursor: default; }
 .worksheet-band-icon { color: #fff; background: #111 !important; }
 .worksheet-activity-table { box-sizing: border-box; min-height: 0; }
+.worksheet-activity-table, .worksheet-reader-table { border-top: 1px solid #202020; border-left: 1px solid #202020; }
 .worksheet-table-cell { display: flex; min-width: 0; min-height: 0; box-sizing: border-box; }
 .worksheet-activity-table .worksheet-table-cell, .worksheet-reader-table button { border-right-width: 1px !important; border-bottom-width: 1px !important; }
 .worksheet-table-cell.background-gray, .worksheet-reader-table .background-gray { background: #d9d9d9; }
@@ -9138,7 +9145,7 @@ textarea {
 .worksheet-table-cell textarea { min-height: 0; padding: 7px 9px; field-sizing: fixed; line-height: 1.16; }
 .worksheet-cell-correction-editor { box-sizing: border-box; width: 100%; min-height: 100%; padding: 7px 9px; line-height: 1.16; white-space: pre-wrap; }
 .worksheet-cell-correction-editor > span:first-child { color: inherit; }
-.worksheet-cell-correction-input, .worksheet-cell-revealed-answer { margin-left: .45em; color: #b000b5; font-weight: 750; }
+.worksheet-cell-correction-input, .worksheet-cell-revealed-answer { margin-left: .45em; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; }
 .worksheet-cell-correction-input { display: inline-block; min-width: 2.5em; border-bottom: 1px dotted transparent; outline: 0; }
 .worksheet-cell-correction-input:focus { border-bottom-color: rgba(176,0,181,.55); }
 .worksheet-reader-cell-copy { min-width: 0; white-space: pre-wrap; text-align: inherit; }
@@ -9170,6 +9177,11 @@ textarea {
 .worksheet-reader-table button:disabled { opacity: 1; cursor: default; }
 .worksheet-reader-table button.background-black { background: #050505; color: #fff; }
 .worksheet-reader-table button.background-gray { background: #d9d9d9; }
+.tree-analysis-text-toolbar .worksheet-checkbox { display: inline-flex; min-height: 35px; flex-direction: row; align-items: center; gap: 7px; white-space: nowrap; }
+.tree-analysis-text-toolbar .worksheet-checkbox input[type="checkbox"] { width: 17px; height: 17px; min-width: 17px; margin: 0; }
+@media (max-width: 1250px) {
+  .worksheet-cell-toolbar { grid-template-columns: repeat(4, minmax(94px, 1fr)); }
+}
 .worksheet-dialog-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; padding: 24px; place-items: center; background: rgba(7,24,42,.58); }
 .worksheet-dialog { display: grid; width: min(620px,100%); max-height: calc(100vh - 48px); padding: 24px; gap: 14px; overflow: auto; border-radius: 20px; background: var(--surface); box-shadow: 0 28px 90px rgba(0,0,0,.3); }
 .worksheet-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
@@ -9266,6 +9278,14 @@ textarea {
   body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-title-label {
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
+  }
+  body:has(.worksheet-editor) .worksheet-editor .worksheet-activity-table {
+    border-top: .75pt solid #111 !important;
+    border-left: .75pt solid #111 !important;
+  }
+  body:has(.worksheet-editor) .worksheet-editor .worksheet-table-cell {
+    border-right: .75pt solid #111 !important;
+    border-bottom: .75pt solid #111 !important;
   }
   .worksheet-editor .worksheet-answer-lines.selected { outline: 0; }
   .worksheet-editor .tree-analysis-text-delete,

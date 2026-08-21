@@ -769,6 +769,7 @@ export function InteractiveSentenceReader({
             onRestorePoints={onRestoreWordClassPoints}
             onCompleteChange={setHybridWordClassComplete}
             correctionMarks={resolvedCorrectionMarks}
+            finishControl={finishControl}
             embedded
           />
         ) : (
