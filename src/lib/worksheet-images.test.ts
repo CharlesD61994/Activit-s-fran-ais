@@ -25,4 +25,10 @@ describe("worksheetTextWrap", () => {
     expect(worksheetTextWrap(box, [image])).toBeUndefined();
     expect(worksheetTextWrap(box, [{ ...image, pageId: "page", wrapText: false }])).toBeUndefined();
   });
+
+  it("uses the explicit layout mode for new worksheet images", () => {
+    const image: WorksheetImage = { id: "image", pageId: "page", x: 120, y: 130, width: 140, height: 100, src: "data:image/png;base64,x", alt: "", wrapText: true, layoutMode: "front" };
+    expect(worksheetTextWrap(box, [image])).toBeUndefined();
+    expect(worksheetTextWrap(box, [{ ...image, layoutMode: "wrap" }])).toBeDefined();
+  });
 });

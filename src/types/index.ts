@@ -325,6 +325,7 @@ export type TreeAnalysisDocumentPage = {
     prefix: string;
     title: string;
     subtitle?: string;
+    scoreTotal?: number;
   };
   readerMode?: "tree_only" | "tree_functions" | "tree_tables" | "groups_then_tree";
   readerPhaseOrder?: Array<"groups" | "nuclei" | "linked_nodes" | "functions" | "remaining_nodes" | "tables">;
@@ -357,6 +358,8 @@ export type TreeAnalysisTextBox = {
   text: string;
   fontSize: number;
   textAlign?: "left" | "center" | "justify";
+  bold?: boolean;
+  showLineNumbers?: boolean;
   annotations: TreeAnalysisTextAnnotation[];
 };
 
@@ -439,6 +442,7 @@ export type WorksheetImage = {
   src: string;
   alt: string;
   wrapText: boolean;
+  layoutMode?: "wrap" | "front" | "behind";
 };
 
 export type SentenceCorrection = {

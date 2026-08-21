@@ -12,7 +12,8 @@ export function worksheetTextWrap(
   images: WorksheetImage[]
 ): WorksheetTextWrap | undefined {
   const image = images.find((candidate) => {
-    if (!candidate.wrapText || candidate.pageId !== box.pageId) return false;
+    const mode = candidate.layoutMode ?? (candidate.wrapText ? "wrap" : "front");
+    if (mode !== "wrap" || candidate.pageId !== box.pageId) return false;
     return candidate.x < box.x + box.width &&
       candidate.x + candidate.width > box.x &&
       candidate.y < box.y + box.height &&

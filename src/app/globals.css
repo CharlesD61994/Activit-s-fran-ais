@@ -9036,7 +9036,10 @@ textarea {
 }
 .worksheet-editor { display: grid; gap: 22px; }
 .worksheet-editor .tree-analysis-builder-card { overflow: visible; }
+.worksheet-header-controls-toggle { display: flex; width: 100%; min-height: 44px; margin-top: 10px; padding: 10px 14px; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-weight: 850; cursor: pointer; }
 .worksheet-canvas, .worksheet-reader-page { background: #fff; }
+.worksheet-selection-marquee { position: absolute; z-index: 50; border: 1px dashed #2f74b5; background: rgb(47 116 181 / 10%); pointer-events: none; }
+.worksheet-group-selection-outline { position: absolute; z-index: 49; box-sizing: border-box; border: 1px dashed #2f74b5; background: rgb(47 116 181 / 4%); pointer-events: none; }
 .worksheet-lines-toolbar { display: grid; grid-template-columns: repeat(4,minmax(120px,1fr)); gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
 .worksheet-lines-toolbar label { display: grid; gap: 5px; font-weight: 800; }
 .worksheet-lines-toolbar input, .worksheet-lines-toolbar textarea { width: 100%; }
@@ -9075,21 +9078,21 @@ textarea {
   z-index: 29;
   top: 66px;
   display: grid;
-  max-height: min(42vh, 370px);
   gap: 10px;
   padding: 14px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
   box-shadow: 0 12px 30px rgb(16 48 74 / 12%);
 }
-.worksheet-table-toolbar-row, .worksheet-cell-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.worksheet-table-toolbar-row, .worksheet-cell-toolbar { display: flex; flex-wrap: nowrap; align-items: end; gap: 8px; }
+.worksheet-table-toolbar-row button { flex: 0 1 auto; min-height: 36px; padding: 6px 9px; white-space: nowrap; }
 .worksheet-table-toolbar-row > span { flex: 1 1 260px; color: var(--muted-foreground); font-size: .9rem; }
 .worksheet-table-toolbar label, .worksheet-score-toolbar label, .worksheet-band-toolbar label { display: grid; gap: 4px; font-size: .82rem; font-weight: 800; }
 .worksheet-table-toolbar input, .worksheet-table-toolbar select, .worksheet-score-toolbar input, .worksheet-band-toolbar input, .worksheet-band-toolbar select { min-height: 38px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--foreground); }
 .worksheet-cell-toolbar { padding: 10px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 7%, var(--surface)); }
+.worksheet-cell-toolbar label { flex: 1 1 0; min-width: 86px; }
 .worksheet-cell-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 7px; min-height: 38px; }
 .worksheet-cell-toolbar .worksheet-checkbox input { min-height: 0; }
 .worksheet-cell-toolbar .worksheet-cell-answer { flex: 1 1 260px; }
@@ -9102,12 +9105,19 @@ textarea {
 .worksheet-text-wrap-space.right { float: right; clear: right; }
 .worksheet-image-input { display: none; }
 .worksheet-page-image { position: absolute; z-index: 4; box-sizing: border-box; cursor: grab; touch-action: none; }
+.worksheet-page-image.layout-behind { z-index: 2; }
+.worksheet-page-image.layout-wrap { z-index: 4; }
+.worksheet-page-image.layout-front { z-index: 6; }
+.worksheet-page-image.selected { z-index: 8; }
 .worksheet-page-image > img { object-fit: contain; pointer-events: none; }
 .worksheet-page-image.selected { outline: 2px dashed #3976bf; outline-offset: 4px; }
 .worksheet-page-image.reader { cursor: default; }
 .worksheet-image-delete { top: -11px; right: -11px; }
 .worksheet-image-resize { right: -5px; bottom: -5px; }
 .worksheet-image-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 7px; }
+.worksheet-main-title-score { position: absolute; right: 4.4cqw; bottom: 1.4cqw; font-family: Arial, Helvetica, sans-serif; font-size: 1.35cqw; font-weight: 700; }
+.worksheet-line-numbers { position: absolute; z-index: 1; top: 0; bottom: 0; left: -2.3cqw; width: 1.9cqw; color: #555; font-size: .58em; font-weight: 500; line-height: 1; text-align: right; pointer-events: none; }
+.worksheet-line-numbers span { position: absolute; right: 0; transform: translateY(-100%); }
 .worksheet-score-box { display: grid; min-width: 0; min-height: 0; place-items: center; font-weight: 750; }
 .worksheet-score-box.selected { outline: 2px dashed #3976bf; outline-offset: 4px; }
 .worksheet-score-delete, .worksheet-band-delete { top: -11px !important; right: -11px !important; }
@@ -9119,6 +9129,7 @@ textarea {
 .worksheet-band-icon { color: #fff; background: #111 !important; }
 .worksheet-activity-table { box-sizing: border-box; min-height: 0; }
 .worksheet-table-cell { display: flex; min-width: 0; min-height: 0; box-sizing: border-box; }
+.worksheet-activity-table .worksheet-table-cell, .worksheet-reader-table button { border-right-width: 1px !important; border-bottom-width: 1px !important; }
 .worksheet-table-cell.background-gray, .worksheet-reader-table .background-gray { background: #d9d9d9; }
 .worksheet-table-cell.background-black, .worksheet-reader-table .background-black { background: #050505; color: #fff; }
 .worksheet-activity-table.fixed-format .worksheet-table-cell.role-header.background-black,
@@ -9156,7 +9167,9 @@ textarea {
 .worksheet-table-move-edge.left { left: -5px; }
 .worksheet-reader-table { box-sizing: border-box; }
 .worksheet-reader-table button { display: flex; min-width: 0; min-height: 0; box-sizing: border-box; align-items: center; justify-content: center; gap: 6px; line-height: 1.16; white-space: pre-wrap; }
-.worksheet-reader-table button:disabled { opacity: 1; }
+.worksheet-reader-table button { cursor: default; }
+.worksheet-reader-table button:not(:disabled) { cursor: pointer; }
+.worksheet-reader-table button:disabled { opacity: 1; cursor: default; }
 .worksheet-reader-table button.background-black { background: #050505; color: #fff; }
 .worksheet-reader-table button.background-gray { background: #d9d9d9; }
 .worksheet-dialog-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; padding: 24px; place-items: center; background: rgba(7,24,42,.58); }
