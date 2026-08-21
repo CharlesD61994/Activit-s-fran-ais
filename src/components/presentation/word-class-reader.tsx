@@ -352,6 +352,10 @@ export function WordClassReader({
     () => new Map(roleTasks.map((task) => [task.targetId, task])),
     [roleTasks]
   );
+  const roleTriggerEnabled = (role: TargetRole) =>
+    role === "donor"
+      ? agreementWorkflow.identifyDonors
+      : agreementWorkflow.identifyReceivers;
 
   const [foundIds, setFoundIds] = useState<string[]>(() =>
     correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []
@@ -1011,7 +1015,7 @@ export function WordClassReader({
 
     const target = findTarget(token);
 
-    if (target?.triggerAfterRole && !roleTriggeredTargetIds.includes(target.id)) {
+    if (target?.triggerAfterRole && roleTriggerEnabled(target.triggerAfterRole) && !roleTriggeredTargetIds.includes(target.id)) {
       const roleTask = roleTaskMap.get(target.id);
       if (roleTask && roleTask.role === target.triggerAfterRole) {
         setRoleTargetId(target.id);
@@ -1044,7 +1048,7 @@ export function WordClassReader({
     }
 
     const target = findTarget(token);
-    if (target?.triggerAfterRole && !roleTriggeredTargetIds.includes(target.id)) {
+    if (target?.triggerAfterRole && roleTriggerEnabled(target.triggerAfterRole) && !roleTriggeredTargetIds.includes(target.id)) {
       const roleTask = roleTaskMap.get(target.id);
       if (roleTask && roleTask.role === target.triggerAfterRole) {
         setRoleTargetId(target.id);

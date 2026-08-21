@@ -24,14 +24,18 @@ export function worksheetTextWrap(
   const side = image.x + image.width / 2 <= box.x + box.width / 2 ? "left" : "right";
   const overlapTop = Math.max(box.y, image.y);
   const overlapBottom = Math.min(box.y + box.height, image.y + image.height);
+  const imageStartsInside = image.x > box.x + 12;
+  const imageEndsInside = image.x + image.width < box.x + box.width - 12;
 
   // A CSS float only reserves space from one outside edge. Reserving merely
   // the image width leaves a narrow strip of text behind an image positioned
   // inside the text box. Word-style wrapping instead keeps the whole side of
   // the line clear up to the image's far edge.
-  const reservedWidth = side === "left"
-    ? image.x + image.width - box.x
-    : box.x + box.width - image.x;
+  const reservedWidth = imageStartsInside && imageEndsInside
+    ? box.width
+    : side === "left"
+      ? image.x + image.width - box.x
+      : box.x + box.width - image.x;
 
   return {
     side,
