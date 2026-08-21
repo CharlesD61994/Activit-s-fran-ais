@@ -12,7 +12,12 @@ import { worksheetDimensionAsset } from "@/lib/worksheet-dimensions";
 import { worksheetTextWrap } from "@/lib/worksheet-images";
 import { renderSharedAnnotatedText } from "@/components/grammar/shared-annotated-text";
 
-type Props = { sentence: Sentence; persistenceKey?: string; finishControl?: ReactNode };
+type Props = {
+  sentence: Sentence;
+  persistenceKey?: string;
+  finishControl?: ReactNode;
+  onCompleteChange?: (complete: boolean) => void;
+};
 const W = 1056;
 const H = 816;
 const WORKSHEET_TEXT_LINE_HEIGHT = 1.1;
@@ -55,7 +60,7 @@ function ReaderCell({ cell, revealed }: { cell: TreeAnalysisTableCell; revealed:
   return <span className="worksheet-reader-cell-copy"><span>{cell.text}</span>{revealed && cell.answer && <span className="worksheet-cell-revealed-answer">{cell.answer}</span>}</span>;
 }
 
-export function WorksheetReader({ sentence, persistenceKey, finishControl }: Props) {
+export function WorksheetReader({ sentence, persistenceKey, finishControl, onCompleteChange }: Props) {
   const pages = useMemo(() => sentence.treeAnalysisDocumentPages ?? [], [sentence.treeAnalysisDocumentPages]);
   const textBoxes = useMemo(() => sentence.treeAnalysisTextBoxes ?? [], [sentence.treeAnalysisTextBoxes]);
   const scoreBoxes = useMemo(() => sentence.treeAnalysisScoreBoxes ?? [], [sentence.treeAnalysisScoreBoxes]);
@@ -94,6 +99,11 @@ export function WorksheetReader({ sentence, persistenceKey, finishControl }: Pro
   }, [completed, hydrated, pageIndex, persistenceKey, revealedCells]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    onCompleteChange?.(completed.length >= steps.length);
+  }, [completed.length, hydrated, onCompleteChange, steps.length]);
+
+  useEffect(() => {
     if (!currentStep) return;
     const id = currentStep.split(":")[1];
     const targetPage = currentStep.startsWith("lines:") ? lines.find((item) => item.id === id)?.pageId : tables.find((item) => item.id === id)?.pageId;
@@ -117,6 +127,7 @@ export function WorksheetReader({ sentence, persistenceKey, finishControl }: Pro
   }
   function restart() {
     setCompleted([]); setRevealedCells([]); setPageIndex(0); setZoom(1);
+    onCompleteChange?.(steps.length === 0);
     if (persistenceKey && typeof window !== "undefined") window.sessionStorage.removeItem(persistenceKey);
   }
 

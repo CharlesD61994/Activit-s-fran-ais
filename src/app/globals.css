@@ -8448,6 +8448,14 @@ textarea {
   flex-wrap: wrap;
 }
 
+.reader-command-actions-area {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
 .reader-command-actions-slot:empty::before {
   content: "L’activité est en cours";
   color: #74879a;

@@ -91,6 +91,7 @@ export default function PresentationPage({
   const readerPersistenceKey = `reader-progress-${groupId}-${plannedSessionId ?? "single"}-${sentenceId}-${competitionSourceId ?? "normal"}`;
   const [pendingPoints, setPendingPoints] = useState<PendingPoint[]>([]);
   const [finished, setFinished] = useState(false);
+  const [readerComplete, setReaderComplete] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const competitionTeams = useMemo(
@@ -139,6 +140,11 @@ export default function PresentationPage({
     // The assignment should change only when the displayed activity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, sentenceId, plannedSession?.sourceSessionId]);
+
+  useEffect(() => {
+    setReaderComplete(false);
+    setFinished(false);
+  }, [sentenceId]);
 
   const pendingTotal = pendingPoints.reduce((sum, item) => sum + item.points, 0);
   const isTextActivity = sentence?.activityType === "text_correction";
@@ -448,7 +454,19 @@ export default function PresentationPage({
   }
 
   const standings = buildStandings();
-  const finishControl = <Button onClick={finishSentence}>Quitter</Button>;
+  const exitHref = launchedFromClasse
+    ? `/classe/groupes/${groupId}`
+    : launchedFromPortal
+      ? `/portail/groupes/${groupId}`
+      : `/groupes/${groupId}`;
+
+  function leaveSentence() {
+    if (readerComplete) {
+      finishSentence();
+      return;
+    }
+    router.push(exitHref);
+  }
 
   if (showPodium) {
     return (
@@ -503,19 +521,14 @@ export default function PresentationPage({
     <ReaderChromeProvider>
     <div className="reader-scene">
       <header className="reader-scene-header">
-        <Link
-          href={
-            launchedFromClasse
-              ? `/classe/groupes/${groupId}`
-              : launchedFromPortal
-                ? `/portail/groupes/${groupId}`
-              : `/groupes/${groupId}`
-          }
+        <button
+          type="button"
+          onClick={leaveSentence}
           className="presentation-back"
         >
           <ArrowLeft size={19} />
           Quitter
-        </Link>
+        </button>
 
         <strong>{group.name}</strong>
 
@@ -563,12 +576,16 @@ export default function PresentationPage({
 
         <section className="reader-activity-flow">
         {isWorksheetActivity ? (
-          <WorksheetReader sentence={sentence} persistenceKey={readerPersistenceKey} finishControl={finishControl}/>
+          <WorksheetReader
+            sentence={sentence}
+            persistenceKey={readerPersistenceKey}
+            onCompleteChange={setReaderComplete}
+          />
         ) : isTreeAnalysisActivity ? (
           <TreeAnalysisReader
             sentence={sentence}
             persistenceKey={readerPersistenceKey}
-            finishControl={finishControl}
+            onCompleteChange={setReaderComplete}
           />
         ) : isWordGroupActivity ? (
           <WordGroupReader
@@ -578,7 +595,7 @@ export default function PresentationPage({
             identifyNuclei={sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) ?? true}
             onPoint={queueWordGroupPoint}
             onRestorePoints={restoreWordGroupPoints}
-            finishControl={finishControl}
+            onCompleteChange={setReaderComplete}
           />
         ) : isWordClassActivity ? (
           <WordClassReader
@@ -586,7 +603,7 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onPoint={queueWordClassPoint}
             onRestorePoints={restoreWordClassPoints}
-            finishControl={finishControl}
+            onCompleteChange={setReaderComplete}
           />
         ) : (
           <InteractiveSentenceReader
@@ -598,7 +615,7 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onRestorePoints={restorePendingPoints}
             onRestoreWordClassPoints={restoreWordClassPoints}
-            finishControl={finishControl}
+            onCompleteChange={setReaderComplete}
           />
         )}
         </section>
@@ -606,7 +623,10 @@ export default function PresentationPage({
         <section className={`reader-command-dock ${isWorksheetActivity ? "worksheet-reader-dock" : ""}`}>
           <ReaderChromeTarget slot="progress" className="reader-command-progress-slot" />
           <ReaderChromeTarget slot="contextTools" className="reader-command-context-slot" />
-          <ReaderChromeTarget slot="actions" className="reader-command-actions-slot" />
+          <div className="reader-command-actions-area">
+            <ReaderChromeTarget slot="actions" className="reader-command-actions-slot" />
+            {readerComplete && <Button onClick={finishSentence}>Quitter</Button>}
+          </div>
         </section>
 
         {competitionActive && (

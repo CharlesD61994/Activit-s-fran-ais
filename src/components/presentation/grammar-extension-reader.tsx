@@ -38,6 +38,11 @@ type Point = InteractionPoint;
 type Boundary = "left" | "right";
 type ResponseMode = "click" | "frame" | "brackets";
 
+const EMPTY_ANNOTATION_KINDS: GrammarAnnotationKind[] = [];
+const EMPTY_IDS: string[] = [];
+const EMPTY_LINE_BREAKS: number[] = [];
+const EMPTY_CORRECTION_MARKS: ResolvedCorrectionMark[] = [];
+
 const actionAnnotationKind: Partial<
   Record<string, GrammarAnnotationKind>
 > = {
@@ -63,12 +68,12 @@ type Props = {
 
 export function GrammarExtensionReader({
   sentence,
-  excludedKinds = [],
-  initialSolvedIds = [],
-  forcedLineBreaks = [],
+  excludedKinds = EMPTY_ANNOTATION_KINDS,
+  initialSolvedIds = EMPTY_IDS,
+  forcedLineBreaks = EMPTY_LINE_BREAKS,
   onCompleteChange,
   finishControl,
-  correctionMarks = []
+  correctionMarks = EMPTY_CORRECTION_MARKS
 }: Props) {
   const annotations = useMemo(
     () => sentence.grammarAnnotations ?? [],
@@ -197,15 +202,13 @@ export function GrammarExtensionReader({
   );
 
   useEffect(() => {
-    setSolvedIds((current) =>
-      Array.from(new Set([...current, ...initialSolvedIds]))
-    );
-    setLeftIds((current) =>
-      Array.from(new Set([...current, ...initialSolvedIds]))
-    );
-    setRightIds((current) =>
-      Array.from(new Set([...current, ...initialSolvedIds]))
-    );
+    const mergeInitialIds = (current: string[]) => {
+      const missing = initialSolvedIds.filter((id) => !current.includes(id));
+      return missing.length > 0 ? [...current, ...missing] : current;
+    };
+    setSolvedIds(mergeInitialIds);
+    setLeftIds(mergeInitialIds);
+    setRightIds(mergeInitialIds);
   }, [initialSolvedIds]);
 
   useEffect(() => {
