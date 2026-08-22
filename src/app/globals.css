@@ -9102,23 +9102,34 @@ textarea {
   box-sizing: border-box;
   display: grid;
   place-items: center;
-  border: .45px solid #111;
+  border: 0;
   background: transparent;
   cursor: move;
   touch-action: none;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 1.28cqw;
+  font-weight: 400;
+  line-height: 1;
+}
+.worksheet-checkbox-mark::before {
+  content: "☐";
+  color: #111;
 }
 .worksheet-checkbox-mark.selected {
   outline: 2px dashed #3976bf;
   outline-offset: 3px;
 }
 .worksheet-checkbox-mark.checked::after {
-  content: "✓";
+  content: "☑";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
   color: #111;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: .95em;
-  font-weight: 800;
+  font: inherit;
   line-height: 1;
 }
+.worksheet-checkbox-mark.checked::before { content: ""; }
 .worksheet-checkbox-mark.reader {
   cursor: default;
   pointer-events: none;
@@ -9377,24 +9388,15 @@ textarea {
   }
   body:has(.worksheet-editor) .worksheet-editor .worksheet-activity-table {
     position: absolute;
-    border-top: .25pt solid #111 !important;
-    border-left: .25pt solid #111 !important;
     outline: 0 !important;
     overflow: visible !important;
   }
   body:has(.worksheet-editor) .worksheet-editor .worksheet-table-cell {
-    border-right: .25pt solid #111 !important;
-    border-bottom: .25pt solid #111 !important;
     box-shadow: none !important;
   }
   body:has(.worksheet-editor) .worksheet-editor .worksheet-activity-table::after {
     display: none !important;
   }
-  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-top { border-bottom-width: .25pt !important; }
-  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-bottom > div:first-child { border-right-width: .25pt !important; }
-  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-bottom > div:last-child { border-left-width: .25pt !important; }
-  body:has(.worksheet-editor) .worksheet-editor .worksheet-answer-lines > span { border-top-width: .25pt !important; }
-  body:has(.worksheet-editor) .worksheet-editor .worksheet-checkbox-mark { border-width: .25pt !important; }
   .worksheet-editor .worksheet-answer-lines.selected { outline: 0; }
   .worksheet-editor .tree-analysis-text-delete,
   .worksheet-editor .tree-analysis-text-resize,
