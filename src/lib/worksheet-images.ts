@@ -36,7 +36,7 @@ export function worksheetTextWrap(
   return {
     side,
     width: Math.max(0, Math.min(box.width, reservedWidth)) + 8,
-    height: Math.max(0, overlapBottom - overlapTop) + 6,
+    height: Math.max(0, image.y - box.y) + Math.max(0, overlapBottom - overlapTop) + 6,
     marginTop: Math.max(0, image.y - box.y)
   };
 }

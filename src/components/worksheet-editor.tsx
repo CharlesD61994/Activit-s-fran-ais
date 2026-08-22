@@ -93,7 +93,7 @@ function WorksheetEditableText({ box, wrap, onCommit, onSelect, onSelection }: {
       onMouseUp={(event)=>onSelection(captureSharedTextSelection(event.currentTarget))}
       onKeyUp={(event)=>onSelection(captureSharedTextSelection(event.currentTarget))}
     >
-      {wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} contentEditable={false} style={{width:`${wrap.width/box.width*100}%`,height:`${wrap.height/box.height*100}%`,marginTop:`${wrap.marginTop/box.height*100}%`}}/>}
+      {wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} contentEditable={false} style={{width:`${wrap.width/box.width*100}%`,height:`${wrap.height/box.height*100}%`,"--worksheet-wrap-top":`${wrap.marginTop/box.height*100}%`} as React.CSSProperties}/>}
       {renderSharedAnnotatedText(box.text, box.annotations, "tree-analysis-framed-text")}
     </div>
   </>;
@@ -117,7 +117,7 @@ function WorksheetAnswerLinesEditor({ item, onSelect, onCommit }: { item: Worksh
   function commitFromElement(element: HTMLElement) {
     const answer = element.innerText.replace(/\r/g, "");
     const measuredLineCount = measureLineCount(element);
-    onCommit({ answer, lineCount: Math.max(item.lineCount, measuredLineCount) });
+    onCommit({ answer, lineCount: answer.trim() ? clamp(measuredLineCount, 1, 30) : item.lineCount });
   }
 
   useLayoutEffect(() => {

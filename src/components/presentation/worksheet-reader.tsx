@@ -53,7 +53,7 @@ function ReaderText({ box, wrap }: { box: TreeAnalysisTextBox; wrap: ReturnType<
     const observer = new ResizeObserver(measure); observer.observe(element);
     return () => observer.disconnect();
   }, [box.annotations, box.fontSize, box.height, box.showLineNumbers, box.text, box.width, wrap]);
-  return <>{box.showLineNumbers&&<div className="worksheet-line-numbers" aria-hidden>{lineCenters.map((top,index)=>(index+1)%5===0?<span key={index} style={{top}}>{index+1}</span>:null)}</div>}<div ref={contentRef} className="worksheet-reader-text-content">{wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} style={{ width: `${wrap.width / box.width * 100}%`, height: `${wrap.height / box.height * 100}%`, marginTop: `${wrap.marginTop / box.height * 100}%` }}/>}<>{renderSharedAnnotatedText(box.text,box.annotations,"tree-analysis-framed-text")}</></div></>;
+  return <>{box.showLineNumbers&&<div className="worksheet-line-numbers" aria-hidden>{lineCenters.map((top,index)=>(index+1)%5===0?<span key={index} style={{top}}>{index+1}</span>:null)}</div>}<div ref={contentRef} className="worksheet-reader-text-content">{wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} style={{ width: `${wrap.width / box.width * 100}%`, height: `${wrap.height / box.height * 100}%`, "--worksheet-wrap-top": `${wrap.marginTop / box.height * 100}%` } as React.CSSProperties}/>}<>{renderSharedAnnotatedText(box.text,box.annotations,"tree-analysis-framed-text")}</></div></>;
 }
 
 function ReaderCell({ cell, revealed }: { cell: TreeAnalysisTableCell; revealed: boolean }) {
