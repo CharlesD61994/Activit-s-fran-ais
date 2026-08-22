@@ -97,7 +97,7 @@ export function createWorksheetTable(input: {
     const cells = Array.from({ length: 3 * columns }, () => cell());
     cells[0] = cell(input.dimension.toUpperCase(), { role: "header", columnSpan: levels, background: "black", textColor: "white", bold: true, textAlign: "center", fontSize: 13, verticalAlign: "center", borderWidth: 1 });
     for (let index = 1; index < levels; index += 1) cells[index] = cell("", { columnSpan: 0 });
-    cells[levels] = cell(`/${input.maxPoints}`, { role: "total", rowSpan: 3, bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center", borderWidth: 1 });
+    cells[levels] = cell(`/${input.maxPoints}`, { role: "total", rowSpan: 3, bold: false, fontSize: 13, textAlign: "right", verticalAlign: "center", borderWidth: 1 });
     cells[columns + levels] = cell("", { columnSpan: 0, rowSpan: 0 });
     cells[columns * 2 + levels] = cell("", { columnSpan: 0, rowSpan: 0 });
     for (let index = 0; index < levels; index += 1) {
@@ -122,7 +122,7 @@ export function normalizedColumnWidths(table: TreeAnalysisTable) {
 }
 
 export function normalizedRowHeights(table: TreeAnalysisTable) {
-  if (table.kind === "compact_rubric") return [32, 30];
+  if (table.kind === "compact_rubric") return [31, 29];
   if (table.kind === "rubric") return fixedRubricRowHeights(table.columns);
   if (table.rowHeights?.length === table.rows) return table.rowHeights;
   return Array(table.rows).fill(54);

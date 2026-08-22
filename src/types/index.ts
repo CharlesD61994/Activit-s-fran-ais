@@ -262,7 +262,9 @@ export type TreeAnalysisScoreBox = {
 export type WorksheetTableCellRole =
   | "text"
   | "answer"
+  | "answer_line"
   | "choice"
+  | "checkbox"
   | "order"
   | "score"
   | "criterion"

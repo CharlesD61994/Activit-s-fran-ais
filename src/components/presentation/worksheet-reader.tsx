@@ -58,6 +58,12 @@ function ReaderText({ box, wrap }: { box: TreeAnalysisTextBox; wrap: ReturnType<
 }
 
 function ReaderCell({ cell, revealed }: { cell: TreeAnalysisTableCell; revealed: boolean }) {
+  if (cell.role === "answer_line") {
+    return <span className="worksheet-reader-cell-copy worksheet-reader-answer-line"><span>{cell.text}</span><span className="worksheet-reader-answer-line-rule">{revealed && cell.answer ? <span className="worksheet-cell-revealed-answer">{cell.answer}</span> : null}</span></span>;
+  }
+  if (cell.role === "checkbox") {
+    return <span className="worksheet-reader-cell-copy worksheet-reader-checkbox-cell"><span className="worksheet-reader-checkbox-mark">{revealed && (cell.isCorrect || Boolean(cell.answer?.trim())) ? "☑" : "□"}</span><span>{cell.text}</span></span>;
+  }
   return <span className="worksheet-reader-cell-copy"><span>{cell.text}</span>{revealed && cell.answer && <span className="worksheet-cell-revealed-answer">{cell.answer}</span>}</span>;
 }
 
