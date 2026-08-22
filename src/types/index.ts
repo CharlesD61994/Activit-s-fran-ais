@@ -327,6 +327,10 @@ export type TreeAnalysisDocumentPage = {
     subtitle?: string;
     scoreTotal?: number;
   };
+  taskCallout?: {
+    enabled: boolean;
+    text: string;
+  };
   readerMode?: "tree_only" | "tree_functions" | "tree_tables" | "groups_then_tree";
   readerPhaseOrder?: Array<"groups" | "nuclei" | "linked_nodes" | "functions" | "remaining_nodes" | "tables">;
 };
@@ -421,6 +425,8 @@ export type WorksheetAnswerLines = {
   lineSpacing: number;
   answer: string;
   answerFontSize: number;
+  answerBold?: boolean;
+  answerTextAlign?: "left" | "center" | "justify";
 };
 
 export type WorksheetDimensionBand = {
