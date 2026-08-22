@@ -14,6 +14,14 @@ describe("buildRelationTasks", () => {
     ]);
   });
 
+  it("ignore les tâches inverses des receveurs quand elles sont désactivées", () => {
+    expect(
+      buildRelationTasks(targets, relations, { includeReceiverTasks: false })
+    ).toEqual([
+      { targetId: "donor", role: "donor", expectedIds: ["receiver-1", "receiver-2"] }
+    ]);
+  });
+
   it("ignore une cible sans relation", () => {
     expect(buildRelationTasks([{ id: "isolated" } as WordClassTarget], relations)).toEqual([]);
   });

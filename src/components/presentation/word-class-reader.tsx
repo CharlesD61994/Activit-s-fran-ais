@@ -318,10 +318,18 @@ export function WordClassReader({
               ...relation,
               receiverIds: relation.arrowReceiverIds ?? relation.receiverIds
             }))
-            .filter((relation) => relation.receiverIds.length > 0)
+            .filter((relation) => relation.receiverIds.length > 0),
+          {
+            includeReceiverTasks: agreementWorkflow.identifyReceivers
+          }
         )
       : [],
-    [agreementWorkflow.linkAgreement, analysisTargets, relations]
+    [
+      agreementWorkflow.identifyReceivers,
+      agreementWorkflow.linkAgreement,
+      analysisTargets,
+      relations
+    ]
   );
 
   const agreementBandHeight = useMemo(() => {
