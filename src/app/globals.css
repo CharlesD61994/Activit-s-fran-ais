@@ -9088,11 +9088,45 @@ textarea {
 .worksheet-answer-copy { position: absolute; inset: 1px 4px auto; z-index: 1; white-space: pre-wrap; overflow-wrap: break-word; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; text-align: left; pointer-events: none; }
 .worksheet-answer-editor { min-height: 100%; outline: 0; caret-color: #ed18e8; pointer-events: auto; cursor: text; }
 .worksheet-answer-lines.reader { cursor: pointer; }
+.worksheet-answer-lines.static,
+.worksheet-answer-lines.reader.static { cursor: default; pointer-events: none; }
 .worksheet-answer-lines.reader.active { border-radius: 4px; background: color-mix(in srgb, var(--primary) 6%, transparent); }
 .worksheet-answer-lines.reader:disabled { opacity: 1; cursor: default; }
 .worksheet-lines-delete { top: -13px; right: -13px; }
 .worksheet-answer-lines > .worksheet-lines-resize { inset: auto -5px -5px auto; width: 14px; height: 14px; border: 2px solid #fff; border-radius: 3px; background: #3976bf; box-shadow: 0 0 0 1px #3976bf; }
 .worksheet-answer-lines.selected > span { border-top-color: #275d88; }
+.worksheet-checkbox-toolbar { align-items: center; }
+.worksheet-checkbox-mark {
+  position: absolute;
+  z-index: 7;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: .55px solid #111;
+  background: transparent;
+  cursor: move;
+  touch-action: none;
+}
+.worksheet-checkbox-mark.selected {
+  outline: 2px dashed #3976bf;
+  outline-offset: 3px;
+}
+.worksheet-checkbox-mark.checked::after {
+  content: "✓";
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1.15em;
+  font-weight: 800;
+  line-height: 1;
+}
+.worksheet-checkbox-mark.reader {
+  cursor: default;
+  pointer-events: none;
+}
+.worksheet-checkbox-delete {
+  top: -10px !important;
+  right: -10px !important;
+}
 .worksheet-flow-panel { margin-top: 0; }
 .worksheet-page-navigation { display: flex; align-items: center; gap: 8px; }
 .worksheet-page-navigation button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
@@ -9361,27 +9395,30 @@ textarea {
   }
   body:has(.worksheet-editor) .worksheet-editor .worksheet-activity-table {
     position: absolute;
-    border-top: .4pt solid #111 !important;
-    border-left: .4pt solid #111 !important;
+    border-top: .3pt solid #111 !important;
+    border-left: .3pt solid #111 !important;
     outline: 0 !important;
     overflow: visible !important;
   }
   body:has(.worksheet-editor) .worksheet-editor .worksheet-table-cell {
-    border-right: .4pt solid #111 !important;
-    border-bottom: .4pt solid #111 !important;
+    border-right: .3pt solid #111 !important;
+    border-bottom: .3pt solid #111 !important;
     box-shadow: none !important;
   }
   body:has(.worksheet-editor) .worksheet-editor .worksheet-activity-table::after {
     display: none !important;
   }
-  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-top { border-bottom-width: .35pt !important; }
-  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-bottom > div:first-child { border-right-width: .35pt !important; }
-  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-bottom > div:last-child { border-left-width: .35pt !important; }
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-top { border-bottom-width: .3pt !important; }
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-bottom > div:first-child { border-right-width: .3pt !important; }
+  body:has(.worksheet-editor) .worksheet-editor .tree-analysis-document-header-bottom > div:last-child { border-left-width: .3pt !important; }
+  body:has(.worksheet-editor) .worksheet-editor .worksheet-answer-lines > span { border-top-width: .3pt !important; }
+  body:has(.worksheet-editor) .worksheet-editor .worksheet-checkbox-mark { border-width: .3pt !important; }
   .worksheet-editor .worksheet-answer-lines.selected { outline: 0; }
   .worksheet-editor .tree-analysis-text-delete,
   .worksheet-editor .tree-analysis-text-resize,
   .worksheet-editor .tree-analysis-text-move-handle,
   .worksheet-editor .worksheet-text-move-edge,
+  .worksheet-editor .worksheet-checkbox-delete,
   .worksheet-editor .tree-analysis-delete-table,
   .worksheet-editor .worksheet-table-move-edge { display: none !important; }
 }

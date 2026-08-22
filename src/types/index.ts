@@ -429,6 +429,16 @@ export type WorksheetAnswerLines = {
   answerFontSize: number;
   answerBold?: boolean;
   answerTextAlign?: "left" | "center" | "justify";
+  interactive?: boolean;
+};
+
+export type WorksheetCheckboxMark = {
+  id: string;
+  pageId: string;
+  x: number;
+  y: number;
+  size: number;
+  checked?: boolean;
 };
 
 export type WorksheetDimensionBand = {
@@ -497,6 +507,7 @@ export type Sentence = {
   treeAnalysisInteractions?: TreeAnalysisInteraction[];
   treeAnalysisFlow?: TreeAnalysisFlow;
   worksheetAnswerLines?: WorksheetAnswerLines[];
+  worksheetCheckBoxes?: WorksheetCheckboxMark[];
   worksheetDimensionBands?: WorksheetDimensionBand[];
   worksheetImages?: WorksheetImage[];
   worksheetReaderOrder?: string[];
