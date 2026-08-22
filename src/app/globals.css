@@ -9085,7 +9085,7 @@ textarea {
 .worksheet-answer-lines { position: absolute; display: block; padding: 0; border: 0; background: transparent; color: #111; cursor: move; }
 .worksheet-answer-lines.selected { outline: 2px dashed #2f658e; outline-offset: 5px; }
 .worksheet-answer-lines > span { position: absolute; left: 0; right: 0; height: 1px; border-top: .75px solid #111; }
-.worksheet-answer-copy { position: absolute; inset: 0 4px auto; z-index: 1; white-space: pre-wrap; overflow-wrap: break-word; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; text-align: left; pointer-events: none; }
+.worksheet-answer-copy { position: absolute; inset: 1px 4px auto; z-index: 1; white-space: pre-wrap; overflow-wrap: break-word; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; text-align: left; pointer-events: none; }
 .worksheet-answer-editor { min-height: 100%; outline: 0; caret-color: #ed18e8; pointer-events: auto; cursor: text; }
 .worksheet-answer-lines.reader { cursor: pointer; }
 .worksheet-answer-lines.reader.active { border-radius: 4px; background: color-mix(in srgb, var(--primary) 6%, transparent); }

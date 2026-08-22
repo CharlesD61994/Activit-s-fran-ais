@@ -35,7 +35,7 @@ const difficultyLabels: Record<SentenceDifficulty, string> = { easy: "Facile", m
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const ALIGNMENT_TOLERANCE = 6;
 const WORKSHEET_TEXT_LINE_HEIGHT = 1.1;
-const answerLineFontSize = (item: WorksheetAnswerLines) => Math.min(item.answerFontSize, item.lineSpacing * 0.82);
+const answerLineHeight = (item: WorksheetAnswerLines) => `${item.lineSpacing / H * (11 / 8.5) * 100}cqw`;
 
 function renderedLineCenters(element: HTMLElement) {
   const root = element.getBoundingClientRect();
@@ -147,7 +147,7 @@ function WorksheetAnswerLinesEditor({ item, onSelect, onCommit }: { item: Worksh
     contentEditable
     suppressContentEditableWarning
     spellCheck
-    style={{ fontSize: `${answerLineFontSize(item) / W * 100}cqw`, lineHeight: item.lineSpacing / answerLineFontSize(item), fontWeight: item.answerBold ? 800 : 400, textAlign: item.answerTextAlign ?? "left" }}
+    style={{ fontSize: `${item.answerFontSize / W * 100}cqw`, lineHeight: answerLineHeight(item), fontWeight: item.answerBold ? 800 : 400, textAlign: item.answerTextAlign ?? "left" }}
     onPointerDown={(event)=>{event.stopPropagation();onSelect();}}
     onInput={(event)=>commitFromElement(event.currentTarget)}
     onBlur={(event)=>commitFromElement(event.currentTarget)}
