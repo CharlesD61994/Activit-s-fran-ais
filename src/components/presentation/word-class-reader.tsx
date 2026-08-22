@@ -446,23 +446,7 @@ export function WordClassReader({
   );
   const persistentGroupMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const persistentFunctionMode = sentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame";
-  const activeClassTargets = useMemo(
-    () =>
-      classTargets.filter((target) => {
-        if (!target.triggerAfterRole) return true;
-        if (
-          target.triggerAfterRole === "donor"
-            ? !agreementWorkflow.identifyDonors
-            : !agreementWorkflow.identifyReceivers
-        ) return false;
-        return true;
-      }),
-    [
-      agreementWorkflow.identifyDonors,
-      agreementWorkflow.identifyReceivers,
-      classTargets
-    ]
-  );
+  const activeClassTargets = classTargets;
 
   useEffect(() => {
     restoreRef.current = onRestorePoints;

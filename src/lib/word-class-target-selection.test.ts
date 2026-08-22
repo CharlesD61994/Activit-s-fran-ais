@@ -30,6 +30,33 @@ describe("word class target selection", () => {
     ).toBe("class-name");
   });
 
+  it("keeps a class target linked to a receiver selectable over the agreement endpoint", () => {
+    const receiverClassTarget: WordClassTarget = {
+      id: "receiver-class",
+      start: 0,
+      end: 3,
+      text: "Les",
+      wordClass: "determiner",
+      isAnalysisTarget: true,
+      triggerAfterRole: "receiver"
+    };
+    const receiverEndpoint: WordClassTarget = {
+      ...receiverClassTarget,
+      id: "receiver-endpoint",
+      wordClass: "noun",
+      isAnalysisTarget: false,
+      triggerAfterRole: undefined
+    };
+
+    expect(
+      preferredWordTarget(
+        { start: 0, end: 3 },
+        [receiverClassTarget],
+        [receiverEndpoint, receiverClassTarget]
+      )?.id
+    ).toBe("receiver-class");
+  });
+
   it("counts only one class action for duplicate ranges", () => {
     const targets = ["old", "current"].map((id): WordClassTarget => ({
       id,
