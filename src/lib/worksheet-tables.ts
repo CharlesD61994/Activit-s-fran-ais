@@ -56,13 +56,13 @@ export function createWorksheetTable(input: {
     const cells = Array.from({ length: rows * 2 }, () => cell());
     cells[0] = cell("Situation initiale", { rowSpan: rows, bold: true });
     for (let row = 1; row < rows; row += 1) cells[row * 2] = cell("", { columnSpan: 0, rowSpan: 0 });
-    for (let row = 0; row < rows; row += 1) cells[row * 2 + 1] = cell(["Qui?", "Où?", "Quand?", "Quoi?"][row] ?? "Réponse", { role: "answer", textAlign: "left", answer: "" });
+    for (let row = 0; row < rows; row += 1) cells[row * 2 + 1] = cell(["Qui?", "Où?", "Quand?", "Quoi?"][row] ?? "Réponse", { role: "text", textAlign: "left", answer: "" });
     return { ...base, rows, columns: 2, cells, columnWidths: [190, 566], rowHeights: Array(rows).fill(54) };
   }
 
   if (input.kind === "choice") {
     const columns = Math.max(2, input.columns);
-    return { ...base, rows: 1, columns, cells: Array.from({ length: columns }, (_, index) => cell(`Choix ${index + 1}`, { role: "choice" })), columnWidths: Array(columns).fill(756 / columns), rowHeights: [58] };
+    return { ...base, rows: 1, columns, cells: Array.from({ length: columns }, (_, index) => cell(`Choix ${index + 1}`, { role: "text" })), columnWidths: Array(columns).fill(756 / columns), rowHeights: [58] };
   }
 
   if (input.kind === "sequence" || input.kind === "association") {
@@ -70,7 +70,7 @@ export function createWorksheetTable(input: {
     const leftRole = input.kind === "sequence" ? "order" : "text";
     const cells = Array.from({ length: rows * 2 }, (_, index) => index % 2 === 0
       ? cell(input.kind === "sequence" ? "" : `Élément ${Math.floor(index / 2) + 1}`, { role: leftRole, bold: input.kind === "association" })
-      : cell(input.kind === "sequence" ? `Énoncé ${Math.floor(index / 2) + 1}` : "Réponse", { role: "answer", textAlign: "left", answer: "" }));
+      : cell(input.kind === "sequence" ? `Énoncé ${Math.floor(index / 2) + 1}` : "Réponse", { role: "text", textAlign: "left", answer: "" }));
     return { ...base, rows, columns: 2, cells, columnWidths: input.kind === "sequence" ? [72, 684] : [250, 506], rowHeights: Array(rows).fill(52) };
   }
 
@@ -128,6 +128,6 @@ export function normalizedRowHeights(table: TreeAnalysisTable) {
   return Array(table.rows).fill(54);
 }
 
-export function tableHasInteraction(table: TreeAnalysisTable) {
-  return table.cells.some((item) => item.role !== "answer_line" && item.role !== "checkbox" && (item.isCorrect || Boolean(item.answer?.trim())));
+export function tableHasInteraction() {
+  return false;
 }
