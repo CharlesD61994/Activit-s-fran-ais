@@ -15,14 +15,14 @@ const box: TreeAnalysisTextBox = {
 };
 
 describe("worksheetTextWrap", () => {
-  it("reserves the full line band for an image placed inside the text box", () => {
+  it("reserves the left side up to the far edge of an image placed inside the text box", () => {
     const image: WorksheetImage = { id: "image", pageId: "page", x: 120, y: 130, width: 140, height: 100, src: "data:image/png;base64,x", alt: "", wrapText: true };
-    expect(worksheetTextWrap(box, [image])).toEqual({ side: "left", width: 510, height: 108, marginTop: 30 });
+    expect(worksheetTextWrap(box, [image])).toEqual({ side: "left", width: 168, height: 106, marginTop: 30 });
   });
 
-  it("reserves the full line band from either side when an image sits inside the text box", () => {
+  it("reserves the right side up to the near edge of an image placed inside the text box", () => {
     const image: WorksheetImage = { id: "image", pageId: "page", x: 430, y: 130, width: 100, height: 100, src: "data:image/png;base64,x", alt: "", wrapText: true };
-    expect(worksheetTextWrap(box, [image])).toEqual({ side: "right", width: 510, height: 108, marginTop: 30 });
+    expect(worksheetTextWrap(box, [image])).toEqual({ side: "right", width: 178, height: 106, marginTop: 30 });
   });
 
   it("ignores images on another page or with wrapping disabled", () => {

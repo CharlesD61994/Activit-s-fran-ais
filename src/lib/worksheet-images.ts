@@ -24,23 +24,19 @@ export function worksheetTextWrap(
   const side = image.x + image.width / 2 <= box.x + box.width / 2 ? "left" : "right";
   const overlapTop = Math.max(box.y, image.y);
   const overlapBottom = Math.min(box.y + box.height, image.y + image.height);
-  const imageStartsInside = image.x > box.x + 12;
-  const imageEndsInside = image.x + image.width < box.x + box.width - 12;
-
-  // A CSS float only reserves space from one outside edge. Reserving merely
-  // the image width leaves a narrow strip of text behind an image positioned
-  // inside the text box. Word-style wrapping instead keeps the whole side of
-  // the line clear up to the image's far edge.
-  const reservedWidth = imageStartsInside && imageEndsInside
-    ? box.width
-    : side === "left"
-      ? image.x + image.width - box.x
-      : box.x + box.width - image.x;
+  // The editor renders the image as a draggable page element, then inserts a
+  // float spacer inside the text box. A float can only reserve one side of the
+  // line, so we reserve the side occupied by the image up to its far edge. This
+  // keeps text from running under the image without creating a full-width blank
+  // band when the image sits in the middle of a paragraph.
+  const reservedWidth = side === "left"
+    ? image.x + image.width - box.x
+    : box.x + box.width - image.x;
 
   return {
     side,
-    width: Math.max(0, reservedWidth) + 10,
-    height: Math.max(0, overlapBottom - overlapTop) + 8,
+    width: Math.max(0, Math.min(box.width, reservedWidth)) + 8,
+    height: Math.max(0, overlapBottom - overlapTop) + 6,
     marginTop: Math.max(0, image.y - box.y)
   };
 }

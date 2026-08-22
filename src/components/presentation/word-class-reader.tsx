@@ -446,6 +446,23 @@ export function WordClassReader({
   );
   const persistentGroupMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const persistentFunctionMode = sentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame";
+  const activeClassTargets = useMemo(
+    () =>
+      classTargets.filter((target) => {
+        if (!target.triggerAfterRole) return true;
+        if (
+          target.triggerAfterRole === "donor"
+            ? !agreementWorkflow.identifyDonors
+            : !agreementWorkflow.identifyReceivers
+        ) return false;
+        return true;
+      }),
+    [
+      agreementWorkflow.identifyDonors,
+      agreementWorkflow.identifyReceivers,
+      classTargets
+    ]
+  );
 
   useEffect(() => {
     restoreRef.current = onRestorePoints;
@@ -882,7 +899,7 @@ export function WordClassReader({
   }, [arrowCanvas, correctionArrowAuthoring, onAgreementCorrectionArrowsChange, taskMap]);
 
 
-  const classesComplete = classTargets.every((target) =>
+  const classesComplete = activeClassTargets.every((target) =>
     foundIds.includes(target.id)
   );
 
@@ -937,7 +954,7 @@ export function WordClassReader({
   }
 
   function findTarget(token: WordToken) {
-    return preferredWordTarget(token, classTargets, allTargets);
+    return preferredWordTarget(token, activeClassTargets, allTargets);
   }
 
   function startRoleOrContinue(target: WordClassTarget) {
@@ -1026,7 +1043,7 @@ export function WordClassReader({
       return;
     }
 
-    if (!target || !classTargets.some((item) => item.id === target.id)) {
+    if (!target || !activeClassTargets.some((item) => item.id === target.id)) {
       setMessage(
         `« ${token.text} » ne fait pas partie des mots recherchés.`
       );
@@ -1072,7 +1089,7 @@ export function WordClassReader({
 
     if (
       !target ||
-      !classTargets.some((item) => item.id === target.id) ||
+      !activeClassTargets.some((item) => item.id === target.id) ||
       target.wordClass !== selectedClass
     ) {
       setMessage("Cette classe ne correspond pas à ce mot.");
@@ -1138,7 +1155,7 @@ export function WordClassReader({
       const triggeredTarget = target.triggerAfterRole === task.role;
       if (
         triggeredTarget &&
-        classTargets.some((candidate) => candidate.id === target.id) &&
+        activeClassTargets.some((candidate) => candidate.id === target.id) &&
         !foundIds.includes(target.id)
       ) {
         setRoleTriggeredTargetIds((current) => current.includes(target.id) ? current : [...current, target.id]);
@@ -1496,7 +1513,7 @@ export function WordClassReader({
     return values.join(", ");
   }
 
-  const unresolvedTargets = classTargets.filter(
+  const unresolvedTargets = activeClassTargets.filter(
     (target) => !foundIds.includes(target.id)
   );
   const unresolvedClassChoiceTargets = unresolvedTargets.filter((target) =>
@@ -1626,11 +1643,11 @@ export function WordClassReader({
           {currentTask ? (
             <strong>{currentAnswers.length}/{currentTask.expectedIds.length} {currentTask.role === "donor" ? "receveur" : "donneur"}{currentTask.expectedIds.length > 1 ? "s" : ""}</strong>
           ) : (
-            <strong>{classTargets.filter((target) => foundIds.includes(target.id)).length}/{classTargets.length} mot{classTargets.length > 1 ? "s" : ""}</strong>
+            <strong>{activeClassTargets.filter((target) => foundIds.includes(target.id)).length}/{activeClassTargets.length} mot{activeClassTargets.length > 1 ? "s" : ""}</strong>
           )}
           <span className="reader-chrome-progress-dots" aria-hidden="true">
-            {Array.from({ length: Math.max(1, currentTask?.expectedIds.length ?? classTargets.length) }, (_, index) => (
-              <i key={index} className={index < (currentTask ? currentAnswers.length : classTargets.filter((target) => foundIds.includes(target.id)).length) ? "done" : ""} />
+            {Array.from({ length: Math.max(1, currentTask?.expectedIds.length ?? activeClassTargets.length) }, (_, index) => (
+              <i key={index} className={index < (currentTask ? currentAnswers.length : activeClassTargets.filter((target) => foundIds.includes(target.id)).length) ? "done" : ""} />
             ))}
           </span>
         </div>

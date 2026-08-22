@@ -5870,8 +5870,8 @@ textarea {
 .tree-analysis-document-title-banner {
   position: absolute;
   z-index: 5;
-  height: 12.75cqw;
-  padding: 2.45cqw 4.41cqw 1.35cqw;
+  height: 11.65cqw;
+  padding: 2.45cqw 4.41cqw 1.1cqw;
   background: linear-gradient(to bottom, #d3d3d3 0%, #bfbfbf 100%);
   color: #111;
 }
@@ -9105,14 +9105,14 @@ textarea {
 .worksheet-cell-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 7px; min-height: 38px; }
 .worksheet-cell-toolbar .worksheet-checkbox input { min-height: 0; }
 .worksheet-cell-toolbar .worksheet-cell-answer { flex: 1 1 260px; }
-.worksheet-text-box { min-height: 0; }
+.worksheet-text-box { min-height: 0; font-family: "Times New Roman", Times, serif; }
 .worksheet-textarea { display: block; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; padding: 1px 3px; resize: none; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; line-height: var(--worksheet-text-line-height, 1.1); text-align: inherit; white-space: pre-wrap; overflow: hidden; }
 .worksheet-wrapped-text, .worksheet-reader-text, .worksheet-reader-text-content { box-sizing: border-box; height: 100%; overflow: hidden; white-space: pre-wrap; line-height: var(--worksheet-text-line-height, 1.1); }
 .worksheet-reader-text-content { width: 100%; }
 .worksheet-wrapped-text { padding: 1px 3px; outline: 0; }
-.worksheet-text-wrap-space { display: block; pointer-events: none; }
-.worksheet-text-wrap-space.left { float: left; clear: left; }
-.worksheet-text-wrap-space.right { float: right; clear: right; }
+.worksheet-text-wrap-space { display: block; pointer-events: none; shape-outside: inset(0); }
+.worksheet-text-wrap-space.left { float: left; clear: left; margin-right: .45em; }
+.worksheet-text-wrap-space.right { float: right; clear: right; margin-left: .45em; }
 .worksheet-image-input { display: none; }
 .worksheet-page-image { position: absolute; z-index: 4; box-sizing: border-box; cursor: grab; touch-action: none; }
 .worksheet-page-image.layout-behind { z-index: 2; }

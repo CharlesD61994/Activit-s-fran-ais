@@ -188,7 +188,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
 
   function addPage() { const page = defaultPage(); setPages((current) => [...current, page]); setActivePageId(page.id); }
   function addText() {
-    const box: TreeAnalysisTextBox = { id: crypto.randomUUID(), pageId: activePageId, x: 121, y: 190, width: 520, height: 80, text: "Écris ton texte ici.", fontSize: 21, textAlign: "left", annotations: [] };
+    const box: TreeAnalysisTextBox = { id: crypto.randomUUID(), pageId: activePageId, x: 145, y: 190, width: 780, height: 220, text: "Écris ton texte ici.", fontSize: 20, textAlign: "left", annotations: [] };
     setTextBoxes((current) => [...current, box]); setSelected({ kind: "text", id: box.id });
   }
   function addScore() {
