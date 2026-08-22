@@ -83,7 +83,7 @@ export function createWorksheetTable(input: {
         cell(input.dimension.toUpperCase(), { role: "header", columnSpan: 2, background: "black", textColor: "white", bold: true, textAlign: "center", verticalAlign: "center", fontSize: 13, borderWidth: 1 }),
         cell("", { columnSpan: 0 }),
         cell("1 point par bonne réponse", { role: "criterion", textAlign: "left", verticalAlign: "center", borderWidth: 1 }),
-        cell(`/${input.maxPoints}`, { role: "total", bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center", borderWidth: 1 })
+        cell(`/${input.maxPoints}`, { role: "total", bold: false, fontSize: 13, textAlign: "right", verticalAlign: "center", borderWidth: 1 })
       ],
       width: WORKSHEET_RUBRIC_WIDTH,
       columnWidths: [718, 52],
@@ -129,5 +129,5 @@ export function normalizedRowHeights(table: TreeAnalysisTable) {
 }
 
 export function tableHasInteraction(table: TreeAnalysisTable) {
-  return table.cells.some((item) => item.isCorrect || Boolean(item.answer?.trim()));
+  return table.cells.some((item) => item.role !== "answer_line" && item.role !== "checkbox" && (item.isCorrect || Boolean(item.answer?.trim())));
 }
