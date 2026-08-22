@@ -13,7 +13,7 @@ export function worksheetTableWidth(table: Pick<TreeAnalysisTable, "kind" | "wid
 }
 
 function fixedRubricRowHeights(columns: number) {
-  return [32, 30, columns >= 6 ? 160 : 70];
+  return [31, 29, columns >= 6 ? 160 : 70];
 }
 
 const cell = (text = "", patch: Partial<TreeAnalysisTableCell> = {}): TreeAnalysisTableCell => ({
@@ -80,14 +80,14 @@ export function createWorksheetTable(input: {
       rows: 2,
       columns: 2,
       cells: [
-        cell(input.dimension.toUpperCase(), { role: "header", columnSpan: 2, background: "black", textColor: "white", bold: true, textAlign: "center", fontSize: 13 }),
+        cell(input.dimension.toUpperCase(), { role: "header", columnSpan: 2, background: "black", textColor: "white", bold: true, textAlign: "center", verticalAlign: "center", fontSize: 13, borderWidth: 1 }),
         cell("", { columnSpan: 0 }),
-        cell("1 point par bonne réponse", { role: "criterion", textAlign: "left" }),
-        cell(`/${input.maxPoints}`, { role: "total", bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center" })
+        cell("1 point par bonne réponse", { role: "criterion", textAlign: "left", verticalAlign: "center", borderWidth: 1 }),
+        cell(`/${input.maxPoints}`, { role: "total", bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center", borderWidth: 1 })
       ],
       width: WORKSHEET_RUBRIC_WIDTH,
       columnWidths: [718, 52],
-      rowHeights: [32, 30]
+      rowHeights: [31, 29]
     };
   }
 
@@ -95,15 +95,15 @@ export function createWorksheetTable(input: {
     const levels = Math.max(2, input.columns);
     const columns = levels + 1;
     const cells = Array.from({ length: 3 * columns }, () => cell());
-    cells[0] = cell(input.dimension.toUpperCase(), { role: "header", columnSpan: levels, background: "black", textColor: "white", bold: true, textAlign: "center", fontSize: 13, verticalAlign: "center" });
+    cells[0] = cell(input.dimension.toUpperCase(), { role: "header", columnSpan: levels, background: "black", textColor: "white", bold: true, textAlign: "center", fontSize: 13, verticalAlign: "center", borderWidth: 1 });
     for (let index = 1; index < levels; index += 1) cells[index] = cell("", { columnSpan: 0 });
-    cells[levels] = cell(`/${input.maxPoints}`, { role: "total", rowSpan: 3, bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center" });
+    cells[levels] = cell(`/${input.maxPoints}`, { role: "total", rowSpan: 3, bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center", borderWidth: 1 });
     cells[columns + levels] = cell("", { columnSpan: 0, rowSpan: 0 });
     cells[columns * 2 + levels] = cell("", { columnSpan: 0, rowSpan: 0 });
     for (let index = 0; index < levels; index += 1) {
       const points = Math.max(0, input.maxPoints - index);
-      cells[columns + index] = cell(`${points} point${points === 1 ? "" : "s"}`, { role: "score", background: "gray", bold: false, fontSize: 13 });
-      cells[columns * 2 + index] = cell(index === 0 ? "Réponse complète et précise." : index === levels - 1 ? "Réponse absente ou inadéquate." : "Réponse partielle.", { role: "criterion", fontSize: 13 });
+      cells[columns + index] = cell(`${points} point${points === 1 ? "" : "s"}`, { role: "score", background: "gray", bold: false, fontSize: 13, textAlign: "center", verticalAlign: "center", borderWidth: 1 });
+      cells[columns * 2 + index] = cell(index === 0 ? "Réponse complète et précise." : index === levels - 1 ? "Réponse absente ou inadéquate." : "Réponse partielle.", { role: "criterion", fontSize: 13, textAlign: "center", verticalAlign: "center", borderWidth: 1 });
     }
     return { ...base, width: WORKSHEET_RUBRIC_WIDTH, rows: 3, columns, cells, columnWidths: [...Array(levels).fill(718 / levels), 52], rowHeights: fixedRubricRowHeights(columns) };
   }
