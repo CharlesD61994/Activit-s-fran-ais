@@ -61,7 +61,7 @@ main { min-height: 100vh; }
 .page-header p, .hero p, .card p { color: var(--text-muted); line-height: 1.6; }
 .hero {
   display: flex; justify-content: space-between; gap: 24px; align-items: center;
-  padding: 32px; margin-bottom: 34px; border-radius: var(--radius);
+  padding: 32px; margin-bottom: 24px; border-radius: var(--radius);
   background: linear-gradient(135deg, var(--surface), var(--surface-elevated)); border: 1px solid var(--border); box-shadow: var(--shadow);
 }
 .hero.compact { padding: 26px 30px; }
@@ -142,11 +142,11 @@ textarea {
 .error-highlight { padding: 2px 4px; border-radius: 5px; background: color-mix(in srgb, var(--warning) 24%, transparent); text-decoration: underline wavy var(--warning); text-underline-offset: 4px; }
 .preview-meta, .sentence-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--text-muted); font-size: .88rem; }
 .preview-meta span, .sentence-meta span { padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px; }
-.sentence-list { display: grid; gap: 16px; }
+.sentence-list { display: grid; gap: 12px; }
 .sentence-card-top { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
 .sentence-card h2 { margin: 7px 0; }
 .tag { background: var(--secondary); color: var(--text); }
-.filters { display: grid; grid-template-columns: minmax(240px, 1fr) 220px 220px; gap: 12px; margin-bottom: 20px; }
+.filters { display: grid; grid-template-columns: minmax(240px, 1fr) 220px 220px; gap: 12px; margin-bottom: 14px; }
 .search-field { display: flex; grid-template-columns: none; flex-direction: row; gap: 8px; align-items: center; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); }
 .search-field input { border: 0; padding: 0; background: transparent; }
 .search-field input:focus { outline: none; }
@@ -7209,6 +7209,7 @@ textarea {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  margin-left: 10px;
   min-width: 0;
 }
 
@@ -7218,6 +7219,7 @@ textarea {
 
 .classroom-activity-card-topline .activity-objective-badges {
   flex: 1 1 auto;
+  margin-left: 0;
 }
 
 .mixed-workspace-meta {
@@ -9218,8 +9220,8 @@ textarea {
   padding-top: 4px;
 }
 .worksheet-editor { display: grid; gap: 14px; }
-.worksheet-editor .tree-analysis-builder-card { overflow: visible; }
-.worksheet-topbar { position: sticky; top: 0; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,.96); box-shadow: var(--shadow-sm); backdrop-filter: blur(10px); }
+.worksheet-editor .tree-analysis-builder-card { overflow: visible; background: linear-gradient(180deg, #f4f8fb 0, #eef5fa 220px, var(--surface) 360px); }
+.worksheet-topbar { position: sticky; top: 0; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 16px; background: #fff; box-shadow: var(--shadow-sm); }
 .worksheet-title-zone { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; }
 .worksheet-topbar .tree-analysis-builder-tools { display: flex; flex: 0 0 auto; flex-wrap: nowrap; justify-content: flex-end; gap: 8px; }
 .worksheet-topbar .tree-analysis-builder-tools .button { min-height: 44px; padding: 8px 14px; white-space: nowrap; }
@@ -9230,7 +9232,7 @@ textarea {
 .worksheet-settings-toggle span { font-weight: 850; font-size: 1.05rem; }
 .worksheet-settings-toggle small { color: var(--muted-foreground); font-weight: 800; white-space: nowrap; }
 .worksheet-settings-panel { display: grid; gap: 10px; margin-top: 10px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
-.worksheet-editor .tree-analysis-quick-add { position: sticky; top: 66px; z-index: 65; margin-top: 4px; margin-bottom: 8px; box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); }
+.worksheet-editor .tree-analysis-quick-add { position: sticky; top: 66px; z-index: 65; margin-top: 4px; margin-bottom: 4px; background: #fff; box-shadow: var(--shadow-sm); }
 .worksheet-meta-grid { grid-template-columns: minmax(220px, 1fr) minmax(150px, .55fr) minmax(140px, .48fr) minmax(280px, 1.25fr); align-items: end; }
 .worksheet-tag-editor { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; min-width: 0; }
 .worksheet-tag-editor > label { min-width: 0; }
@@ -9344,17 +9346,16 @@ textarea {
 .worksheet-editor .worksheet-lines-toolbar,
 .worksheet-editor .worksheet-table-toolbar {
   position: sticky;
-  top: 126px;
+  top: 124px;
   z-index: 64;
   min-height: 58px;
-  margin: 6px 0 8px;
+  margin: 4px 0 8px;
   padding: 10px 12px;
   align-items: end;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 97%, transparent);
+  background: #fff;
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(8px);
 }
 .worksheet-editor .tree-analysis-text-toolbar,
 .worksheet-editor .worksheet-lines-toolbar {

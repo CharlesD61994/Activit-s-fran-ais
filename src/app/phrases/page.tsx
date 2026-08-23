@@ -112,18 +112,25 @@ export default function SentencesPage() {
           const level = data.levels.find((item) => item.id === sentence.levelId);
           const isWordClassActivity = sentence.activityType === "word_classes";
           const isWordGroupActivity = sentence.activityType === "word_groups";
+          const isTreeAnalysisActivity = sentence.activityType === "tree_analysis";
           const isWorksheetActivity = sentence.activityType === "worksheet";
           const targetCount =
             getWordClassAnalysisTargetCount(sentence);
           const wordGroupCount = sentence.wordGroupTargets?.length ?? 0;
+          const treeAnalysisStepCount =
+            (sentence.treeAnalysisInteractions?.length ?? 0) +
+            (sentence.treeAnalysisNodes?.length ?? 0) +
+            (sentence.treeAnalysisTables?.length ?? 0);
           const worksheetStepCount = (sentence.worksheetAnswerLines?.length ?? 0) + (sentence.treeAnalysisTables?.filter((table) => table.cells.some((cell) => cell.isCorrect || Boolean(cell.answer?.trim()))).length ?? 0);
           const maxPoints = isWordClassActivity
             ? getWordClassActivityPointTotal(sentence)
             : isWordGroupActivity
               ? wordGroupCount * 2
-              : isWorksheetActivity
-                ? worksheetStepCount
-              : sentence.corrections.reduce(
+              : isTreeAnalysisActivity
+                ? treeAnalysisStepCount
+                : isWorksheetActivity
+                  ? worksheetStepCount
+                  : sentence.corrections.reduce(
                 (sum, correction) => sum + correction.points,
                 0
               );

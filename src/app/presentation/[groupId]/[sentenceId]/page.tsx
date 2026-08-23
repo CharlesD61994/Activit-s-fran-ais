@@ -152,9 +152,17 @@ export default function PresentationPage({
   const isWordGroupActivity = sentence?.activityType === "word_groups";
   const isTreeAnalysisActivity = sentence?.activityType === "tree_analysis";
   const isWorksheetActivity = sentence?.activityType === "worksheet";
+  const treeAnalysisPointCount = useMemo(() => {
+    if (!sentence || sentence.activityType !== "tree_analysis") return 0;
+    return (
+      (sentence.treeAnalysisInteractions?.length ?? 0) +
+      (sentence.treeAnalysisNodes?.length ?? 0) +
+      (sentence.treeAnalysisTables?.length ?? 0)
+    );
+  }, [sentence]);
 
   const restorePendingPoints = useCallback((points: PendingPoint[]) => {
-    setPendingPoints(points);
+    setPendingPoints(points.map((point) => ({ ...point, points: 1 })));
   }, []);
 
   function queuePoint(
@@ -175,7 +183,7 @@ export default function PresentationPage({
       | "gprep_nucleus"
       | "nested_presence"
       | "nested_type",
-    points: number,
+    _points: number,
     pointId?: string
   ) {
     setPendingPoints((items) => {
@@ -188,7 +196,7 @@ export default function PresentationPage({
 
       return [
         ...items,
-        { correction, stage, points, pointId }
+        { correction, stage, points: 1, pointId }
       ];
     });
   }
@@ -243,7 +251,7 @@ export default function PresentationPage({
             point.pointId
           ),
           stage: point.stage,
-          points: point.points,
+          points: 1,
           pointId: point.pointId
         }))
       ]);
@@ -314,13 +322,36 @@ export default function PresentationPage({
             point.pointId
           ),
           stage: point.stage,
-          points: point.points,
+          points: 1,
           pointId: point.pointId
         }))
       );
     },
     []
   );
+
+  useEffect(() => {
+    if (!sentence || sentence.activityType !== "tree_analysis") return;
+    if (!readerComplete || finished) return;
+
+    setPendingPoints(
+      Array.from({ length: treeAnalysisPointCount }, (_, index) => ({
+        correction: {
+          id: `tree-action-${index + 1}`,
+          start: 0,
+          end: 0,
+          originalText: sentence.title,
+          correctedText: sentence.title,
+          correctionCodeId: "",
+          points: 1,
+          revealOrder: index
+        },
+        stage: "find" as const,
+        points: 1,
+        pointId: `tree-action-${index + 1}`
+      }))
+    );
+  }, [finished, readerComplete, sentence, treeAnalysisPointCount]);
 
   if (!group || !sentence) {
     return (
