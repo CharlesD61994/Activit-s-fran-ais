@@ -157,6 +157,8 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
   const [title, setTitle] = useState(initialSentence?.title ?? "");
   const [levelId, setLevelId] = useState(initialSentence?.levelId ?? levels[0]?.id ?? "");
   const [difficulty, setDifficulty] = useState<SentenceDifficulty>(initialSentence?.difficulty ?? "medium");
+  const [tags, setTags] = useState<string[]>(initialSentence?.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
   const [pages, setPages] = useState<TreeAnalysisDocumentPage[]>(() => initialSentence?.treeAnalysisDocumentPages?.length ? initialSentence.treeAnalysisDocumentPages.map((page) => {
     const defaults = defaultPage(page.id);
     return { ...defaults, ...page, header: { ...defaults.header!, ...page.header }, mainTitle: { ...defaults.mainTitle!, ...page.mainTitle }, taskCallout: { ...defaults.taskCallout!, ...page.taskCallout }, orientation: "portrait", template: "teaching_document" };
@@ -544,12 +546,19 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
     const now = new Date().toISOString();
     onSave({
       id: initialSentence?.id ?? crypto.randomUUID(), activityType: "worksheet", levelId, title: title.trim(), originalText: textBoxes[0]?.text ?? "", difficulty,
-      tags: initialSentence?.tags ?? [], corrections: [], assignedGroupIds: initialSentence?.assignedGroupIds ?? [], competitionEnabled: initialSentence?.competitionEnabled ?? false,
+      tags, corrections: [], assignedGroupIds: initialSentence?.assignedGroupIds ?? [], competitionEnabled: initialSentence?.competitionEnabled ?? false,
       assignmentStatusByGroup: initialSentence?.assignmentStatusByGroup ?? {}, assignmentProgressByGroup: initialSentence?.assignmentProgressByGroup ?? {},
       treeAnalysisDocumentPages: pages, treeAnalysisTextBoxes: textBoxes, treeAnalysisScoreBoxes: scoreBoxes, treeAnalysisTables: tables, treeAnalysisQuestionBadges: badges,
       worksheetAnswerLines: answerLines, worksheetCheckBoxes: checkBoxes, worksheetDimensionBands: dimensionBands, worksheetImages: images, worksheetReaderOrder: (() => { const all = answerLines.filter((item) => item.interactive !== false || Boolean(item.answer.trim())).map((item) => `lines:${item.id}`); return [...readerOrder.filter((id) => all.includes(id)), ...all.filter((id) => !readerOrder.includes(id))]; })(),
       createdAt: initialSentence?.createdAt ?? now, updatedAt: now
     });
+  }
+
+  function addTag() {
+    const value = tagInput.trim();
+    if (!value) return;
+    setTags((current) => current.some((tag) => tag.toLocaleLowerCase("fr-CA") === value.toLocaleLowerCase("fr-CA")) ? current : [...current, value]);
+    setTagInput("");
   }
 
   function printDocument() {
@@ -611,7 +620,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
   return <div className="worksheet-editor tree-analysis-editor">
     <Card className="tree-analysis-builder-card">
       <div className="tree-analysis-builder-heading"><div><span className="eyebrow">Nouveau type d’activité</span><h2>Feuille d’activité</h2><p>Compose une feuille Lettre en portrait. Les lignes de réponse deviennent interactives dans le lecteur.</p></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
-      <div className="tree-analysis-builder-meta"><label>Titre<input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Niveau<select value={levelId} onChange={(event) => setLevelId(event.target.value)}>{levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label><label>Difficulté<select value={difficulty} onChange={(event) => setDifficulty(event.target.value as SentenceDifficulty)}>{Object.entries(difficultyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
+      <div className="tree-analysis-builder-meta worksheet-meta-grid"><label>Titre<input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Niveau<select value={levelId} onChange={(event) => setLevelId(event.target.value)}>{levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label><label>Difficulté<select value={difficulty} onChange={(event) => setDifficulty(event.target.value as SentenceDifficulty)}>{Object.entries(difficultyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><div className="worksheet-tag-editor"><label>Tags<input value={tagInput} onChange={(event)=>setTagInput(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"){event.preventDefault();addTag();}}} placeholder="Ex. Test sur les inférences"/></label><Button type="button" variant="secondary" onClick={addTag}>Ajouter</Button><div className="worksheet-tag-list">{tags.map((tag)=><button type="button" key={tag} onClick={()=>setTags((current)=>current.filter((item)=>item!==tag))}>{tag}<X size={13}/></button>)}</div></div></div>
       <div className="tree-analysis-page-controls"><div>{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div><strong>Lettre — portrait</strong>{(["top","right","bottom","left"] as const).map((side) => <label key={side}>Marge {side}<input type="number" value={activePage?.margins[side] ?? 0} onChange={(event) => updatePage({ margins: { ...activePage.margins, [side]: Number(event.target.value) } })}/></label>)}</div>
       <div className="tree-analysis-quick-add"><Button type="button" onClick={addText}><span className="tree-analysis-add-icon">T</span> Texte</Button><Button type="button" variant="secondary" onClick={addScore}><span className="tree-analysis-add-icon">/x</span> Points</Button><Button type="button" variant="secondary" onClick={openTableDialog}><Grid3X3 size={17}/> Tableau</Button><Button type="button" variant="secondary" onClick={openRubricDialog}><Grid3X3 size={17}/> Grille de notation</Button><Button type="button" variant="secondary" onClick={addBadge}><span className="tree-analysis-add-icon">1</span> Numéro</Button><Button type="button" variant="secondary" onClick={addLines}><span className="tree-analysis-add-icon">━</span> Lignes de réponse</Button><Button type="button" variant="secondary" onClick={()=>setBandDialog("Compréhension")}><span className="tree-analysis-add-icon worksheet-band-icon">C</span> Bandeau de lecture</Button><Button type="button" variant="secondary" onClick={()=>imageInputRef.current?.click()}><ImagePlus size={17}/> Image</Button><input ref={imageInputRef} className="worksheet-image-input" type="file" accept="image/*" onChange={(event)=>{importImage(event.target.files?.[0]);event.target.value="";}}/></div>
       <button type="button" className="worksheet-header-controls-toggle" onClick={() => setHeaderControlsOpen((value) => !value)} aria-expanded={headerControlsOpen}><span>Présentation de la page</span>{headerControlsOpen?<ChevronUp size={18}/>:<ChevronDown size={18}/>}</button>

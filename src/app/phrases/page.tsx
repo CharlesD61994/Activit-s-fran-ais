@@ -26,11 +26,14 @@ export default function SentencesPage() {
   const [levelId, setLevelId] = useState("all");
   const [difficulty, setDifficulty] = useState<SentenceDifficulty | "all">("all");
   const [activityType, setActivityType] = useState<ActivityType | "all">("all");
+  const [tagFilter, setTagFilter] = useState("all");
   const [showTypeModal, setShowTypeModal] = useState(false);
 
   const activeSchoolYear = data.schoolYears
     .slice()
     .sort((a, b) => b.order - a.order)[0];
+
+  const availableTags = useMemo(() => Array.from(new Set(data.sentences.flatMap((sentence) => sentence.tags))).sort((a, b) => a.localeCompare(b, "fr-CA")), [data.sentences]);
 
   const filtered = useMemo(() => data.sentences.filter((sentence) => {
     const matchesQuery = `${sentence.title} ${sentence.originalText} ${sentence.tags.join(" ")}`.toLowerCase().includes(query.toLowerCase());
@@ -38,8 +41,9 @@ export default function SentencesPage() {
     const sentenceType = sentence.activityType ?? "sentence_correction";
     const matchesDifficulty = difficulty === "all" || sentence.difficulty === difficulty;
     const matchesType = activityType === "all" || sentenceType === activityType;
-    return matchesQuery && matchesLevel && matchesDifficulty && matchesType;
-  }), [activityType, data.sentences, difficulty, levelId, query]);
+    const matchesTag = tagFilter === "all" || sentence.tags.includes(tagFilter);
+    return matchesQuery && matchesLevel && matchesDifficulty && matchesType && matchesTag;
+  }), [activityType, data.sentences, difficulty, levelId, query, tagFilter]);
 
 
   function toggleGroupAssignment(sentenceId: string, groupId: string) {
@@ -96,6 +100,10 @@ export default function SentencesPage() {
           <option value="easy">Facile</option>
           <option value="medium">Moyenne</option>
           <option value="hard">Difficile</option>
+        </select>
+        <select value={tagFilter} onChange={(event) => setTagFilter(event.target.value)} aria-label="Filtrer par tag">
+          <option value="all">Tous les tags</option>
+          {availableTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
         </select>
       </Card>
 

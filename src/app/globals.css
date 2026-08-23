@@ -8967,7 +8967,7 @@ textarea {
 }
 
 @page correctionPrintPage {
-  size: letter landscape;
+  size: letter portrait;
   margin: .35in;
 }
 
@@ -9040,7 +9040,7 @@ textarea {
     display: block !important;
     width: 100% !important;
     height: auto !important;
-    max-height: 6.7in !important;
+    max-height: 9.4in !important;
     object-fit: contain;
     object-position: top center;
     break-inside: avoid;
@@ -9198,6 +9198,12 @@ textarea {
 }
 .worksheet-editor { display: grid; gap: 22px; }
 .worksheet-editor .tree-analysis-builder-card { overflow: visible; }
+.worksheet-meta-grid { grid-template-columns: minmax(220px, 1fr) minmax(150px, .55fr) minmax(140px, .48fr) minmax(280px, 1.25fr); align-items: end; }
+.worksheet-tag-editor { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; min-width: 0; }
+.worksheet-tag-editor > label { min-width: 0; }
+.worksheet-tag-editor > .button { min-height: 42px; white-space: nowrap; }
+.worksheet-tag-list { grid-column: 1 / -1; display: flex; min-width: 0; flex-wrap: wrap; gap: 6px; }
+.worksheet-tag-list button { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 8px; border: 1px solid #c7d8e7; border-radius: 999px; background: #eef5fa; color: #315f84; font-size: .78rem; font-weight: 850; cursor: pointer; }
 .worksheet-header-controls-toggle { display: flex; width: 100%; min-height: 44px; margin-top: 10px; padding: 10px 14px; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-weight: 850; cursor: pointer; }
 .worksheet-canvas, .worksheet-reader-page { background: #fff; }
 .worksheet-selection-marquee { position: absolute; z-index: 50; border: 1px dashed #2f74b5; background: rgb(47 116 181 / 10%); pointer-events: none; }
