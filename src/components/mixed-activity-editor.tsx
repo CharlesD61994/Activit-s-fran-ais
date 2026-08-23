@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ChevronDown,
+  ChevronRight,
   GitBranch,
   Pencil,
   Pilcrow,
@@ -28,6 +30,7 @@ import {
   createWorkflowPhase,
   getSentenceWorkflow,
   grammarObjectiveLabels,
+  grammarPhaseLabels,
   normalizeGrammarWorkflow,
   objectiveFromActivityType
 } from "@/lib/grammar-workflow";
@@ -225,6 +228,7 @@ export function MixedActivityEditor({
   const [testRunId, setTestRunId] = useState(0);
   const [surfaceRevision, setSurfaceRevision] = useState(0);
   const [message, setMessage] = useState("");
+  const [collapsedAnswerPhases, setCollapsedAnswerPhases] = useState<string[]>([]);
 
   const activeCorrectionCodes = useMemo(
     () => correctionCodes.filter((code) => code.isActive !== false),
@@ -291,6 +295,40 @@ export function MixedActivityEditor({
       (relation) => (relation.arrowReceiverIds?.length ?? 0) > 0
     )
   );
+  const interactiveAnswerSections = useMemo(() => {
+    const orderedPhaseKinds = phases.map((phase) => phase.kind);
+    const phaseKeys = Array.from(
+      new Set([
+        ...orderedPhaseKinds,
+        ...(corrections.length ? ["correction"] : []),
+        ...annotations.map((annotation) => phaseByKind[annotation.kind as GrammarInteractionKind])
+      ])
+    ).filter((kind): kind is GrammarPhaseKind => Boolean(kind) && kind !== "review");
+
+    const childrenByParent = new Map<string, GrammarAnnotation[]>();
+    annotations.forEach((annotation) => {
+      if (!annotation.parentAnnotationId) return;
+      const list = childrenByParent.get(annotation.parentAnnotationId) ?? [];
+      list.push(annotation);
+      childrenByParent.set(annotation.parentAnnotationId, list);
+    });
+
+    return phaseKeys.map((kind) => {
+      const phase = phases.find((candidate) => candidate.kind === kind);
+      const phaseAnnotations = annotations.filter(
+        (annotation) =>
+          phaseByKind[annotation.kind as GrammarInteractionKind] === kind &&
+          !annotation.parentAnnotationId
+      );
+      return {
+        kind,
+        title: phase?.title ?? grammarPhaseLabels[kind],
+        corrections: kind === "correction" ? corrections : [],
+        annotations: phaseAnnotations,
+        childrenByParent
+      };
+    }).filter((section) => section.corrections.length || section.annotations.length);
+  }, [annotations, corrections, phases]);
   const arrowAuthoringSignature = useMemo(
     () => JSON.stringify({
       text,
@@ -917,90 +955,159 @@ export function MixedActivityEditor({
             </section>
 
             <section className="mixed-workspace-answers">
-              <h3>Réponses interactives</h3>
-              {corrections.map((correction) => (
-                <div key={correction.id}>
-                  <span>
-                    {correction.originalText.length === 0
-                      ? "Ponctuation"
-                      : "Erreur"}
-                  </span>
-                  <strong>
-                    {correction.originalText.length === 0
-                      ? `Ajout : ${correction.correctedText}`
-                      : `${correction.originalText} → ${correction.correctedText}`}
-                  </strong>
-                  <span className="mixed-answer-actions">
+              <div className="mixed-workspace-answers-heading">
+                <div>
+                  <span className="eyebrow">Réponses interactives</span>
+                  <h3>Actions créées</h3>
+                </div>
+                <span>{corrections.length + annotations.length}</span>
+              </div>
+              {!interactiveAnswerSections.length && (
+                <p className="mixed-answer-empty">Sélectionne un passage dans la phrase, puis choisis une mécanique dans la barre.</p>
+              )}
+              {interactiveAnswerSections.map((section) => {
+                const collapsed = collapsedAnswerPhases.includes(section.kind);
+                const total = section.corrections.length + section.annotations.length;
+                return (
+                  <div className="mixed-answer-section" key={section.kind}>
                     <button
                       type="button"
-                      aria-label="Supprimer"
+                      className="mixed-answer-section-toggle"
                       onClick={() =>
-                        setCorrections((current) =>
-                          current.filter((item) => item.id !== correction.id)
+                        setCollapsedAnswerPhases((current) =>
+                          current.includes(section.kind)
+                            ? current.filter((kind) => kind !== section.kind)
+                            : [...current, section.kind]
                         )
                       }
                     >
-                      <Trash2 size={15} />
+                      {collapsed ? <ChevronRight size={17} /> : <ChevronDown size={17} />}
+                      <strong>{section.title}</strong>
+                      <span>{total}</span>
                     </button>
-                  </span>
-                </div>
-              ))}
-
-              {annotations.map((annotation) => (
-                <div
-                  key={annotation.id}
-                  className={annotation.parentAnnotationId ? "is-child" : undefined}
-                >
-                  <span>
-                    {
-                      grammarAnnotationLabels[
-                        annotation.kind as GrammarInteractionKind
-                      ]
-                    }
-                  </span>
-                  <strong>
-                    {text.slice(annotation.start, annotation.end)} — {annotation.label}
-                    {annotation.kind === "gender_number" &&
-                    annotation.grammaticalGender &&
-                    annotation.grammaticalNumber
-                      ? ` — ${
-                          annotation.grammaticalGender === "feminine"
-                            ? "Fém."
-                            : "Masc."
-                        }, ${
-                          annotation.grammaticalNumber === "singular"
-                            ? "Sing."
-                            : "Plur."
-                        }`
-                      : ""}
-                    {annotation.parentAnnotationId && (
-                      <small>
-                        Après :{
-                          annotations.find(
-                            (item) => item.id === annotation.parentAnnotationId
-                          )?.label
-                        }
-                      </small>
+                    {!collapsed && (
+                      <div className="mixed-answer-section-items">
+                        {section.corrections.map((correction) => (
+                          <div className="mixed-answer-card" key={correction.id}>
+                            <span>
+                              {correction.originalText.length === 0
+                                ? "Ponctuation"
+                                : "Erreur"}
+                            </span>
+                            <strong>
+                              {correction.originalText.length === 0
+                                ? `Ajout : ${correction.correctedText}`
+                                : `${correction.originalText} → ${correction.correctedText}`}
+                            </strong>
+                            <span className="mixed-answer-actions">
+                              <button
+                                type="button"
+                                aria-label="Supprimer"
+                                onClick={() =>
+                                  setCorrections((current) =>
+                                    current.filter((item) => item.id !== correction.id)
+                                  )
+                                }
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </span>
+                          </div>
+                        ))}
+                        {section.annotations.map((annotation) => (
+                          <div className="mixed-answer-group" key={annotation.id}>
+                            <div className="mixed-answer-card">
+                              <span>
+                                {
+                                  grammarAnnotationLabels[
+                                    annotation.kind as GrammarInteractionKind
+                                  ]
+                                }
+                              </span>
+                              <strong>
+                                {text.slice(annotation.start, annotation.end)} — {annotation.label}
+                                {annotation.kind === "gender_number" &&
+                                annotation.grammaticalGender &&
+                                annotation.grammaticalNumber
+                                  ? ` — ${
+                                      annotation.grammaticalGender === "feminine"
+                                        ? "Fém."
+                                        : "Masc."
+                                    }, ${
+                                      annotation.grammaticalNumber === "singular"
+                                        ? "Sing."
+                                        : "Plur."
+                                    }`
+                                  : ""}
+                              </strong>
+                              <span className="mixed-answer-actions">
+                                <button
+                                  type="button"
+                                  aria-label="Modifier"
+                                  onClick={() => editAnnotation(annotation)}
+                                >
+                                  <Pencil size={15} />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Supprimer"
+                                  onClick={() => removeAnnotation(annotation)}
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </span>
+                            </div>
+                            {(section.childrenByParent.get(annotation.id) ?? []).map((child) => (
+                              <div className="mixed-answer-card is-child" key={child.id}>
+                                <span>
+                                  {
+                                    grammarAnnotationLabels[
+                                      child.kind as GrammarInteractionKind
+                                    ]
+                                  }
+                                </span>
+                                <strong>
+                                  {text.slice(child.start, child.end)} — {child.label}
+                                  {child.kind === "gender_number" &&
+                                  child.grammaticalGender &&
+                                  child.grammaticalNumber
+                                    ? ` — ${
+                                        child.grammaticalGender === "feminine"
+                                          ? "Fém."
+                                          : "Masc."
+                                      }, ${
+                                        child.grammaticalNumber === "singular"
+                                          ? "Sing."
+                                          : "Plur."
+                                      }`
+                                    : ""}
+                                  <small>Après : {annotation.label}</small>
+                                </strong>
+                                <span className="mixed-answer-actions">
+                                  <button
+                                    type="button"
+                                    aria-label="Modifier"
+                                    onClick={() => editAnnotation(child)}
+                                  >
+                                    <Pencil size={15} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label="Supprimer"
+                                    onClick={() => removeAnnotation(child)}
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </strong>
-                  <span className="mixed-answer-actions">
-                    <button
-                      type="button"
-                      aria-label="Modifier"
-                      onClick={() => editAnnotation(annotation)}
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Supprimer"
-                      onClick={() => removeAnnotation(annotation)}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </span>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </section>
 
             {message && <div className="form-message">{message}</div>}

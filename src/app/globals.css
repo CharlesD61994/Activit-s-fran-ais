@@ -4300,9 +4300,19 @@ textarea {
 .mixed-workspace-editable:empty::before { content: attr(data-placeholder); color: var(--muted-foreground); pointer-events: none; }
 .mixed-workspace-preview { min-height: 90px; padding: 18px; border-radius: 13px; background: var(--secondary); white-space: pre-wrap; font: 700 clamp(1.2rem, 2.2vw, 1.8rem)/1.45 Arial, sans-serif; }
 .mixed-workspace-phases { position: sticky; top: 72px; }
-.mixed-workspace-answers { display: grid; gap: 8px; }
-.mixed-workspace-answers > div { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px; border: 1px solid var(--border); border-radius: 10px; }
-.mixed-workspace-answers > div.is-child { margin-left: 28px; border-left: 4px solid color-mix(in srgb, var(--primary) 45%, var(--border)); background: color-mix(in srgb, var(--secondary) 55%, transparent); }
+.mixed-workspace-answers { display: grid; gap: 10px; }
+.mixed-workspace-answers-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mixed-workspace-answers-heading h3 { margin: 0; }
+.mixed-workspace-answers-heading > span { display: inline-grid; min-width: 34px; height: 34px; place-items: center; border-radius: 999px; background: var(--secondary); color: var(--primary); font-weight: 900; }
+.mixed-answer-empty { margin: 0; color: var(--muted-foreground); font-weight: 700; }
+.mixed-answer-section { display: grid; gap: 8px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 38%, #fff); overflow: hidden; }
+.mixed-answer-section-toggle { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; min-height: 42px; padding: 9px 12px; border: 0; background: transparent; color: var(--foreground); cursor: pointer; text-align: left; }
+.mixed-answer-section-toggle > span { display: inline-grid; min-width: 26px; height: 26px; place-items: center; border-radius: 999px; background: #fff; color: var(--primary); font-weight: 900; }
+.mixed-answer-section-items { display: grid; gap: 8px; padding: 0 10px 10px; }
+.mixed-answer-group { display: grid; gap: 6px; }
+.mixed-answer-card { display: grid; grid-template-columns: minmax(88px, .35fr) minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.mixed-answer-card.is-child { margin-left: 28px; border-left: 4px solid color-mix(in srgb, var(--primary) 45%, var(--border)); background: color-mix(in srgb, var(--secondary) 55%, #fff); }
+.mixed-answer-card > span:first-child { color: var(--primary); font-size: .82rem; font-weight: 900; }
 .mixed-workspace-answers strong { display: grid; gap: 3px; }
 .mixed-workspace-answers strong small { color: var(--muted-foreground); font-weight: 700; }
 .mixed-answer-actions { display: flex; align-items: center; gap: 4px; }
@@ -9199,10 +9209,11 @@ textarea {
 .worksheet-editor { display: grid; gap: 22px; }
 .worksheet-editor .tree-analysis-builder-card { overflow: visible; }
 .worksheet-meta-grid { grid-template-columns: minmax(220px, 1fr) minmax(150px, .55fr) minmax(140px, .48fr) minmax(280px, 1.25fr); align-items: end; }
-.worksheet-tag-editor { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; min-width: 0; }
+.worksheet-tag-editor { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; min-width: 0; }
 .worksheet-tag-editor > label { min-width: 0; }
 .worksheet-tag-editor > .button { min-height: 42px; white-space: nowrap; }
-.worksheet-tag-list { grid-column: 1 / -1; display: flex; min-width: 0; flex-wrap: wrap; gap: 6px; }
+.worksheet-tag-list { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0; display: flex; min-width: 0; max-height: 74px; overflow: auto; flex-wrap: wrap; gap: 6px; padding: 6px; border: 1px solid #c7d8e7; border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: var(--shadow-sm); }
+.worksheet-tag-list:empty { display: none; }
 .worksheet-tag-list button { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 8px; border: 1px solid #c7d8e7; border-radius: 999px; background: #eef5fa; color: #315f84; font-size: .78rem; font-weight: 850; cursor: pointer; }
 .worksheet-header-controls-toggle { display: flex; width: 100%; min-height: 44px; margin-top: 10px; padding: 10px 14px; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-weight: 850; cursor: pointer; }
 .worksheet-canvas, .worksheet-reader-page { background: #fff; }
