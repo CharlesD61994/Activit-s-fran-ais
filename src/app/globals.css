@@ -9082,9 +9082,10 @@ textarea {
 .worksheet-lines-toolbar button { min-height: 38px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-weight: 850; cursor: pointer; }
 .worksheet-lines-toolbar button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary); color: #fff; }
 .worksheet-lines-hint { flex: 1 1 280px; margin: 0; color: var(--muted-foreground); font-size: .84rem; line-height: 1.25; }
-.worksheet-answer-lines { position: absolute; z-index: 8; display: block; padding: 0; border: 0; background: transparent; color: #111; cursor: move; }
+.worksheet-answer-lines { position: absolute; z-index: 8; display: block; min-height: 28px; padding: 0; border: 0; background: rgba(255,255,255,.001); color: #111; cursor: move; }
+.worksheet-answer-lines::before { content: ""; position: absolute; inset: -10px -8px; z-index: 0; background: transparent; }
 .worksheet-answer-lines.selected { outline: 2px dashed #2f658e; outline-offset: 5px; }
-.worksheet-answer-lines > span { position: absolute; left: 0; right: 0; height: 1px; border-top: .45px solid #111; }
+.worksheet-answer-lines > span { position: absolute; left: 0; right: 0; z-index: 1; height: 1px; border-top: .45px solid #111; }
 .worksheet-answer-copy { position: absolute; inset: 1px 4px auto; z-index: 1; white-space: pre-wrap; overflow-wrap: break-word; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; text-align: left; pointer-events: none; }
 .worksheet-answer-editor { min-height: 100%; outline: 0; caret-color: #ed18e8; pointer-events: auto; cursor: text; }
 .worksheet-answer-lines.reader { cursor: pointer; }
@@ -9107,7 +9108,7 @@ textarea {
   cursor: move;
   touch-action: none;
   font-family: "Times New Roman", Times, serif;
-  font-size: 1.28cqw;
+  font-size: inherit;
   font-weight: 400;
   line-height: 1;
 }
