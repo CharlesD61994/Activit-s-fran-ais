@@ -55,7 +55,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <Card className="auth-card">
         <div>
-          <span className="eyebrow">Phrase du jour</span>
+          <span className="eyebrow">Alinéa - Activités de français</span>
           <h1>{mode === "login" ? "Connexion" : "Créer un compte"}</h1>
           <p>
             Synchronise tes groupes, tes phrases et tes points entre tes appareils.

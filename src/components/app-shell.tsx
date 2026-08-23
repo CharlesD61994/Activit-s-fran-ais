@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="app-loading-screen">
         <div className="app-loading-indicator" />
-        <span>Chargement de Phrase du jour…</span>
+        <span>Chargement d’Alinéa - Activités de français…</span>
       </div>
     );
   }

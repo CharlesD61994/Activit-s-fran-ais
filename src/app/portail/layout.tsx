@@ -14,7 +14,7 @@ export default function StudentPortalLayout({
         <Link href="/portail" className="student-portal-brand">
           <span className="student-portal-logo"><GraduationCap size={24} /></span>
           <div>
-            <strong>Phrase du jour</strong>
+            <strong>Alinéa - Activités de français</strong>
             <span>Portail élève</span>
           </div>
         </Link>

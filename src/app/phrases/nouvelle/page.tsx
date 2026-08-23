@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -15,6 +16,7 @@ export default function NewSentencePage() {
 
   const isTreeAnalysis = searchParams.get("type") === "tree_analysis";
   const isWorksheet = searchParams.get("type") === "worksheet";
+  const [worksheetTitle, setWorksheetTitle] = useState("");
 
   const saveAndReturn = (sentence: Parameters<typeof saveSentence>[0]) => {
     saveSentence(sentence);
@@ -29,8 +31,12 @@ export default function NewSentencePage() {
       </Link>
 
       <div className="page-header">
-        <span className="eyebrow">Création</span>
-        <h1>{isTreeAnalysis ? "Nouvelle analyse en arbre" : isWorksheet ? "Nouvelle feuille d’activité" : "Nouvelle activité grammaticale"}</h1>
+        <span className="eyebrow">{isWorksheet ? "Feuille d’activité" : "Création"}</span>
+        {isWorksheet ? (
+          <input className="worksheet-page-title-input" value={worksheetTitle} onChange={(event) => setWorksheetTitle(event.target.value)} placeholder="Titre de la feuille" />
+        ) : (
+          <h1>{isTreeAnalysis ? "Nouvelle analyse en arbre" : "Nouvelle activité grammaticale"}</h1>
+        )}
         <p>
           {isTreeAnalysis
             ? "Écris une phrase compatible avec une feuille Lettre en paysage, puis construis son arbre."
@@ -47,7 +53,7 @@ export default function NewSentencePage() {
           onSave={saveAndReturn}
         />
       ) : isWorksheet ? (
-        <WorksheetEditor levels={data.levels} onSave={saveAndReturn}/>
+        <WorksheetEditor levels={data.levels} onSave={saveAndReturn} controlledTitle={worksheetTitle} onTitleChange={setWorksheetTitle}/>
       ) : (
         <MixedActivityEditor levels={data.levels} correctionCodes={data.correctionCodes} onSave={saveAndReturn}/>
       )}

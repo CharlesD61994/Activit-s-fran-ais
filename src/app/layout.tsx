@@ -4,7 +4,7 @@ import "./reader-system.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "Phrase du jour",
+  title: "Alinéa - Activités de français",
   description: "Application de correction progressive de phrases pour la classe de français."
 };
 

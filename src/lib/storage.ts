@@ -3,7 +3,8 @@
 import { demoData } from "@/data/demo-data";
 import type { AppData } from "@/types";
 
-const STORAGE_KEY = "phrase-du-jour-v21";
+const STORAGE_KEY = "alinea-activites-francais-v21";
+const LEGACY_STORAGE_KEYS = ["phrase-du-jour-v21"];
 const DATA_VERSION = 34;
 
 function cloneDemoData(): AppData {
@@ -27,18 +28,20 @@ export function loadData(): AppData {
   if (typeof window === "undefined") return cloneDemoData();
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY) ?? LEGACY_STORAGE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean);
 
     if (raw) {
       const parsed = JSON.parse(raw) as unknown;
       if (isCurrentData(parsed)) {
-        return {
+        const migrated = {
           ...parsed,
           dataVersion: DATA_VERSION,
           competitionResults: Array.isArray(parsed.competitionResults)
             ? parsed.competitionResults
             : []
         };
+        saveData(migrated);
+        return migrated;
       }
     }
 

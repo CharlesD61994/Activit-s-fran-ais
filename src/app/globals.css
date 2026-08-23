@@ -56,6 +56,8 @@ main { min-height: 100vh; }
 .page { max-width: 1250px; margin: 0 auto; padding: 42px; }
 .page-header { margin-bottom: 30px; }
 .page-header h1, .hero h1 { margin: 6px 0 8px; font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -.04em; }
+.worksheet-page-title-input { display: block; width: min(760px, 100%); margin: 6px 0 8px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; font-size: clamp(1.85rem, 3.1vw, 2.75rem); font-weight: 500; line-height: 1.1; letter-spacing: -.04em; }
+.worksheet-page-title-input::placeholder { color: color-mix(in srgb, var(--text) 70%, transparent); }
 .page-header p, .hero p, .card p { color: var(--text-muted); line-height: 1.6; }
 .hero {
   display: flex; justify-content: space-between; gap: 24px; align-items: center;
@@ -9218,14 +9220,10 @@ textarea {
 .worksheet-editor { display: grid; gap: 22px; }
 .worksheet-editor .tree-analysis-builder-card { overflow: visible; }
 .worksheet-topbar { position: sticky; top: 0; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,.96); box-shadow: var(--shadow-sm); backdrop-filter: blur(10px); }
-.worksheet-title-zone { display: grid; min-width: 0; flex: 1 1 auto; gap: 8px; }
-.worksheet-title-chip { display: grid; gap: 4px; min-width: 0; }
-.worksheet-title-chip .eyebrow { font-size: .78rem; }
-.worksheet-title-input { width: min(520px, 100%); min-height: 36px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--foreground); font: inherit; font-size: clamp(1.35rem, 2.5vw, 1.9rem); font-weight: 500; line-height: 1.08; }
-.worksheet-title-input::placeholder { color: color-mix(in srgb, var(--muted-foreground) 60%, transparent); }
+.worksheet-title-zone { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; }
 .worksheet-topbar .tree-analysis-builder-tools { display: flex; flex: 0 0 auto; flex-wrap: nowrap; justify-content: flex-end; gap: 8px; }
 .worksheet-topbar .tree-analysis-builder-tools .button { min-height: 44px; padding: 8px 14px; white-space: nowrap; }
-.worksheet-page-tabs { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 13px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
+.worksheet-page-tabs { display: inline-flex; width: fit-content; flex: 0 0 auto; align-items: center; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 13px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
 .worksheet-page-tabs button { display: inline-flex; min-height: 32px; padding: 4px 9px; align-items: center; gap: 5px; border: 1px solid transparent; border-radius: 9px; background: #fff; color: var(--foreground); font: inherit; font-weight: 800; cursor: pointer; }
 .worksheet-page-tabs button.active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, #fff); color: var(--primary); }
 .worksheet-settings-toggle { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; width: calc(100% - 24px); min-height: 40px; margin: 8px 12px 0; padding: 8px 12px; align-items: center; border: 1px solid var(--border); border-radius: 14px; background: var(--secondary); color: var(--foreground); font: inherit; cursor: pointer; text-align: left; }
