@@ -6815,6 +6815,9 @@ textarea {
     overflow: hidden !important;
     background: #fff !important;
   }
+  body:has(.worksheet-print-root) > :not(.worksheet-print-root) {
+    display: none !important;
+  }
   body:has(.worksheet-print-root) .worksheet-print-root,
   body:has(.worksheet-print-root) .worksheet-print-root * {
     visibility: visible !important;

@@ -20,7 +20,7 @@ type Props = {
 };
 const W = 1056;
 const H = 816;
-const answerLineHeight = (item: WorksheetAnswerLines) => `${item.lineSpacing / H * (11 / 8.5) * 100}cqw`;
+const answerLineHeight = (item: WorksheetAnswerLines) => `${item.lineSpacing / W * 100}cqw`;
 const WORKSHEET_TEXT_LINE_HEIGHT = 1.1;
 
 function ReaderText({ box, wrap }: { box: TreeAnalysisTextBox; wrap: ReturnType<typeof worksheetTextWrap> }) {

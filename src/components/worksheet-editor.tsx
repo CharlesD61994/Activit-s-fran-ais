@@ -35,7 +35,7 @@ const difficultyLabels: Record<SentenceDifficulty, string> = { easy: "Facile", m
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const ALIGNMENT_TOLERANCE = 6;
 const WORKSHEET_TEXT_LINE_HEIGHT = 1.1;
-const answerLineHeight = (item: WorksheetAnswerLines) => `${item.lineSpacing / H * (11 / 8.5) * 100}cqw`;
+const answerLineHeight = (item: WorksheetAnswerLines) => `${item.lineSpacing / W * 100}cqw`;
 
 function renderedLineCenters(element: HTMLElement) {
   const root = element.getBoundingClientRect();
