@@ -8967,7 +8967,7 @@ textarea {
 }
 
 @page correctionPrintPage {
-  size: letter portrait;
+  size: letter landscape;
   margin: .35in;
 }
 
@@ -9040,7 +9040,7 @@ textarea {
     display: block !important;
     width: 100% !important;
     height: auto !important;
-    max-height: 9.4in !important;
+    max-height: 6.9in !important;
     object-fit: contain;
     object-position: top center;
     break-inside: avoid;
