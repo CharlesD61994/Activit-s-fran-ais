@@ -9115,6 +9115,7 @@ textarea {
 .worksheet-checkbox-mark::before {
   content: "☐";
   color: #111;
+  font-size: 1.18em;
 }
 .worksheet-checkbox-mark.selected {
   outline: 2px dashed #3976bf;
@@ -9128,6 +9129,7 @@ textarea {
   place-items: center;
   color: #111;
   font: inherit;
+  font-size: 1.18em;
   line-height: 1;
 }
 .worksheet-checkbox-mark.checked::before { content: ""; }

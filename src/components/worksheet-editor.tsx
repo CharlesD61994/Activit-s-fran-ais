@@ -303,7 +303,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
   function addCheckInTable() {
     const target = selectedTableTarget();
     if (!target) return;
-    const item: WorksheetCheckboxMark = { id: crypto.randomUUID(), pageId: activePageId, x: target.x + 12, y: target.y + Math.max(8, target.height / 2 - 11), size: 22, checked: false };
+    const item: WorksheetCheckboxMark = { id: crypto.randomUUID(), pageId: activePageId, x: target.x + 12, y: target.y + Math.max(8, target.height / 2 - 15), size: 30, checked: false };
     setCheckBoxes((current) => [...current, item]);
     setSelected({ kind: "check", id: item.id });
   }
@@ -552,6 +552,64 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
     });
   }
 
+  function printDocument() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const clone = canvas.cloneNode(true) as HTMLElement;
+    clone.classList.add("worksheet-print-clone");
+    clone.querySelectorAll(".selected,.cell-selected").forEach((element) => element.classList.remove("selected", "cell-selected"));
+    clone.querySelectorAll("[contenteditable]").forEach((element) => {
+      element.removeAttribute("contenteditable");
+      element.removeAttribute("spellcheck");
+    });
+    clone.querySelectorAll([
+      "button",
+      ".tree-analysis-text-delete",
+      ".tree-analysis-text-resize",
+      ".tree-analysis-text-move-handle",
+      ".tree-analysis-alignment-guide",
+      ".tree-analysis-delete-table",
+      ".worksheet-selection-marquee",
+      ".worksheet-group-selection-outline",
+      ".worksheet-text-move-edge",
+      ".worksheet-table-move-edge",
+      ".worksheet-table-resize",
+      ".worksheet-lines-delete",
+      ".worksheet-lines-resize",
+      ".worksheet-checkbox-delete",
+      ".worksheet-image-delete",
+      ".worksheet-image-resize",
+      ".worksheet-band-delete",
+      ".worksheet-score-delete",
+      ".worksheet-score-resize"
+    ].join(",")).forEach((element) => element.remove());
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.position = "fixed";
+    frame.style.left = "-10000px";
+    frame.style.top = "0";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    document.body.appendChild(frame);
+    const printWindow = frame.contentWindow;
+    if (!printWindow) {
+      frame.remove();
+      return;
+    }
+    const styles = Array.from(document.head.querySelectorAll<HTMLStyleElement | HTMLLinkElement>("style,link[rel='stylesheet']"))
+      .map((node) => node.outerHTML)
+      .join("\n");
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html><html><head><title>${title || "Feuille d’activité"}</title>${styles}<style>@page{size:letter portrait;margin:0}html,body{width:8.5in;height:11in;margin:0;padding:0;overflow:hidden;background:#fff}.worksheet-print-host{width:8.5in;height:11in;margin:0;padding:0;overflow:hidden;background:#fff}.worksheet-print-host,.worksheet-print-host *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.worksheet-print-host .tree-analysis-page{width:8.5in!important;height:11in!important;min-width:0!important;min-height:0!important;aspect-ratio:auto!important;margin:0!important;box-shadow:none!important;transform:none!important}.worksheet-print-host .tree-analysis-page::after{display:none!important}.worksheet-print-host .worksheet-answer-lines.selected{outline:0!important}.worksheet-print-host .worksheet-answer-lines{background:transparent!important}.worksheet-print-host .worksheet-answer-lines::before{display:none!important}.worksheet-print-host .worksheet-activity-table::after{display:none!important}.worksheet-print-host .tree-analysis-text-box,.worksheet-print-host .worksheet-activity-table,.worksheet-print-host .worksheet-page-image{outline:0!important}</style></head><body><div class="worksheet-print-host">${clone.outerHTML}</div></body></html>`);
+    printWindow.document.close();
+    window.setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.addEventListener("afterprint", () => frame.remove(), { once: true });
+    }, 100);
+  }
+
   const selectedText = selected?.kind === "text" ? textBoxes.find((item) => item.id === selected.id) : undefined;
   const selectedLines = selected?.kind === "lines" ? answerLines.find((item) => item.id === selected.id) : undefined;
   const selectedTable = selected?.kind === "table" ? tables.find((item) => item.id === selected.id) : undefined;
@@ -563,7 +621,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
 
   return <div className="worksheet-editor tree-analysis-editor">
     <Card className="tree-analysis-builder-card">
-      <div className="tree-analysis-builder-heading"><div><span className="eyebrow">Nouveau type d’activité</span><h2>Feuille d’activité</h2><p>Compose une feuille Lettre en portrait. Les lignes de réponse deviennent interactives dans le lecteur.</p></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" onClick={() => window.print()}><Printer size={17}/> Imprimer</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
+      <div className="tree-analysis-builder-heading"><div><span className="eyebrow">Nouveau type d’activité</span><h2>Feuille d’activité</h2><p>Compose une feuille Lettre en portrait. Les lignes de réponse deviennent interactives dans le lecteur.</p></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
       <div className="tree-analysis-builder-meta"><label>Titre<input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Niveau<select value={levelId} onChange={(event) => setLevelId(event.target.value)}>{levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label><label>Difficulté<select value={difficulty} onChange={(event) => setDifficulty(event.target.value as SentenceDifficulty)}>{Object.entries(difficultyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
       <div className="tree-analysis-page-controls"><div>{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div><strong>Lettre — portrait</strong>{(["top","right","bottom","left"] as const).map((side) => <label key={side}>Marge {side}<input type="number" value={activePage?.margins[side] ?? 0} onChange={(event) => updatePage({ margins: { ...activePage.margins, [side]: Number(event.target.value) } })}/></label>)}</div>
       <div className="tree-analysis-quick-add"><Button type="button" onClick={addText}><span className="tree-analysis-add-icon">T</span> Texte</Button><Button type="button" variant="secondary" onClick={addScore}><span className="tree-analysis-add-icon">/x</span> Points</Button><Button type="button" variant="secondary" onClick={openTableDialog}><Grid3X3 size={17}/> Tableau</Button><Button type="button" variant="secondary" onClick={openRubricDialog}><Grid3X3 size={17}/> Grille de notation</Button><Button type="button" variant="secondary" onClick={addBadge}><span className="tree-analysis-add-icon">1</span> Numéro</Button><Button type="button" variant="secondary" onClick={addLines}><span className="tree-analysis-add-icon">━</span> Lignes de réponse</Button><Button type="button" variant="secondary" onClick={()=>setBandDialog("Compréhension")}><span className="tree-analysis-add-icon worksheet-band-icon">C</span> Bandeau de lecture</Button><Button type="button" variant="secondary" onClick={()=>imageInputRef.current?.click()}><ImagePlus size={17}/> Image</Button><input ref={imageInputRef} className="worksheet-image-input" type="file" accept="image/*" onChange={(event)=>{importImage(event.target.files?.[0]);event.target.value="";}}/></div>
@@ -587,7 +645,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
       {selectedLines && <div className="worksheet-lines-toolbar"><label>Nombre de lignes<input type="number" min="1" max="30" value={selectedLines.lineCount} onChange={(event) => setAnswerLines((items) => items.map((item) => item.id === selectedLines.id ? {...item,lineCount:Number(event.target.value)} : item))}/></label><label>Interligne<input type="number" min="18" max="56" value={selectedLines.lineSpacing} onChange={(event) => setAnswerLines((items) => items.map((item) => item.id === selectedLines.id ? {...item,lineSpacing:Number(event.target.value)} : item))}/></label><label>Largeur<input type="number" min="80" max="900" value={selectedLines.width} onChange={(event) => setAnswerLines((items) => items.map((item) => item.id === selectedLines.id ? {...item,width:clamp(Number(event.target.value),80,900)} : item))}/></label><label>Taille de la réponse<input type="number" min="10" max="32" value={selectedLines.answerFontSize} onChange={(event) => setAnswerLines((items) => items.map((item) => item.id === selectedLines.id ? {...item,answerFontSize:Number(event.target.value)} : item))}/></label><button type="button" aria-pressed={selectedLines.answerBold ?? false} onClick={() => setAnswerLines((items) => items.map((item) => item.id === selectedLines.id ? {...item,answerBold:!item.answerBold} : item))}><Bold size={16}/> Gras</button><button type="button" aria-pressed={(selectedLines.answerTextAlign ?? "left") === "left"} onClick={() => setAnswerLines((items) => items.map((item) => item.id === selectedLines.id ? {...item,answerTextAlign:"left"} : item))}><AlignLeft size={16}/></button><button type="button" aria-pressed={selectedLines.answerTextAlign === "center"} onClick={() => setAnswerLines((items) => items.map((item) => item.id === selectedLines.id ? {...item,answerTextAlign:"center"} : item))}><AlignCenter size={16}/></button><button type="button" aria-pressed={selectedLines.answerTextAlign === "justify"} onClick={() => setAnswerLines((items) => items.map((item) => item.id === selectedLines.id ? {...item,answerTextAlign:"justify"} : item))}><AlignJustify size={16}/></button><p className="worksheet-lines-hint">En mode corrigé, écris directement sur les lignes. Le nombre de lignes augmente si la réponse déborde.</p></div>}
       {selectedCheck && <div className="tree-analysis-text-toolbar worksheet-checkbox-toolbar">
         <label className="worksheet-checkbox"><input type="checkbox" checked={selectedCheck.checked ?? false} onChange={(event)=>setCheckBoxes((items)=>items.map((item)=>item.id===selectedCheck.id?{...item,checked:event.target.checked}:item))}/> Cochée dans le corrigé</label>
-        <label>Taille<input type="number" min="8" max="30" value={selectedCheck.size} onChange={(event)=>setCheckBoxes((items)=>items.map((item)=>item.id===selectedCheck.id?{...item,size:clamp(Number(event.target.value),8,30)}:item))}/></label>
+        <label>Taille<input type="number" min="12" max="60" value={selectedCheck.size} onChange={(event)=>setCheckBoxes((items)=>items.map((item)=>item.id===selectedCheck.id?{...item,size:clamp(Number(event.target.value),12,60)}:item))}/></label>
       </div>}
       {selectedScore && <div className="tree-analysis-text-toolbar worksheet-score-toolbar"><label>Total<input type="number" min="1" value={selectedScore.total} onChange={(event) => setScoreBoxes((items) => items.map((item) => item.id === selectedScore.id ? {...item,total:Math.max(1,Number(event.target.value)||1)} : item))}/></label><label>Largeur<input type="number" min="54" max="400" value={selectedScore.width ?? 120} onChange={(event) => setScoreBoxes((items) => items.map((item) => item.id === selectedScore.id ? {...item,width:Number(event.target.value)} : item))}/></label><label>Hauteur<input type="number" min="28" max="100" value={selectedScore.height ?? 42} onChange={(event) => setScoreBoxes((items) => items.map((item) => item.id === selectedScore.id ? {...item,height:Number(event.target.value)} : item))}/></label></div>}
       {selectedBand && <div className="tree-analysis-text-toolbar worksheet-band-toolbar"><label>Dimension<select value={selectedBand.dimension} onChange={(event) => {const dimension=event.target.value as WorksheetDimensionBand["dimension"];const size=worksheetDimensionAsset(dimension);setDimensionBands((items) => items.map((item) => item.id === selectedBand.id ? {...item,dimension,width:size.width,height:size.height} : item));}}>{["Compréhension","Interprétation","Réaction","Appréciation"].map((item)=><option key={item}>{item}</option>)}</select></label><span>Format identique au document de référence.</span></div>}
