@@ -583,39 +583,20 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
       ".worksheet-score-delete",
       ".worksheet-score-resize"
     ].join(",")).forEach((element) => element.remove());
-    const frame = document.createElement("iframe");
-    frame.setAttribute("aria-hidden", "true");
-    frame.style.position = "fixed";
-    frame.style.left = "-10000px";
-    frame.style.top = "0";
-    frame.style.width = "8.5in";
-    frame.style.height = "11in";
-    frame.style.border = "0";
-    document.body.appendChild(frame);
-    const printWindow = frame.contentWindow;
-    if (!printWindow) {
-      frame.remove();
-      return;
-    }
-    const styles = Array.from(document.head.querySelectorAll<HTMLStyleElement | HTMLLinkElement>("style,link[rel='stylesheet']"))
-      .map((node) => node.outerHTML)
-      .join("\n");
-    printWindow.document.open();
-    printWindow.document.write(`<!doctype html><html><head><title>${title || "Feuille d’activité"}</title>${styles}<style>@page{size:letter portrait;margin:0}html,body{width:8.5in;height:11in;margin:0;padding:0;overflow:hidden;background:#fff}.worksheet-print-host{width:8.5in;height:11in;margin:0;padding:0;overflow:hidden;background:#fff}.worksheet-print-host,.worksheet-print-host *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.worksheet-print-host .tree-analysis-page{width:8.5in!important;height:11in!important;min-width:0!important;min-height:0!important;aspect-ratio:auto!important;margin:0!important;box-shadow:none!important;transform:none!important}.worksheet-print-host .tree-analysis-page::after{display:none!important}.worksheet-print-host .worksheet-answer-lines.selected{outline:0!important}.worksheet-print-host .worksheet-answer-lines{background:transparent!important}.worksheet-print-host .worksheet-answer-lines::before{display:none!important}.worksheet-print-host .worksheet-activity-table::after{display:none!important}.worksheet-print-host .tree-analysis-text-box,.worksheet-print-host .worksheet-activity-table,.worksheet-print-host .worksheet-page-image{outline:0!important}</style></head><body><div class="worksheet-print-host">${clone.outerHTML}</div></body></html>`);
-    printWindow.document.close();
-    const printReady = async () => {
-      await printWindow.document.fonts?.ready.catch(() => undefined);
-      await Promise.all(Array.from(printWindow.document.images).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => {
-        image.addEventListener("load", () => resolve(), { once: true });
-        image.addEventListener("error", () => resolve(), { once: true });
-      })));
-      await new Promise((resolve) => printWindow.requestAnimationFrame(() => printWindow.requestAnimationFrame(resolve)));
-      printWindow.focus();
-      printWindow.print();
-      printWindow.addEventListener("afterprint", () => frame.remove(), { once: true });
+    document.querySelector(".worksheet-print-root")?.remove();
+    const printRoot = document.createElement("div");
+    printRoot.className = "worksheet-print-root";
+    printRoot.appendChild(clone);
+    document.body.appendChild(printRoot);
+    const cleanup = () => {
+      printRoot.remove();
+      window.removeEventListener("afterprint", cleanup);
     };
-    if (printWindow.document.readyState === "complete") void printReady();
-    else frame.addEventListener("load", () => void printReady(), { once: true });
+    window.addEventListener("afterprint", cleanup);
+    window.setTimeout(() => {
+      window.print();
+      window.setTimeout(cleanup, 1000);
+    }, 100);
   }
 
   const selectedText = selected?.kind === "text" ? textBoxes.find((item) => item.id === selected.id) : undefined;

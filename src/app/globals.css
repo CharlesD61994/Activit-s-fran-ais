@@ -6801,6 +6801,62 @@ textarea {
   }
 }
 
+@media print {
+  @page { size: letter portrait; margin: 0; }
+  body:has(.worksheet-print-root),
+  body:has(.worksheet-print-root) * {
+    visibility: hidden !important;
+  }
+  body:has(.worksheet-print-root) {
+    width: 8.5in !important;
+    height: 11in !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+  body:has(.worksheet-print-root) .worksheet-print-root,
+  body:has(.worksheet-print-root) .worksheet-print-root * {
+    visibility: visible !important;
+  }
+  body:has(.worksheet-print-root) .worksheet-print-root {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 8.5in !important;
+    height: 11in !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+  body:has(.worksheet-print-root) .worksheet-print-root .tree-analysis-page {
+    width: 8.5in !important;
+    height: 11in !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    aspect-ratio: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  body:has(.worksheet-print-root) .worksheet-print-root .tree-analysis-page::after,
+  body:has(.worksheet-print-root) .worksheet-print-root .worksheet-answer-lines::before,
+  body:has(.worksheet-print-root) .worksheet-print-root .worksheet-activity-table::after {
+    display: none !important;
+  }
+  body:has(.worksheet-print-root) .worksheet-print-root .worksheet-answer-lines {
+    background: transparent !important;
+  }
+  body:has(.worksheet-print-root) .worksheet-print-root .tree-analysis-text-box,
+  body:has(.worksheet-print-root) .worksheet-print-root .worksheet-activity-table,
+  body:has(.worksheet-print-root) .worksheet-print-root .worksheet-page-image {
+    outline: 0 !important;
+  }
+}
+
 /* V80 — moteur de lignes pour les flèches d’accord */
 .word-class-reader-word {
   position: relative;
@@ -9082,7 +9138,7 @@ textarea {
 .worksheet-lines-toolbar button { min-height: 38px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-weight: 850; cursor: pointer; }
 .worksheet-lines-toolbar button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary); color: #fff; }
 .worksheet-lines-hint { flex: 1 1 280px; margin: 0; color: var(--muted-foreground); font-size: .84rem; line-height: 1.25; }
-.worksheet-answer-lines { position: absolute; z-index: 8; display: block; min-height: 28px; padding: 0; border: 0; background: rgba(255,255,255,.001); color: #111; cursor: move; }
+.worksheet-answer-lines { position: absolute; z-index: 8; display: block; padding: 0; border: 0; background: rgba(255,255,255,.001); color: #111; cursor: move; }
 .worksheet-answer-lines::before { content: ""; position: absolute; inset: -10px -8px; z-index: 0; background: transparent; }
 .worksheet-answer-lines.selected { outline: 2px dashed #2f658e; outline-offset: 5px; }
 .worksheet-answer-lines > span { position: absolute; left: 0; right: 0; z-index: 1; height: 1px; border-top: .45px solid #111; }
