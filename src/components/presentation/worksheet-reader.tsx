@@ -148,4 +148,3 @@ export function WorksheetReader({ sentence, persistenceKey, finishControl, onCom
     </div></div>}
   </div>;
 }
-
