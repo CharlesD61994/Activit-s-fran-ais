@@ -562,37 +562,39 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
     setTagInput("");
   }
 
-  function printDocument() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const clone = canvas.cloneNode(true) as HTMLElement;
-    clone.classList.add("worksheet-print-clone");
-    clone.querySelectorAll(".selected,.cell-selected").forEach((element) => element.classList.remove("selected", "cell-selected"));
-    clone.querySelectorAll("[contenteditable]").forEach((element) => {
-      element.removeAttribute("contenteditable");
-      element.removeAttribute("spellcheck");
-    });
-    clone.querySelectorAll([
-      "button",
-      ".tree-analysis-text-delete",
-      ".tree-analysis-text-resize",
-      ".tree-analysis-text-move-handle",
-      ".tree-analysis-alignment-guide",
-      ".tree-analysis-delete-table",
-      ".worksheet-selection-marquee",
-      ".worksheet-group-selection-outline",
-      ".worksheet-text-move-edge",
-      ".worksheet-table-move-edge",
-      ".worksheet-table-resize",
-      ".worksheet-lines-delete",
-      ".worksheet-lines-resize",
-      ".worksheet-checkbox-delete",
-      ".worksheet-image-delete",
-      ".worksheet-image-resize",
-      ".worksheet-band-delete",
-      ".worksheet-score-delete",
-      ".worksheet-score-resize"
-    ].join(",")).forEach((element) => element.remove());
+  async function printDocument() {
+    if (!canvasRef.current) return;
+    const previousPageId = activePageId;
+    const waitForRender = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const cleanPrintClone = (clone: HTMLElement) => {
+      clone.classList.add("worksheet-print-clone");
+      clone.querySelectorAll(".selected,.cell-selected").forEach((element) => element.classList.remove("selected", "cell-selected"));
+      clone.querySelectorAll("[contenteditable]").forEach((element) => {
+        element.removeAttribute("contenteditable");
+        element.removeAttribute("spellcheck");
+      });
+      clone.querySelectorAll([
+        "button",
+        ".tree-analysis-text-delete",
+        ".tree-analysis-text-resize",
+        ".tree-analysis-text-move-handle",
+        ".tree-analysis-alignment-guide",
+        ".tree-analysis-delete-table",
+        ".worksheet-selection-marquee",
+        ".worksheet-group-selection-outline",
+        ".worksheet-text-move-edge",
+        ".worksheet-table-move-edge",
+        ".worksheet-table-resize",
+        ".worksheet-lines-delete",
+        ".worksheet-lines-resize",
+        ".worksheet-checkbox-delete",
+        ".worksheet-image-delete",
+        ".worksheet-image-resize",
+        ".worksheet-band-delete",
+        ".worksheet-score-delete",
+        ".worksheet-score-resize"
+      ].join(",")).forEach((element) => element.remove());
+    };
     document.querySelector(".worksheet-print-root")?.remove();
     document.querySelector("#worksheet-print-page-style")?.remove();
     const printStyle = document.createElement("style");
@@ -601,8 +603,18 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
     document.head.appendChild(printStyle);
     const printRoot = document.createElement("div");
     printRoot.className = "worksheet-print-root";
-    printRoot.appendChild(clone);
     document.body.appendChild(printRoot);
+    for (const page of pages) {
+      setActivePageId(page.id);
+      await waitForRender();
+      const canvas = canvasRef.current;
+      if (!canvas) continue;
+      const clone = canvas.cloneNode(true) as HTMLElement;
+      cleanPrintClone(clone);
+      printRoot.appendChild(clone);
+    }
+    setActivePageId(previousPageId);
+    await waitForRender();
     const cleanup = () => {
       printRoot.remove();
       printStyle.remove();
@@ -626,7 +638,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
 
   return <div className="worksheet-editor tree-analysis-editor">
     <Card className="tree-analysis-builder-card">
-      <div className="worksheet-topbar"><div className="worksheet-title-zone"><div><span className="eyebrow">Feuille d’activité</span><h2>{title.trim() || "Sans titre"}</h2></div><div className="worksheet-page-tabs">{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
+      <div className="worksheet-topbar"><div className="worksheet-title-zone"><div className="worksheet-title-chip"><span className="eyebrow">Feuille d’activité</span><h2>{title.trim() || "Sans titre"}</h2></div><div className="worksheet-page-tabs">{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
       <button type="button" className="worksheet-settings-toggle" onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen}><span>Paramètres de la feuille</span><small>{levelId ? levels.find((level)=>level.id===levelId)?.name : "Niveau"} · {difficultyLabels[difficulty]} · {tags.length} tag{tags.length>1?"s":""}</small>{settingsOpen?<ChevronUp size={18}/>:<ChevronDown size={18}/>}</button>
       {settingsOpen&&<div className="worksheet-settings-panel"><div className="tree-analysis-builder-meta worksheet-meta-grid"><label>Titre<input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Niveau<select value={levelId} onChange={(event) => setLevelId(event.target.value)}>{levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label><label>Difficulté<select value={difficulty} onChange={(event) => setDifficulty(event.target.value as SentenceDifficulty)}>{Object.entries(difficultyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><div className="worksheet-tag-editor"><label>Tags<input value={tagInput} onChange={(event)=>setTagInput(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"){event.preventDefault();addTag();}}} placeholder="Ex. Test sur les inférences"/></label><Button type="button" variant="secondary" onClick={addTag}>Ajouter</Button><div className="worksheet-tag-list">{tags.map((tag)=><button type="button" key={tag} onClick={()=>setTags((current)=>current.filter((item)=>item!==tag))}>{tag}<X size={13}/></button>)}</div></div></div></div>}
       <div className="tree-analysis-quick-add"><Button type="button" onClick={addText}><span className="tree-analysis-add-icon">T</span> Texte</Button><Button type="button" variant="secondary" onClick={addScore}><span className="tree-analysis-add-icon">/x</span> Points</Button><Button type="button" variant="secondary" onClick={openTableDialog}><Grid3X3 size={17}/> Tableau</Button><Button type="button" variant="secondary" onClick={openRubricDialog}><Grid3X3 size={17}/> Grille de notation</Button><Button type="button" variant="secondary" onClick={addBadge}><span className="tree-analysis-add-icon">1</span> Numéro</Button><Button type="button" variant="secondary" onClick={addLines}><span className="tree-analysis-add-icon">━</span> Lignes de réponse</Button><Button type="button" variant="secondary" onClick={()=>setBandDialog("Compréhension")}><span className="tree-analysis-add-icon worksheet-band-icon">C</span> Bandeau de lecture</Button><Button type="button" variant="secondary" onClick={()=>imageInputRef.current?.click()}><ImagePlus size={17}/> Image</Button><input ref={imageInputRef} className="worksheet-image-input" type="file" accept="image/*" onChange={(event)=>{importImage(event.target.files?.[0]);event.target.value="";}}/></div>

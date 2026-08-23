@@ -6822,10 +6822,10 @@ textarea {
   }
   body:has(.worksheet-print-root) {
     width: 8.5in !important;
-    height: 11in !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     background: #fff !important;
   }
   body:has(.worksheet-print-root) > :not(.worksheet-print-root) {
@@ -6840,10 +6840,10 @@ textarea {
     inset: 0 !important;
     display: block !important;
     width: 8.5in !important;
-    height: 11in !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     background: #fff !important;
     page: worksheetPrintPage;
   }
@@ -6858,6 +6858,12 @@ textarea {
     box-shadow: none !important;
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+  body:has(.worksheet-print-root) .worksheet-print-root .tree-analysis-page:last-child {
+    break-after: auto !important;
+    page-break-after: auto !important;
   }
   body:has(.worksheet-print-root) .worksheet-print-root .tree-analysis-page::after,
   body:has(.worksheet-print-root) .worksheet-print-root .worksheet-answer-lines::before,
@@ -9211,18 +9217,21 @@ textarea {
 }
 .worksheet-editor { display: grid; gap: 22px; }
 .worksheet-editor .tree-analysis-builder-card { overflow: visible; }
-.worksheet-topbar { position: sticky; top: 0; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,.96); box-shadow: var(--shadow-sm); backdrop-filter: blur(10px); }
-.worksheet-title-zone { display: flex; min-width: 0; align-items: center; gap: 18px; flex-wrap: wrap; }
-.worksheet-topbar h2 { margin: 2px 0 0; font-size: clamp(1.25rem, 2vw, 1.75rem); }
-.worksheet-topbar .tree-analysis-builder-tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-.worksheet-page-tabs { display: flex; align-items: center; gap: 6px; padding: 5px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
-.worksheet-page-tabs button { display: inline-flex; min-height: 36px; padding: 6px 11px; align-items: center; gap: 5px; border: 1px solid transparent; border-radius: 10px; background: #fff; color: var(--foreground); font: inherit; font-weight: 800; cursor: pointer; }
+.worksheet-topbar { position: sticky; top: 0; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,.96); box-shadow: var(--shadow-sm); backdrop-filter: blur(10px); }
+.worksheet-title-zone { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: 10px; overflow-x: auto; }
+.worksheet-title-chip { display: flex; align-items: baseline; gap: 10px; min-width: max-content; }
+.worksheet-title-chip .eyebrow { font-size: .78rem; }
+.worksheet-topbar h2 { margin: 0; font-size: clamp(1.15rem, 1.7vw, 1.45rem); line-height: 1.1; white-space: nowrap; }
+.worksheet-topbar .tree-analysis-builder-tools { display: flex; flex: 0 0 auto; flex-wrap: nowrap; justify-content: flex-end; gap: 6px; }
+.worksheet-topbar .tree-analysis-builder-tools .button { min-height: 36px; padding: 6px 10px; }
+.worksheet-page-tabs { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 13px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
+.worksheet-page-tabs button { display: inline-flex; min-height: 32px; padding: 4px 9px; align-items: center; gap: 5px; border: 1px solid transparent; border-radius: 9px; background: #fff; color: var(--foreground); font: inherit; font-weight: 800; cursor: pointer; }
 .worksheet-page-tabs button.active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, #fff); color: var(--primary); }
-.worksheet-settings-toggle { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; width: calc(100% - 24px); min-height: 46px; margin: 14px 12px 0; padding: 10px 14px; align-items: center; border: 1px solid var(--border); border-radius: 14px; background: var(--secondary); color: var(--foreground); font: inherit; cursor: pointer; text-align: left; }
+.worksheet-settings-toggle { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; width: calc(100% - 24px); min-height: 40px; margin: 8px 12px 0; padding: 8px 12px; align-items: center; border: 1px solid var(--border); border-radius: 14px; background: var(--secondary); color: var(--foreground); font: inherit; cursor: pointer; text-align: left; }
 .worksheet-settings-toggle span { font-weight: 900; }
 .worksheet-settings-toggle small { color: var(--muted-foreground); font-weight: 800; white-space: nowrap; }
 .worksheet-settings-panel { display: grid; gap: 10px; margin: 0 12px; padding: 12px; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
-.worksheet-editor .tree-analysis-quick-add { position: sticky; top: 86px; z-index: 65; box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); }
+.worksheet-editor .tree-analysis-quick-add { position: sticky; top: 64px; z-index: 65; box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); }
 .worksheet-meta-grid { grid-template-columns: minmax(220px, 1fr) minmax(150px, .55fr) minmax(140px, .48fr) minmax(280px, 1.25fr); align-items: end; }
 .worksheet-tag-editor { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; min-width: 0; }
 .worksheet-tag-editor > label { min-width: 0; }
