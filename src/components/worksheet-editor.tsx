@@ -593,12 +593,18 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
       ".worksheet-score-resize"
     ].join(",")).forEach((element) => element.remove());
     document.querySelector(".worksheet-print-root")?.remove();
+    document.querySelector("#worksheet-print-page-style")?.remove();
+    const printStyle = document.createElement("style");
+    printStyle.id = "worksheet-print-page-style";
+    printStyle.textContent = "@page { size: letter portrait; margin: 0; }";
+    document.head.appendChild(printStyle);
     const printRoot = document.createElement("div");
     printRoot.className = "worksheet-print-root";
     printRoot.appendChild(clone);
     document.body.appendChild(printRoot);
     const cleanup = () => {
       printRoot.remove();
+      printStyle.remove();
       window.removeEventListener("afterprint", cleanup);
     };
     window.addEventListener("afterprint", cleanup);
