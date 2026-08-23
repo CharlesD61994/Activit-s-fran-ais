@@ -9226,19 +9226,19 @@ textarea {
 .worksheet-page-tabs { display: inline-flex; width: fit-content; flex: 0 0 auto; align-items: center; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 13px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
 .worksheet-page-tabs button { display: inline-flex; min-height: 32px; padding: 4px 9px; align-items: center; gap: 5px; border: 1px solid transparent; border-radius: 9px; background: #fff; color: var(--foreground); font: inherit; font-weight: 800; cursor: pointer; }
 .worksheet-page-tabs button.active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, #fff); color: var(--primary); }
-.worksheet-settings-toggle { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; width: calc(100% - 24px); min-height: 40px; margin: 8px 12px 0; padding: 8px 12px; align-items: center; border: 1px solid var(--border); border-radius: 14px; background: var(--secondary); color: var(--foreground); font: inherit; cursor: pointer; text-align: left; }
-.worksheet-settings-toggle span { font-weight: 900; }
+.worksheet-settings-toggle { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; width: 100%; min-height: 68px; margin-top: 14px; padding: 10px 22px; align-items: center; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; cursor: pointer; text-align: left; }
+.worksheet-settings-toggle span { font-weight: 850; font-size: 1.05rem; }
 .worksheet-settings-toggle small { color: var(--muted-foreground); font-weight: 800; white-space: nowrap; }
-.worksheet-settings-panel { display: grid; gap: 10px; margin: 0 12px; padding: 12px; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
-.worksheet-editor .tree-analysis-quick-add { position: sticky; top: 112px; z-index: 65; box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); }
+.worksheet-settings-panel { display: grid; gap: 10px; margin-top: 10px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
+.worksheet-editor .tree-analysis-quick-add { position: sticky; top: 76px; z-index: 65; margin-top: 8px; box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); }
 .worksheet-meta-grid { grid-template-columns: minmax(220px, 1fr) minmax(150px, .55fr) minmax(140px, .48fr) minmax(280px, 1.25fr); align-items: end; }
 .worksheet-tag-editor { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; min-width: 0; }
 .worksheet-tag-editor > label { min-width: 0; }
 .worksheet-tag-editor > .button { min-height: 42px; white-space: nowrap; }
-.worksheet-tag-list { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0; display: flex; min-width: 0; max-height: 74px; overflow: auto; flex-wrap: wrap; gap: 6px; padding: 6px; border: 1px solid #c7d8e7; border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: var(--shadow-sm); }
+.worksheet-tag-list { grid-column: 1 / -1; display: flex; min-width: 0; max-height: 74px; overflow: auto; flex-wrap: wrap; gap: 6px; padding: 6px; border: 1px solid #c7d8e7; border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: var(--shadow-sm); }
 .worksheet-tag-list:empty { display: none; }
 .worksheet-tag-list button { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 8px; border: 1px solid #c7d8e7; border-radius: 999px; background: #eef5fa; color: #315f84; font-size: .78rem; font-weight: 850; cursor: pointer; }
-.worksheet-header-controls-toggle { display: flex; width: 100%; min-height: 44px; margin-top: 10px; padding: 10px 14px; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-weight: 850; cursor: pointer; }
+.worksheet-header-controls-toggle { display: flex; width: 100%; min-height: 68px; margin-top: 14px; padding: 10px 22px; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-size: 1.05rem; font-weight: 850; cursor: pointer; }
 .worksheet-canvas, .worksheet-reader-page { background: #fff; }
 .worksheet-selection-marquee { position: absolute; z-index: 50; border: 1px dashed #2f74b5; background: rgb(47 116 181 / 10%); pointer-events: none; }
 .worksheet-group-selection-outline { position: absolute; z-index: 49; box-sizing: border-box; border: 1px dashed #2f74b5; background: rgb(47 116 181 / 4%); pointer-events: none; }
