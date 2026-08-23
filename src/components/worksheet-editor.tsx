@@ -588,8 +588,8 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
     frame.style.position = "fixed";
     frame.style.left = "-10000px";
     frame.style.top = "0";
-    frame.style.width = "0";
-    frame.style.height = "0";
+    frame.style.width = "8.5in";
+    frame.style.height = "11in";
     frame.style.border = "0";
     document.body.appendChild(frame);
     const printWindow = frame.contentWindow;
@@ -603,11 +603,19 @@ export function WorksheetEditor({ initialSentence, levels, onSave }: Props) {
     printWindow.document.open();
     printWindow.document.write(`<!doctype html><html><head><title>${title || "Feuille d’activité"}</title>${styles}<style>@page{size:letter portrait;margin:0}html,body{width:8.5in;height:11in;margin:0;padding:0;overflow:hidden;background:#fff}.worksheet-print-host{width:8.5in;height:11in;margin:0;padding:0;overflow:hidden;background:#fff}.worksheet-print-host,.worksheet-print-host *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.worksheet-print-host .tree-analysis-page{width:8.5in!important;height:11in!important;min-width:0!important;min-height:0!important;aspect-ratio:auto!important;margin:0!important;box-shadow:none!important;transform:none!important}.worksheet-print-host .tree-analysis-page::after{display:none!important}.worksheet-print-host .worksheet-answer-lines.selected{outline:0!important}.worksheet-print-host .worksheet-answer-lines{background:transparent!important}.worksheet-print-host .worksheet-answer-lines::before{display:none!important}.worksheet-print-host .worksheet-activity-table::after{display:none!important}.worksheet-print-host .tree-analysis-text-box,.worksheet-print-host .worksheet-activity-table,.worksheet-print-host .worksheet-page-image{outline:0!important}</style></head><body><div class="worksheet-print-host">${clone.outerHTML}</div></body></html>`);
     printWindow.document.close();
-    window.setTimeout(() => {
+    const printReady = async () => {
+      await printWindow.document.fonts?.ready.catch(() => undefined);
+      await Promise.all(Array.from(printWindow.document.images).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      })));
+      await new Promise((resolve) => printWindow.requestAnimationFrame(() => printWindow.requestAnimationFrame(resolve)));
       printWindow.focus();
       printWindow.print();
       printWindow.addEventListener("afterprint", () => frame.remove(), { once: true });
-    }, 100);
+    };
+    if (printWindow.document.readyState === "complete") void printReady();
+    else frame.addEventListener("load", () => void printReady(), { once: true });
   }
 
   const selectedText = selected?.kind === "text" ? textBoxes.find((item) => item.id === selected.id) : undefined;
