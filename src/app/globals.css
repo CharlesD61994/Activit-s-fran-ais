@@ -6733,7 +6733,7 @@ textarea {
   padding: 0;
   cursor: pointer;
 }
-@page {
+@page treeAnalysisPrintPage {
   size: letter landscape;
   margin: 0;
 }
@@ -6782,6 +6782,7 @@ textarea {
     inset: 0;
     width: 11in;
     height: 8.5in;
+    page: treeAnalysisPrintPage;
     padding: 0;
     overflow: hidden;
     background: white;
@@ -6802,7 +6803,6 @@ textarea {
 }
 
 @media print {
-  @page { size: letter portrait; margin: 0; }
   body:has(.worksheet-print-root),
   body:has(.worksheet-print-root) * {
     visibility: hidden !important;
@@ -6832,6 +6832,7 @@ textarea {
     padding: 0 !important;
     overflow: hidden !important;
     background: #fff !important;
+    page: worksheetPrintPage;
   }
   body:has(.worksheet-print-root) .worksheet-print-root .tree-analysis-page {
     width: 8.5in !important;
@@ -8797,6 +8798,65 @@ textarea {
   white-space: nowrap;
 }
 
+.grammar-interaction-context {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid #cfe0ee;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f7fbff, #eef6fc);
+}
+
+.grammar-interaction-context span {
+  color: #5b7288;
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.grammar-interaction-context strong {
+  color: #102338;
+  font-size: 1.05rem;
+}
+
+.grammar-interaction-context p {
+  margin: 0;
+  color: #51677d;
+  font-size: .88rem;
+  line-height: 1.35;
+}
+
+.grammar-interaction-step {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.grammar-interaction-step > b {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: #315f84;
+  color: #fff;
+  font-size: .84rem;
+}
+
+.grammar-interaction-step > div {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.grammar-interaction-step input[readonly] {
+  color: #315f84;
+  background: #eef5fa;
+  font-weight: 900;
+}
+
 
 .correction-print-root {
   position: fixed;
@@ -8809,6 +8869,7 @@ textarea {
   background: #fff;
   font-family: Arial, sans-serif;
   pointer-events: none;
+  page: correctionPrintPage;
 }
 
 /* Le corrigé est mesuré hors écran avant l'ouverture de la boîte
@@ -8905,14 +8966,20 @@ textarea {
   transform: translate(-50%, calc(-100% + var(--reader-annotation-leading-compensation) - var(--reader-annotation-gap) - 58px)) !important;
 }
 
-@media print {
-  @page {
-    size: letter landscape;
-    margin: .35in;
-  }
+@page correctionPrintPage {
+  size: letter landscape;
+  margin: .35in;
+}
 
-  html,
-  body {
+@page worksheetPrintPage {
+  size: letter portrait;
+  margin: 0;
+}
+
+@media print {
+
+  html:has(.correction-print-root),
+  body:has(.correction-print-root) {
     width: auto !important;
     min-width: 0 !important;
     height: auto !important;
@@ -8923,20 +8990,20 @@ textarea {
     background: #fff !important;
   }
 
-  body > *:not(.correction-print-root) {
+  body:has(.correction-print-root) > *:not(.correction-print-root) {
     display: none !important;
   }
 
-  body * {
+  body:has(.correction-print-root) * {
     visibility: hidden !important;
   }
 
-  .correction-print-root,
-  .correction-print-root * {
+  body:has(.correction-print-root) .correction-print-root,
+  body:has(.correction-print-root) .correction-print-root * {
     visibility: visible !important;
   }
 
-  .correction-print-root {
+  body:has(.correction-print-root) .correction-print-root {
     position: static;
     display: block;
     width: 100%;
@@ -8944,15 +9011,16 @@ textarea {
     min-height: 0;
     color: #142033;
     background: #fff;
+    page: correctionPrintPage;
   }
 
-  .correction-print-document-header {
+  body:has(.correction-print-root) .correction-print-document-header {
     margin-bottom: 22px;
     padding-bottom: 10px;
     border-bottom: 2px solid #315f84;
   }
 
-  .correction-print-document-header span {
+  body:has(.correction-print-root) .correction-print-document-header span {
     color: #58718a;
     font-size: 10pt;
     font-weight: 900;
@@ -8960,15 +9028,15 @@ textarea {
     text-transform: uppercase;
   }
 
-  .correction-print-document-header h1 {
+  body:has(.correction-print-root) .correction-print-document-header h1 {
     margin: 3px 0 0;
   }
 
-  .correction-print-capture-source {
+  body:has(.correction-print-root) .correction-print-capture-source {
     display: none !important;
   }
 
-  .correction-print-captured-image {
+  body:has(.correction-print-root) .correction-print-captured-image {
     display: block !important;
     width: 100% !important;
     height: auto !important;
@@ -9223,8 +9291,8 @@ textarea {
   z-index: 29;
   top: 66px;
   display: grid;
-  gap: 10px;
-  padding: 14px;
+  gap: 7px;
+  padding: 10px;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -9232,16 +9300,16 @@ textarea {
   background: var(--surface);
   box-shadow: 0 12px 30px rgb(16 48 74 / 12%);
 }
-.worksheet-table-toolbar-row { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 7px; }
+.worksheet-table-toolbar-row { display: flex; min-width: 0; flex-wrap: nowrap; align-items: center; gap: 6px; overflow: hidden; }
 .worksheet-table-toolbar-row strong { margin-right: 4px; white-space: nowrap; }
-.worksheet-table-toolbar-row button { flex: 0 0 auto; min-height: 32px; padding: 5px 8px; font-size: .78rem; white-space: nowrap; }
+.worksheet-table-toolbar-row button { flex: 0 1 auto; min-height: 30px; padding: 4px 7px; font-size: .72rem; white-space: nowrap; }
 .worksheet-table-toolbar-row > span { flex: 1 1 240px; min-width: 180px; color: var(--muted-foreground); font-size: .78rem; line-height: 1.25; }
-.worksheet-table-toolbar label, .worksheet-score-toolbar label, .worksheet-band-toolbar label { display: grid; gap: 4px; font-size: .82rem; font-weight: 800; }
-.worksheet-table-toolbar input, .worksheet-table-toolbar select, .worksheet-score-toolbar input, .worksheet-band-toolbar input, .worksheet-band-toolbar select { min-height: 38px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--foreground); }
-.worksheet-cell-toolbar { display: grid; grid-template-columns: repeat(5, minmax(96px, 1fr)) minmax(72px, .65fr) auto auto; align-items: end; gap: 7px; min-width: 0; padding: 9px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 7%, var(--surface)); }
+.worksheet-table-toolbar label, .worksheet-score-toolbar label, .worksheet-band-toolbar label { display: grid; gap: 3px; font-size: .74rem; font-weight: 800; }
+.worksheet-table-toolbar input, .worksheet-table-toolbar select, .worksheet-score-toolbar input, .worksheet-band-toolbar input, .worksheet-band-toolbar select { min-height: 32px; padding: 4px 7px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--foreground); }
+.worksheet-cell-toolbar { display: grid; grid-template-columns: minmax(82px,.9fr) minmax(100px,1fr) minmax(92px,.9fr) minmax(96px,.9fr) minmax(68px,.62fr) auto; align-items: end; gap: 6px; min-width: 0; padding: 7px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 7%, var(--surface)); }
 .worksheet-cell-toolbar label { min-width: 0; }
 .worksheet-cell-toolbar select, .worksheet-cell-toolbar input[type="number"] { width: 100%; min-width: 0; }
-.worksheet-cell-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 7px; min-height: 38px; }
+.worksheet-cell-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 6px; min-height: 32px; }
 .worksheet-cell-toolbar .worksheet-checkbox input { min-height: 0; }
 .worksheet-cell-toolbar .worksheet-cell-answer { flex: 1 1 260px; }
 .worksheet-text-box { min-height: 0; font-family: "Times New Roman", Times, serif; }
@@ -9367,7 +9435,6 @@ textarea {
 @media (max-width: 900px) { .worksheet-lines-toolbar { grid-template-columns: 1fr 1fr; } }
 
 @media print {
-  @page { size: letter portrait; margin: 0; }
   html:has(.worksheet-editor),
   body:has(.worksheet-editor) {
     width: 8.5in !important;
@@ -9394,6 +9461,7 @@ textarea {
     height: 11in !important;
     margin: 0 !important;
     padding: 0 !important;
+    page: worksheetPrintPage;
   }
   body:has(.worksheet-editor) .worksheet-editor > :not(.tree-analysis-builder-card),
   body:has(.worksheet-editor) .worksheet-editor .tree-analysis-builder-card > :not(.tree-analysis-workspace) {

@@ -1026,16 +1026,9 @@ export function MixedActivityEditor({
           }
           functionOptions={sentenceFunctionOptions}
           wordClassLabels={wordClassLabels}
-          kinds={[
-            "group",
-            "nucleus",
-            "function",
-            "word_class",
-            "gender_number",
-            "donor",
-            "receiver"
-          ]}
+          kinds={draft ? [draft.kind] : ["group"]}
           responseModes={["click", "brackets", "frame"]}
+          selectedText={selection?.text}
           showLinkedTarget={false}
           configureVisual
           configureGroupNucleus
