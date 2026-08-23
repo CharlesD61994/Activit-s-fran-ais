@@ -296,18 +296,23 @@ export function MixedActivityEditor({
     )
   );
   const interactiveAnswerSections = useMemo(() => {
+    const annotationPhase = (annotation: GrammarAnnotation) =>
+      phaseByKind[annotation.kind as GrammarInteractionKind];
+    const annotationById = new Map(annotations.map((annotation) => [annotation.id, annotation]));
     const orderedPhaseKinds = phases.map((phase) => phase.kind);
     const phaseKeys = Array.from(
       new Set([
         ...orderedPhaseKinds,
         ...(corrections.length ? ["correction"] : []),
-        ...annotations.map((annotation) => phaseByKind[annotation.kind as GrammarInteractionKind])
+        ...annotations.map(annotationPhase)
       ])
     ).filter((kind): kind is GrammarPhaseKind => Boolean(kind) && kind !== "review");
 
     const childrenByParent = new Map<string, GrammarAnnotation[]>();
     annotations.forEach((annotation) => {
       if (!annotation.parentAnnotationId) return;
+      const parent = annotationById.get(annotation.parentAnnotationId);
+      if (!parent || annotationPhase(parent) !== annotationPhase(annotation)) return;
       const list = childrenByParent.get(annotation.parentAnnotationId) ?? [];
       list.push(annotation);
       childrenByParent.set(annotation.parentAnnotationId, list);
@@ -316,9 +321,12 @@ export function MixedActivityEditor({
     return phaseKeys.map((kind) => {
       const phase = phases.find((candidate) => candidate.kind === kind);
       const phaseAnnotations = annotations.filter(
-        (annotation) =>
-          phaseByKind[annotation.kind as GrammarInteractionKind] === kind &&
-          !annotation.parentAnnotationId
+        (annotation) => {
+          if (annotationPhase(annotation) !== kind) return false;
+          if (!annotation.parentAnnotationId) return true;
+          const parent = annotationById.get(annotation.parentAnnotationId);
+          return !parent || annotationPhase(parent) !== kind;
+        }
       );
       return {
         kind,
@@ -1039,6 +1047,15 @@ export function MixedActivityEditor({
                                         : "Plur."
                                     }`
                                   : ""}
+                                {annotation.parentAnnotationId && (
+                                  <small>
+                                    Après : {
+                                      annotations.find(
+                                        (item) => item.id === annotation.parentAnnotationId
+                                      )?.label
+                                    }
+                                  </small>
+                                )}
                               </strong>
                               <span className="mixed-answer-actions">
                                 <button
