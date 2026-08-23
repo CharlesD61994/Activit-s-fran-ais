@@ -229,6 +229,7 @@ export function MixedActivityEditor({
   const [surfaceRevision, setSurfaceRevision] = useState(0);
   const [message, setMessage] = useState("");
   const [collapsedAnswerPhases, setCollapsedAnswerPhases] = useState<string[]>([]);
+  const [showWorkflowPlanner, setShowWorkflowPlanner] = useState(false);
 
   const activeCorrectionCodes = useMemo(
     () => correctionCodes.filter((code) => code.isActive !== false),
@@ -965,11 +966,25 @@ export function MixedActivityEditor({
             <section className="mixed-workspace-answers">
               <div className="mixed-workspace-answers-heading">
                 <div>
-                  <span className="eyebrow">Réponses interactives</span>
+                  <span className="eyebrow">Déroulement interactif</span>
                   <h3>Actions créées</h3>
                 </div>
-                <span>{corrections.length + annotations.length}</span>
+                <div className="mixed-answer-heading-actions">
+                  <button
+                    type="button"
+                    onClick={() => setShowWorkflowPlanner((value) => !value)}
+                  >
+                    {showWorkflowPlanner ? "Masquer l’organisation" : "Organiser le déroulement"}
+                  </button>
+                  <span>{phases.length} phase{phases.length > 1 ? "s" : ""}</span>
+                  <span>{corrections.length + annotations.length}</span>
+                </div>
               </div>
+              {showWorkflowPlanner && (
+                <div className="mixed-inline-workflow">
+                  <GrammarWorkflowPlanner phases={phases} onChange={setPhases} />
+                </div>
+              )}
               {!interactiveAnswerSections.length && (
                 <p className="mixed-answer-empty">Sélectionne un passage dans la phrase, puis choisis une mécanique dans la barre.</p>
               )}
@@ -1129,10 +1144,6 @@ export function MixedActivityEditor({
 
             {message && <div className="form-message">{message}</div>}
           </main>
-
-          <aside className="mixed-workspace-phases">
-            <GrammarWorkflowPlanner phases={phases} onChange={setPhases} />
-          </aside>
         </div>
 
         <GrammarInteractionModal
