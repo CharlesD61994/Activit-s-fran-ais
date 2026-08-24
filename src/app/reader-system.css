@@ -24,6 +24,7 @@
   --reader-floating-annotation-font-size: clamp(15px, 1.25vw, 23px);
   --reader-annotation-gap: 4px;
   --reader-correction-code-y-compensation: .16em;
+  --reader-wrapped-class-label-compensation: .18em;
   --reader-annotation-leading-compensation: 0px;
   --reader-function-label-extra-offset: 0px;
   --reader-agreement-label-gap: var(--reader-annotation-gap);
@@ -149,6 +150,10 @@
   bottom: calc(100% + var(--reader-annotation-gap)) !important;
   font-size: var(--reader-annotation-font-size) !important;
   line-height: 1 !important;
+}
+
+.reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token.wrapped-line-token .word-class-reader-label {
+  bottom: calc(100% + var(--reader-annotation-gap) - var(--reader-wrapped-class-label-compensation)) !important;
 }
 
 .reader-activity-flow .word-group-label-anchor,

@@ -1620,7 +1620,7 @@ export function WordClassReader({
       ? "Activité terminée — toutes les réponses ont été trouvées."
       : instruction;
 
-  function renderToken(token: WordToken): ReactNode {
+  function renderToken(token: WordToken, wrappedLine = false): ReactNode {
     if (!token.isWord) {
       return <span key={token.id} data-class-token-id={token.text.trim().length > 0 ? token.id : undefined}>{protectFrenchElisionBreaks(token.text)}</span>;
     }
@@ -1639,7 +1639,7 @@ export function WordClassReader({
     return (
       <button
         type="button"
-        className={`word-class-reader-token ${found ? "found" : ""} ${relationSelected ? "agreement-colored" : ""} ${answerConfirmed ? "answer-confirmed" : ""} ${focus ? "agreement-focus" : ""} ${grammarDetails ? "has-grammar-details" : ""} ${priorNucleus ? "persistent-nucleus" : ""}`}
+        className={`word-class-reader-token ${wrappedLine ? "wrapped-line-token" : ""} ${found ? "found" : ""} ${relationSelected ? "agreement-colored" : ""} ${answerConfirmed ? "answer-confirmed" : ""} ${focus ? "agreement-focus" : ""} ${grammarDetails ? "has-grammar-details" : ""} ${priorNucleus ? "persistent-nucleus" : ""}`}
         key={token.id}
         style={agreementColor ? ({ "--agreement-word-color": agreementColor } as CSSProperties) : undefined}
         data-word-token="true"
@@ -1681,6 +1681,7 @@ export function WordClassReader({
   }
 
   const renderedTokens: ReactNode[] = [];
+  let lineIndex = 0;
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
     const next = tokens[index + 1];
@@ -1689,7 +1690,9 @@ export function WordClassReader({
     );
     if (breakBefore) {
       renderedTokens.push(<br key={`line-break-${token.id}`} />);
+      lineIndex += 1;
     }
+    const wrappedLine = lineIndex > 0;
     if (
       token.isWord &&
       endsWithFrenchElision(token.text) &&
@@ -1698,13 +1701,13 @@ export function WordClassReader({
     ) {
       renderedTokens.push(
         <span className="french-elision-unit" key={`elision-${token.id}-${next.id}`}>
-          {renderToken(token)}
-          {renderToken(next)}
+          {renderToken(token, wrappedLine)}
+          {renderToken(next, wrappedLine)}
         </span>
       );
       index += 1;
     } else {
-      renderedTokens.push(renderToken(token));
+      renderedTokens.push(renderToken(token, wrappedLine));
     }
   }
 
