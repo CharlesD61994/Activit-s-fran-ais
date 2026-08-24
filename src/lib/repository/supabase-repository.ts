@@ -1,13 +1,18 @@
 "use client";
 
 import { demoData } from "@/data/demo-data";
-import { normalizeAppData } from "@/lib/data-migration";
+import { dataRecoveryWeight, normalizeAppData } from "@/lib/data-migration";
+import { loadData } from "@/lib/storage";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { AppRepository } from "@/lib/repository/types";
 import type { AppData } from "@/types";
 
 function cloneDemoData(): AppData {
   return JSON.parse(JSON.stringify(demoData)) as AppData;
+}
+
+function localDataHasUserContent(data: AppData): boolean {
+  return dataRecoveryWeight(data) > dataRecoveryWeight(cloneDemoData());
 }
 
 export class SupabaseRepository implements AppRepository {
@@ -32,9 +37,10 @@ export class SupabaseRepository implements AppRepository {
       return migrated;
     }
 
-    const fresh = cloneDemoData();
-    await this.save(fresh);
-    return fresh;
+    const localData = loadData();
+    const initial = localDataHasUserContent(localData) ? localData : cloneDemoData();
+    await this.save(initial);
+    return initial;
   }
 
   async save(data: AppData): Promise<void> {
