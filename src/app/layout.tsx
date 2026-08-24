@@ -5,7 +5,11 @@ import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Alinéa - Activités de français",
-  description: "Application de correction progressive de phrases pour la classe de français."
+  description: "Application de correction progressive de phrases pour la classe de français.",
+  icons: {
+    icon: "/alinea-icon.svg",
+    shortcut: "/alinea-icon.svg"
+  }
 };
 
 export default function RootLayout({
