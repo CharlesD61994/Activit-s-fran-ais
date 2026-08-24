@@ -427,7 +427,9 @@ export function WordClassReader({
   const restoreRef = useRef(onRestorePoints);
   const completeRef = useRef(onCompleteChange);
   const shouldControlLineBreaks =
-    relationTasks.length === 0 && !correctionArrowAuthoring;
+    relationTasks.length === 0 &&
+    roleTasks.length === 0 &&
+    !correctionArrowAuthoring;
   const controlledLineBreaks = shouldControlLineBreaks
     ? forcedLineBreaks.length > 0
       ? forcedLineBreaks
@@ -1009,6 +1011,60 @@ export function WordClassReader({
     );
     setActiveRelationTargetId(nextTask?.targetId ?? null);
   }, [activeRelationTargetId, correctionArrowAuthoring, hydrated, relationAnswers, relationTasks]);
+
+  useEffect(() => {
+    if (
+      correctionArrowAuthoring ||
+      !hydrated ||
+      !classesComplete ||
+      !genderNumberComplete ||
+      activeRelationTargetId ||
+      roleTargetId ||
+      genderNumberTargetId ||
+      activeToken ||
+      reviewActive
+    ) {
+      return;
+    }
+
+    const nextRoleTask = roleTasks.find(
+      (task) =>
+        !resolvedRoleIds.includes(task.targetId) &&
+        foundIds.includes(task.targetId)
+    );
+    if (nextRoleTask) {
+      setRoleTargetId(nextRoleTask.targetId);
+      setRoleFeedback("");
+      return;
+    }
+
+    if (!rolesComplete) return;
+
+    const nextRelationTask = relationTasks.find((task) =>
+      task.expectedIds.some(
+        (id) => !(relationAnswers[task.targetId] ?? []).includes(id)
+      )
+    );
+    if (nextRelationTask) {
+      setActiveRelationTargetId(nextRelationTask.targetId);
+    }
+  }, [
+    activeRelationTargetId,
+    activeToken,
+    classesComplete,
+    correctionArrowAuthoring,
+    foundIds,
+    genderNumberComplete,
+    genderNumberTargetId,
+    hydrated,
+    relationAnswers,
+    relationTasks,
+    resolvedRoleIds,
+    reviewActive,
+    roleTargetId,
+    roleTasks,
+    rolesComplete
+  ]);
 
   function showWordSuccess(ids: string[]) {
     if (wordSuccessTimerRef.current !== null) {
