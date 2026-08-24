@@ -3427,6 +3427,98 @@ textarea {
   font-weight: 900;
 }
 
+.reader-command-dock.has-competition {
+  grid-template-columns: minmax(170px, .6fr) minmax(0, auto) minmax(320px, 1.25fr) auto;
+}
+
+.reader-competition-panel {
+  width: min(720px, 44vw);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border-top: 0;
+}
+
+.reader-competition-panel .competition-scoreboard-title {
+  justify-content: flex-start;
+  margin: 0;
+  padding: 0 10px 0 0;
+  border-right: 1px solid #d6e2eb;
+  color: #7b5d00;
+  white-space: nowrap;
+}
+
+.reader-competition-panel .competition-scoreboard-teams {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: thin;
+}
+
+.reader-competition-panel .competition-score-team {
+  min-width: 176px;
+  grid-template-columns: auto minmax(0, 1fr) 48px 34px;
+  gap: 7px;
+  padding: 7px;
+  border-color: #d8e4ed;
+  border-radius: 12px;
+  background: #fffdf6;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%);
+}
+
+.reader-competition-panel .competition-score-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff1c6;
+  font-size: 1.1rem;
+}
+
+.reader-competition-panel .competition-score-team strong {
+  overflow: hidden;
+  color: #1a2d3d;
+  font-size: .86rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-competition-panel .competition-score-team span {
+  font-size: .74rem;
+  font-weight: 850;
+}
+
+.reader-competition-panel .competition-score-team input {
+  min-height: 36px;
+  height: 36px;
+  min-width: 0;
+  border-radius: 9px;
+}
+
+.competition-score-add {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: #176c4a;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 13px rgb(23 108 74 / 20%);
+}
+
+.competition-score-add:hover {
+  background: #0f583b;
+}
+
 .competition-podium-screen {
   min-height: 100vh;
   display: grid;
@@ -9216,9 +9308,19 @@ textarea {
     grid-template-columns: minmax(150px, 1fr) auto;
   }
 
+  .reader-command-dock.has-competition {
+    grid-template-columns: minmax(150px, 1fr) auto;
+  }
+
   .reader-command-context-slot {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+
+  .reader-competition-panel {
+    width: 100%;
+    grid-column: 1 / -1;
+    grid-row: 3;
   }
 }
 /* V91 — pauses collectives, libellés de fonctions et corrigé enseignant. */

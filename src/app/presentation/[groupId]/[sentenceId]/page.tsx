@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Maximize,
   Minimize,
+  Plus,
   Target,
   Trophy
 } from "lucide-react";
@@ -58,6 +59,7 @@ export default function PresentationPage({
   const {
     data,
     addScoreEvent,
+    savePlannedSession,
     saveCompetitionResult,
     setActivityAssignmentStatus,
     setSessionAssignmentStatus
@@ -134,7 +136,21 @@ export default function PresentationPage({
         "in_progress",
         Math.max(0, sentenceIndex)
       );
+      savePlannedSession({
+        ...plannedSession,
+        status: "in_progress",
+        currentSentenceIndex: Math.max(0, sentenceIndex),
+        updatedAt: new Date().toISOString()
+      });
     } else {
+      if (plannedSession) {
+        savePlannedSession({
+          ...plannedSession,
+          status: "in_progress",
+          currentSentenceIndex: Math.max(0, sentenceIndex),
+          updatedAt: new Date().toISOString()
+        });
+      }
       setActivityAssignmentStatus(sentenceId, groupId, "in_progress", 0);
     }
     // The assignment should change only when the displayed activity changes.
@@ -421,6 +437,13 @@ export default function PresentationPage({
     }
 
     if (plannedSession && nextSentence) {
+      savePlannedSession({
+        ...plannedSession,
+        status: "in_progress",
+        currentSentenceIndex: sentenceIndex + 1,
+        updatedAt: new Date().toISOString()
+      });
+
       if (plannedSession.sourceSessionId) {
         setSessionAssignmentStatus(
           plannedSession.sourceSessionId,
@@ -444,6 +467,12 @@ export default function PresentationPage({
     }
 
     if (plannedSession?.sourceSessionId) {
+      savePlannedSession({
+        ...plannedSession,
+        status: "completed",
+        currentSentenceIndex: sequence.length,
+        updatedAt: new Date().toISOString()
+      });
       setSessionAssignmentStatus(
         plannedSession.sourceSessionId,
         groupId,
@@ -451,6 +480,14 @@ export default function PresentationPage({
         sequence.length
       );
     } else {
+      if (plannedSession) {
+        savePlannedSession({
+          ...plannedSession,
+          status: "completed",
+          currentSentenceIndex: sequence.length,
+          updatedAt: new Date().toISOString()
+        });
+      }
       setActivityAssignmentStatus(sentenceId, groupId, "completed", 1);
     }
 
@@ -498,6 +535,9 @@ export default function PresentationPage({
     }
     router.push(exitHref);
   }
+
+  const finishLabel = plannedSession && nextSentence ? "Suivant" : "Quitter";
+  const finishControl = <Button onClick={finishSentence}>{finishLabel}</Button>;
 
   if (showPodium) {
     return (
@@ -651,61 +691,76 @@ export default function PresentationPage({
         )}
         </section>
 
-        <section className={`reader-command-dock ${isWorksheetActivity ? "worksheet-reader-dock" : ""}`}>
+        <section
+          className={[
+            "reader-command-dock",
+            isWorksheetActivity ? "worksheet-reader-dock" : "",
+            competitionActive ? "has-competition" : ""
+          ].filter(Boolean).join(" ")}
+        >
           <ReaderChromeTarget slot="progress" className="reader-command-progress-slot" />
           <ReaderChromeTarget slot="contextTools" className="reader-command-context-slot" />
+
+          {competitionActive && (
+            <section className="competition-scoreboard reader-competition-panel" aria-label="Pointage de la compétition">
+              <div className="competition-scoreboard-title">
+                <Trophy size={18} />
+                <span>Compétition</span>
+              </div>
+
+              <div className="competition-scoreboard-teams">
+                {competitionTeams.map((team) => (
+                  <div className="competition-score-team" key={team.id}>
+                    <span className="competition-score-icon">{team.icon ?? "⭐"}</span>
+                    <div>
+                      <strong>{team.name}</strong>
+                      <span>{competitionScores[team.id] ?? 0} pts</span>
+                    </div>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="+"
+                      value={scoreInputs[team.id] ?? ""}
+                      onChange={(event) =>
+                        setScoreInputs((current) => ({
+                          ...current,
+                          [team.id]: event.target.value
+                        }))
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addCompetitionScore(team.id);
+                          const inputs = Array.from(
+                            document.querySelectorAll<HTMLInputElement>(
+                              ".reader-competition-panel input"
+                            )
+                          );
+                          const index = inputs.indexOf(event.currentTarget);
+                          inputs[(index + 1) % inputs.length]?.focus();
+                        }
+                      }}
+                      aria-label={`Ajouter des points à ${team.name}`}
+                    />
+                    <button
+                      type="button"
+                      className="competition-score-add"
+                      onClick={() => addCompetitionScore(team.id)}
+                      aria-label={`Ajouter les points à ${team.name}`}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="reader-command-actions-area">
             <ReaderChromeTarget slot="actions" className="reader-command-actions-slot" />
-            {readerComplete && <Button onClick={finishSentence}>Quitter</Button>}
+            {readerComplete && finishControl}
           </div>
         </section>
-
-        {competitionActive && (
-          <section className="competition-scoreboard">
-            <div className="competition-scoreboard-title">
-              <Trophy size={18} />
-              <span>Pointage de la compétition</span>
-            </div>
-
-            <div className="competition-scoreboard-teams">
-              {competitionTeams.map((team) => (
-                <div className="competition-score-team" key={team.id}>
-                  <span className="competition-score-icon">{team.icon ?? "⭐"}</span>
-                  <div>
-                    <strong>{team.name}</strong>
-                    <span>{competitionScores[team.id] ?? 0} pts</span>
-                  </div>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    placeholder="+"
-                    value={scoreInputs[team.id] ?? ""}
-                    onChange={(event) =>
-                      setScoreInputs((current) => ({
-                        ...current,
-                        [team.id]: event.target.value
-                      }))
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addCompetitionScore(team.id);
-                        const inputs = Array.from(
-                          document.querySelectorAll<HTMLInputElement>(
-                            ".competition-score-team input"
-                          )
-                        );
-                        const index = inputs.indexOf(event.currentTarget);
-                        inputs[(index + 1) % inputs.length]?.focus();
-                      }
-                    }}
-                    aria-label={`Ajouter des points à ${team.name}`}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
       </main>
 

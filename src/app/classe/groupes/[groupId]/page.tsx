@@ -43,6 +43,7 @@ export default function ClassroomGroupPage({
   const { groupId } = use(params);
   const {
     data,
+    savePlannedSession,
     setActivityAssignmentStatus,
     setSessionAssignmentStatus,
     updateGroupObjective
@@ -71,7 +72,27 @@ export default function ClassroomGroupPage({
     data.collections.find((item) => item.id === planned.sourceSessionId);
 
   const sessionStatus = (planned: typeof sessions[number]) =>
-    sessionSource(planned)?.assignmentStatusByGroup?.[groupId] ?? "todo";
+    sessionSource(planned)?.assignmentStatusByGroup?.[groupId] ??
+    (planned.status === "completed"
+      ? "completed"
+      : planned.status === "in_progress"
+        ? "in_progress"
+        : "todo");
+
+  const sessionResumeActivity = (planned: typeof sessions[number]) => {
+    const status = sessionStatus(planned);
+    const resumeIndex =
+      status === "in_progress"
+        ? Math.min(
+            Math.max(0, planned.currentSentenceIndex),
+            Math.max(0, planned.sentenceIds.length - 1)
+          )
+        : 0;
+
+    return data.sentences.find(
+      (activity) => activity.id === planned.sentenceIds[resumeIndex]
+    );
+  };
 
   const activeActivities = activities.filter(
     (activity) =>
@@ -485,9 +506,7 @@ export default function ClassroomGroupPage({
 
             <div className="classroom-session-dashboard-grid">
               {activeSessions.map((session) => {
-                const firstActivity = data.sentences.find(
-                  (activity) => activity.id === session.sentenceIds[0]
-                );
+                const resumeActivity = sessionResumeActivity(session);
                 const status = sessionStatus(session);
 
                 return (
@@ -513,13 +532,13 @@ export default function ClassroomGroupPage({
                         {session.sentenceIds.length > 1 ? "s" : ""}
                       </p>
                     </div>
-                    {firstActivity && (
+                    {resumeActivity && (
                       <Link
                         href={
                           "/presentation/" +
                           group.id +
                           "/" +
-                          firstActivity.id +
+                          resumeActivity.id +
                           "?plan=" +
                           session.id +
                           "&from=classe"
@@ -564,15 +583,23 @@ export default function ClassroomGroupPage({
                   </div>
                   <Button
                     variant="secondary"
-                    onClick={() =>
-                      session.sourceSessionId &&
-                      setSessionAssignmentStatus(
-                        session.sourceSessionId,
-                        group.id,
-                        "todo",
-                        0
-                      )
-                    }
+                    onClick={() => {
+                      if (session.sourceSessionId) {
+                        setSessionAssignmentStatus(
+                          session.sourceSessionId,
+                          group.id,
+                          "todo",
+                          0
+                        );
+                      }
+
+                      savePlannedSession({
+                        ...session,
+                        status: "planned",
+                        currentSentenceIndex: 0,
+                        updatedAt: new Date().toISOString()
+                      });
+                    }}
                   >
                     Rejouer
                   </Button>
@@ -664,16 +691,17 @@ export default function ClassroomGroupPage({
               ))}
 
               {competitionSessions.map((session) => {
-                const firstActivity = data.sentences.find(
-                  (activity) => activity.id === session.sentenceIds[0]
-                );
-                if (!firstActivity) return null;
-
                 const planned = data.plannedSessions.find(
                   (item) =>
                     item.sourceSessionId === session.id &&
                     item.groupId === group.id
                 );
+                const resumeActivity = planned
+                  ? sessionResumeActivity(planned)
+                  : data.sentences.find(
+                      (activity) => activity.id === session.sentenceIds[0]
+                    );
+                if (!resumeActivity) return null;
 
                 return (
                   <Card
@@ -694,7 +722,7 @@ export default function ClassroomGroupPage({
                         "/presentation/" +
                         group.id +
                         "/" +
-                        firstActivity.id +
+                        resumeActivity.id +
                         "?from=classe&competition=session&source=" +
                         session.id +
                         (planned ? "&plan=" + planned.id : "")

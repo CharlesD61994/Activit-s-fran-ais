@@ -13,14 +13,16 @@
 
 .reader-activity-flow {
   display: contents;
-  --reader-sentence-padding-top: 44px;
+  --reader-sentence-padding-top: 56px;
   --reader-sentence-padding-inline: 44px;
   --reader-sentence-padding-bottom: 36px;
   --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
   --reader-sentence-font-weight: 800;
   --reader-sentence-line-height: 1.48;
-  --reader-annotation-gap: 10px;
+  --reader-annotation-gap: 18px;
   --reader-annotation-leading-compensation: 0px;
+  --reader-function-label-extra-offset: 0px;
+  --reader-agreement-label-gap: var(--reader-annotation-gap);
 }
 
 /* Dans l’éditeur du corrigé, le flux occupe une vraie rangée défilable. Il ne
@@ -144,12 +146,30 @@
 
 .reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-token {
   margin-top: .08em !important;
-  padding-top: var(--agreement-band-height, 36px) !important;
+  padding-top: var(--agreement-band-height, 50px) !important;
   line-height: 1 !important;
 }
 
 .reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-label {
-  bottom: calc(100% + 2px) !important;
+  bottom: calc(100% + var(--reader-agreement-label-gap)) !important;
+}
+
+.reader-activity-flow .function-label-anchor,
+.reader-activity-flow .word-class-reader-text .function-label-anchor {
+  transform: translate(
+    -50%,
+    calc(
+      -100%
+      + var(--reader-annotation-leading-compensation)
+      - var(--reader-annotation-gap)
+      - var(--reader-function-label-extra-offset)
+    )
+  ) !important;
+}
+
+.reader-activity-flow .word-class-reader-text .resolved-correction-label,
+.reader-activity-flow .word-class-reader-text .persistent-range-label:not(.function-label-anchor) {
+  transform: translate(-50%, calc(-100% - var(--reader-annotation-gap))) !important;
 }
 
 .reader-scene .interactive-reader .interactive-sentence.shared-grammar-reader-text,
