@@ -10155,12 +10155,24 @@ textarea {
   background: #fff;
 }
 
+.tree-analysis-editor .tree-analysis-builder-tools .button-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--primary), var(--portal-ink-soft));
+  color: var(--primary-contrast);
+}
+
 .tree-analysis-editor .tree-analysis-builder-tools button:hover,
 .tree-analysis-editor .tree-analysis-page-controls button:hover,
 .tree-analysis-editor .tree-analysis-text-toolbar button:hover {
   border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
   background: color-mix(in srgb, var(--primary) 10%, #fff);
   color: var(--portal-ink);
+}
+
+.tree-analysis-editor .tree-analysis-builder-tools .button-primary:hover {
+  border-color: transparent;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 90%, #fff), var(--portal-ink-soft));
+  color: var(--primary-contrast);
 }
 
 .tree-analysis-editor .tree-analysis-builder-tools button[aria-pressed="true"],
