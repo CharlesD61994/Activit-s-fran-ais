@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { BarChart3, BookOpenCheck, CalendarDays, Home, MonitorPlay, Tags } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { SyncStatus } from "@/components/sync-status";
@@ -63,10 +64,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">A</div>
+          <Image className="brand-mark" src="/alinea-icon.svg" alt="" width={42} height={42} aria-hidden="true" />
           <div>
-            <strong>Activités de français</strong>
-            <span>Tableau de bord</span>
+            <strong>Alinéa</strong>
+            <span>Activités de français</span>
           </div>
         </div>
 
