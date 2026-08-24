@@ -19,6 +19,9 @@
   --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
   --reader-sentence-font-weight: 800;
   --reader-sentence-line-height: 1.48;
+  --reader-word-glyph-line-height: 1.08;
+  --reader-annotation-font-size: .32em;
+  --reader-floating-annotation-font-size: clamp(15px, 1.25vw, 23px);
   --reader-annotation-gap: 4px;
   --reader-annotation-leading-compensation: 0px;
   --reader-function-label-extra-offset: 0px;
@@ -95,21 +98,23 @@
 .reader-activity-flow .interactive-sentence .interactive-segment {
   margin: 0 !important;
   padding: 0 !important;
-  line-height: 1.08 !important;
+  line-height: var(--reader-word-glyph-line-height) !important;
 }
 
 .reader-activity-flow .interactive-sentence .interactive-word-shell {
   position: relative;
   display: inline-block;
-  line-height: 1.08 !important;
+  line-height: var(--reader-word-glyph-line-height) !important;
 }
 
 .reader-activity-flow .interactive-sentence .interactive-word,
+.reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token,
+.reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-word,
 .reader-activity-flow .word-group-reader-token,
 .reader-activity-flow .word-group-reader-token.group-confirmed {
   font-weight: inherit !important;
   letter-spacing: inherit !important;
-  line-height: 1.08 !important;
+  line-height: var(--reader-word-glyph-line-height) !important;
 }
 
 .reader-activity-flow .interactive-sentence .interactive-code-box {
@@ -120,7 +125,7 @@
   min-height: 1.45em;
   padding: 0;
   border-width: 2px;
-  font-size: .34em;
+  font-size: var(--reader-annotation-font-size);
   line-height: 1;
 }
 
@@ -130,6 +135,8 @@
   min-width: 0;
   min-height: 0;
   border-width: 0;
+  font-size: var(--reader-annotation-font-size);
+  line-height: 1;
 }
 
 .reader-activity-flow .word-class-reader-text:not(.has-agreement-relations) .word-class-reader-token {
@@ -138,11 +145,21 @@
 
 .reader-activity-flow .word-class-reader-label {
   bottom: calc(100% + var(--reader-annotation-gap)) !important;
+  font-size: var(--reader-annotation-font-size) !important;
+  line-height: 1 !important;
 }
 
 .reader-activity-flow .word-group-label-anchor,
 .reader-activity-flow .word-group-label-anchor.contracted-result {
   transform: translate(-50%, calc(-100% - var(--reader-annotation-gap))) !important;
+}
+
+.reader-activity-flow .word-group-code-box.filled,
+.reader-activity-flow .function-code-box,
+.reader-activity-flow .resolved-correction-label,
+.reader-activity-flow .persistent-range-label:not(.function-label-anchor) {
+  font-size: var(--reader-floating-annotation-font-size) !important;
+  line-height: 1 !important;
 }
 
 /* Les accords gardent une bande réservée aux flèches. */
