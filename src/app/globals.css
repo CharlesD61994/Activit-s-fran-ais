@@ -9234,9 +9234,22 @@ textarea {
   gap: 10px;
   padding-top: 4px;
 }
-.worksheet-editor { display: grid; gap: 4px; }
+.worksheet-editor { display: grid; gap: 10px; }
 .worksheet-editor .tree-analysis-builder-card { overflow: visible; background: linear-gradient(180deg, #f4f8fb 0, #eef5fa 220px, var(--surface) 360px); }
-.worksheet-topbar { position: sticky; top: 0; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 16px; background: #fff; box-shadow: 0 -18px 0 18px #eef5fa, 0 10px 0 8px #eef5fa, var(--shadow-sm); }
+.worksheet-topbar { position: sticky; isolation: isolate; top: 0; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 16px; background: #fff; box-shadow: 0 -18px 0 18px #eef5fa, 0 10px 0 8px #eef5fa, var(--shadow-sm); }
+.worksheet-topbar::before,
+.worksheet-editor .tree-analysis-quick-add::before,
+.worksheet-editor .tree-analysis-text-toolbar::before,
+.worksheet-editor .worksheet-lines-toolbar::before,
+.worksheet-editor .worksheet-table-toolbar::before {
+  content: "";
+  position: absolute;
+  inset: -12px -1px;
+  z-index: -1;
+  border-radius: 18px;
+  background: #eef5fa;
+  pointer-events: none;
+}
 .worksheet-title-zone { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; }
 .worksheet-topbar .tree-analysis-builder-tools { display: flex; flex: 0 0 auto; flex-wrap: nowrap; justify-content: flex-end; gap: 8px; }
 .worksheet-topbar .tree-analysis-builder-tools .button { min-height: 44px; padding: 8px 14px; white-space: nowrap; }
@@ -9247,7 +9260,7 @@ textarea {
 .worksheet-settings-toggle span { font-weight: 850; font-size: 1.05rem; }
 .worksheet-settings-toggle small { color: var(--muted-foreground); font-weight: 800; white-space: nowrap; }
 .worksheet-settings-panel { display: grid; gap: 10px; margin-top: 8px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--secondary) 55%, #fff); }
-.worksheet-editor .tree-analysis-quick-add { position: sticky; top: 66px; z-index: 65; margin-top: -4px; margin-bottom: -4px; background: #fff; box-shadow: 0 -12px 0 10px #eef5fa, 0 12px 0 10px #eef5fa, var(--shadow-sm); }
+.worksheet-editor .tree-analysis-quick-add { position: sticky; isolation: isolate; top: 66px; z-index: 65; margin-top: 0; margin-bottom: 0; background: #fff; box-shadow: 0 -12px 0 10px #eef5fa, 0 12px 0 10px #eef5fa, var(--shadow-sm); }
 .worksheet-meta-grid { grid-template-columns: minmax(220px, 1fr) minmax(150px, .55fr) minmax(140px, .48fr) minmax(280px, 1.25fr); align-items: end; }
 .worksheet-tag-editor { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; min-width: 0; }
 .worksheet-tag-editor > label { min-width: 0; }
@@ -9361,10 +9374,11 @@ textarea {
 .worksheet-editor .worksheet-lines-toolbar,
 .worksheet-editor .worksheet-table-toolbar {
   position: sticky;
+  isolation: isolate;
   top: 124px;
   z-index: 64;
   min-height: 58px;
-  margin: -4px 0 4px;
+  margin: 0 0 4px;
   padding: 10px 12px;
   align-items: end;
   border: 1px solid var(--border);
