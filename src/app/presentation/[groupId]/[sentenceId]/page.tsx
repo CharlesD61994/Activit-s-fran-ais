@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
+  LockKeyhole,
   Maximize,
   Minimize,
   Plus,
@@ -22,6 +23,8 @@ import {
 } from "@/components/presentation/reader-chrome";
 import { ClassroomPointsMedal } from "@/components/classroom-portal-ornaments";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useAuth } from "@/features/auth/auth-provider";
 import { useAppStore } from "@/store/app-store";
 import { buildCompetitionStandings } from "@/lib/competition";
 import type { CompetitionResult, ScoreEvent, SentenceCorrection, WordClassTarget, WordGroupTarget } from "@/types";
@@ -56,6 +59,7 @@ export default function PresentationPage({
   const { groupId, sentenceId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { configured, loading: authLoading, user } = useAuth();
   const {
     data,
     addScoreEvent,
@@ -70,6 +74,7 @@ export default function PresentationPage({
   const plannedSessionId = searchParams.get("plan");
   const launchedFromClasse = searchParams.get("from") === "classe";
   const launchedFromPortal = searchParams.get("from") === "portail";
+  const requiresTeacherAccess = !launchedFromPortal;
   const competitionMode = searchParams.get("competition");
   const competitionSourceId = searchParams.get("source");
   const competitionActive =
@@ -96,6 +101,9 @@ export default function PresentationPage({
   const [readerComplete, setReaderComplete] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [portalCode, setPortalCode] = useState("");
+  const [portalUnlocked, setPortalUnlocked] = useState(false);
+  const [portalAccessError, setPortalAccessError] = useState("");
   const competitionTeams = useMemo(
     () => data.teams.filter((team) => team.groupId === groupId),
     [data.teams, groupId]
@@ -111,6 +119,19 @@ export default function PresentationPage({
     return () =>
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    if (!requiresTeacherAccess || authLoading) return;
+    if (!configured || !user) router.replace("/connexion");
+  }, [authLoading, configured, requiresTeacherAccess, router, user]);
+
+  useEffect(() => {
+    if (!launchedFromPortal || !group) return;
+    if (!group.studentAccessCode) return;
+
+    const stored = window.sessionStorage.getItem(`portal-unlocked-${group.id}`);
+    setPortalUnlocked(stored === "true");
+  }, [group, launchedFromPortal]);
 
   useEffect(() => {
     if (!competitionActive || typeof window === "undefined") return;
@@ -374,6 +395,69 @@ export default function PresentationPage({
       <div className="presentation-error">
         <h1>Présentation introuvable</h1>
         <Link href="/">Retour à l’accueil</Link>
+      </div>
+    );
+  }
+
+  if (requiresTeacherAccess && authLoading) {
+    return (
+      <div className="app-loading-screen">
+        <div className="app-loading-indicator" />
+        <span>Vérification de la connexion…</span>
+      </div>
+    );
+  }
+
+  if (requiresTeacherAccess && (!configured || !user)) {
+    return null;
+  }
+
+  if (launchedFromPortal && !portalUnlocked) {
+    return (
+      <div className="student-page">
+        <Card className="student-access-card">
+          <div className="student-access-icon">
+            <LockKeyhole size={32} />
+          </div>
+          <span className="student-kicker">Accès au groupe</span>
+          <h1>{group.name}</h1>
+          <p>
+            {group.studentAccessCode
+              ? "Entre le code donné par ton enseignant pour ouvrir cette activité."
+              : "Le code d’accès de ce groupe n’est pas encore configuré."}
+          </p>
+
+          {group.studentAccessCode ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (portalCode.trim() === group.studentAccessCode) {
+                  window.sessionStorage.setItem(`portal-unlocked-${group.id}`, "true");
+                  setPortalUnlocked(true);
+                  setPortalAccessError("");
+                } else {
+                  setPortalAccessError("Le code est incorrect.");
+                }
+              }}
+            >
+              <label>
+                Code d’accès
+                <input
+                  inputMode="numeric"
+                  value={portalCode}
+                  onChange={(event) => setPortalCode(event.target.value)}
+                  placeholder="Ex. 1010"
+                />
+              </label>
+              {portalAccessError && <div className="form-message">{portalAccessError}</div>}
+              <Button type="submit">Entrer</Button>
+            </form>
+          ) : (
+            <Link href="/portail" className="student-back-link">
+              Retour au portail
+            </Link>
+          )}
+        </Card>
       </div>
     );
   }

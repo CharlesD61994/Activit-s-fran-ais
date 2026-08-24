@@ -29,10 +29,7 @@ export default function StudentGroupPage({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!group?.studentAccessCode) {
-      setUnlocked(true);
-      return;
-    }
+    if (!group?.studentAccessCode) return;
 
     const stored = window.sessionStorage.getItem(`portal-unlocked-${group.id}`);
     if (stored === "true") setUnlocked(true);
@@ -63,32 +60,42 @@ export default function StudentGroupPage({
           </div>
           <span className="student-kicker">Accès au groupe</span>
           <h1>{group.name}</h1>
-          <p>Entre le code donné par ton enseignant.</p>
+          <p>
+            {group.studentAccessCode
+              ? "Entre le code donné par ton enseignant."
+              : "Le code d’accès de ce groupe n’est pas encore configuré."}
+          </p>
 
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (code === group.studentAccessCode) {
-                window.sessionStorage.setItem(`portal-unlocked-${group.id}`, "true");
-                setUnlocked(true);
-                setError("");
-              } else {
-                setError("Le code est incorrect.");
-              }
-            }}
-          >
-            <label>
-              Code d’accès
-              <input
-                inputMode="numeric"
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                placeholder="Ex. 1010"
-              />
-            </label>
-            {error && <div className="form-message">{error}</div>}
-            <Button type="submit">Entrer</Button>
-          </form>
+          {group.studentAccessCode ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (code.trim() === group.studentAccessCode) {
+                  window.sessionStorage.setItem(`portal-unlocked-${group.id}`, "true");
+                  setUnlocked(true);
+                  setError("");
+                } else {
+                  setError("Le code est incorrect.");
+                }
+              }}
+            >
+              <label>
+                Code d’accès
+                <input
+                  inputMode="numeric"
+                  value={code}
+                  onChange={(event) => setCode(event.target.value)}
+                  placeholder="Ex. 1010"
+                />
+              </label>
+              {error && <div className="form-message">{error}</div>}
+              <Button type="submit">Entrer</Button>
+            </form>
+          ) : (
+            <Link href={`/portail/niveaux/${level.id}`} className="student-back-link">
+              Retour aux groupes
+            </Link>
+          )}
         </Card>
       </div>
     );
