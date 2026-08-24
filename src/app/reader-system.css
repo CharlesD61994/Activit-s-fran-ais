@@ -98,6 +98,12 @@
   line-height: 1.08 !important;
 }
 
+.reader-activity-flow .interactive-sentence .interactive-word-shell {
+  position: relative;
+  display: inline-block;
+  line-height: 1.08 !important;
+}
+
 .reader-activity-flow .interactive-sentence .interactive-word,
 .reader-activity-flow .word-group-reader-token,
 .reader-activity-flow .word-group-reader-token.group-confirmed {

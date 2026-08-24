@@ -665,36 +665,38 @@ export function InteractiveSentenceReader({
           hinted && !corrected ? "hinted" : ""
         ].filter(Boolean).join(" ")}
       >
-        {corrected && (
+        <span className="interactive-word-shell">
+          {corrected && (
+            <button
+              type="button"
+              className={`interactive-code-box ${coded ? "filled" : ""}`}
+              onClick={() => openCodeDialog(correction)}
+              aria-label={coded ? `Code ${code?.code ?? ""}` : "Entrer le code de correction"}
+            >
+              {coded ? `(${code?.code ?? "?"})` : ""}
+            </button>
+          )}
+
           <button
             type="button"
-            className={`interactive-code-box ${coded ? "filled" : ""}`}
-            onClick={() => openCodeDialog(correction)}
-            aria-label={coded ? `Code ${code?.code ?? ""}` : "Entrer le code de correction"}
+            className={`interactive-word ${
+              isPunctuationInsertion ? "interactive-punctuation-target" : ""
+            }`}
+            onClick={() => openWordDialog(correction)}
+            disabled={corrected}
+            aria-label={
+              isPunctuationInsertion && !corrected
+                ? "Ponctuation manquante"
+                : undefined
+            }
           >
-            {coded ? `(${code?.code ?? "?"})` : ""}
+            {corrected
+              ? protectFrenchElisionBreaks(correction.correctedText)
+              : isPunctuationInsertion
+                ? "·"
+                : protectFrenchElisionBreaks(correction.originalText)}
           </button>
-        )}
-
-        <button
-          type="button"
-          className={`interactive-word ${
-            isPunctuationInsertion ? "interactive-punctuation-target" : ""
-          }`}
-          onClick={() => openWordDialog(correction)}
-          disabled={corrected}
-          aria-label={
-            isPunctuationInsertion && !corrected
-              ? "Ponctuation manquante"
-              : undefined
-          }
-        >
-          {corrected
-            ? protectFrenchElisionBreaks(correction.correctedText)
-            : isPunctuationInsertion
-              ? "·"
-              : protectFrenchElisionBreaks(correction.originalText)}
-        </button>
+        </span>
       </span>
     );
   }
