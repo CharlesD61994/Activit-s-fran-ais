@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ActivityObjectiveBadges } from "@/components/activity-objective-badges";
 import { SentenceRenderer } from "@/components/sentence-renderer";
 import { TeamManager } from "@/components/team-manager";
+import { groupAccentColor } from "@/lib/group-colors";
 import { useAppStore } from "@/store/app-store";
 import {
   getWordClassActivityPointTotal,
@@ -26,6 +27,7 @@ export default function GroupPage({ params }: { params: Promise<{ groupId: strin
     setSessionAssignmentStatus
   } = useAppStore();
   const group = data.groups.find((item) => item.id === groupId);
+  const groupIndex = data.groups.findIndex((item) => item.id === groupId);
   const level = data.levels.find((item) => item.id === group?.levelId);
 
   if (!group || !level) {
@@ -115,7 +117,12 @@ export default function GroupPage({ params }: { params: Promise<{ groupId: strin
   }
 
   return (
-    <div className="page">
+    <div
+      className="page group-management-page"
+      style={{
+        "--group-accent": groupAccentColor(groupIndex, group.accentColor)
+      } as React.CSSProperties}
+    >
       <Link className="back-link" href="/"><ArrowLeft size={17} /> Retour à l’accueil</Link>
 
       <div className="hero compact">
