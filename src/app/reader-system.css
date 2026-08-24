@@ -13,13 +13,13 @@
 
 .reader-activity-flow {
   display: contents;
-  --reader-sentence-padding-top: 56px;
+  --reader-sentence-padding-top: 48px;
   --reader-sentence-padding-inline: 44px;
   --reader-sentence-padding-bottom: 36px;
   --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
   --reader-sentence-font-weight: 800;
   --reader-sentence-line-height: 1.48;
-  --reader-annotation-gap: 18px;
+  --reader-annotation-gap: 8px;
   --reader-annotation-leading-compensation: 0px;
   --reader-function-label-extra-offset: 0px;
   --reader-agreement-label-gap: var(--reader-annotation-gap);
@@ -146,7 +146,7 @@
 
 .reader-activity-flow .word-class-reader-text.has-agreement-relations .word-class-reader-token {
   margin-top: .08em !important;
-  padding-top: var(--agreement-band-height, 50px) !important;
+  padding-top: var(--agreement-band-height, 42px) !important;
   line-height: 1 !important;
 }
 
