@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
   PointerEvent as ReactPointerEvent,
@@ -18,6 +18,7 @@ import { tokenizeGrammarText } from "@/components/grammar/range-interaction-engi
 import { wordClassLabels } from "@/lib/activity-types";
 import { grammarFunctionInstructionLabel } from "@/lib/grammar-definitions";
 import { buildRelationTasks } from "@/lib/word-class-relations";
+import type { RelationTask } from "@/lib/word-class-relations";
 import {
   preferredWordTarget,
   uniqueClassTargetsByRange
@@ -1004,6 +1005,15 @@ export function WordClassReader({
     completeRef.current?.(complete);
   }, [complete]);
 
+  const relationTaskReady = useCallback(
+    (task: RelationTask) => {
+      if (!foundIds.includes(task.targetId)) return false;
+      const roleTask = roleTaskMap.get(task.targetId);
+      return !roleTask || resolvedRoleIds.includes(task.targetId);
+    },
+    [foundIds, resolvedRoleIds, roleTaskMap]
+  );
+
   useEffect(() => {
     if (!correctionArrowAuthoring || !hydrated || activeRelationTargetId) return;
     const nextTask = relationTasks.find((task) =>
@@ -1016,8 +1026,6 @@ export function WordClassReader({
     if (
       correctionArrowAuthoring ||
       !hydrated ||
-      !classesComplete ||
-      !genderNumberComplete ||
       activeRelationTargetId ||
       roleTargetId ||
       genderNumberTargetId ||
@@ -1038,9 +1046,8 @@ export function WordClassReader({
       return;
     }
 
-    if (!rolesComplete) return;
-
     const nextRelationTask = relationTasks.find((task) =>
+      relationTaskReady(task) &&
       task.expectedIds.some(
         (id) => !(relationAnswers[task.targetId] ?? []).includes(id)
       )
@@ -1051,19 +1058,17 @@ export function WordClassReader({
   }, [
     activeRelationTargetId,
     activeToken,
-    classesComplete,
     correctionArrowAuthoring,
     foundIds,
-    genderNumberComplete,
     genderNumberTargetId,
     hydrated,
     relationAnswers,
+    relationTaskReady,
     relationTasks,
     resolvedRoleIds,
     reviewActive,
     roleTargetId,
-    roleTasks,
-    rolesComplete
+    roleTasks
   ]);
 
   function showWordSuccess(ids: string[]) {
