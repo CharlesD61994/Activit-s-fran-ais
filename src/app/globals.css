@@ -184,6 +184,93 @@ textarea {
 .search-field input { border: 0; padding: 0; background: transparent; }
 .search-field input:focus { outline: none; }
 
+/* V46 — surfaces portail pour les pages simples */
+.page-header {
+  max-width: 880px;
+}
+
+.page-header h1 {
+  color: var(--portal-ink);
+  line-height: 1;
+}
+
+.hero.compact,
+.page-header {
+  position: relative;
+}
+
+.activities-bank-page .hero.compact {
+  overflow: hidden;
+  color: #fff;
+  border: 0;
+  background:
+    radial-gradient(circle at 88% 10%, rgb(79 149 213 / 38%), transparent 23rem),
+    linear-gradient(115deg, var(--portal-ink), var(--portal-ink-soft) 68%, var(--primary));
+  box-shadow: 0 22px 50px rgb(8 47 85 / 16%);
+}
+
+.activities-bank-page .hero.compact .eyebrow,
+.activities-bank-page .hero.compact h1 {
+  color: #fff;
+}
+
+.activities-bank-page .hero.compact p {
+  color: rgb(255 255 255 / 76%);
+}
+
+.activities-bank-filters {
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border-color: rgb(24 67 105 / 11%);
+}
+
+.activities-bank-filters select,
+.activities-bank-filters .search-field {
+  min-height: 46px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.sentence-list {
+  gap: 14px;
+}
+
+.sentence-card {
+  overflow: hidden;
+  border-color: rgb(24 67 105 / 11%);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.sentence-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--primary);
+  opacity: .82;
+}
+
+.sentence-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  box-shadow: 0 18px 42px rgb(15 55 88 / 12%);
+}
+
+.sentence-card .sentence-preview {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 1px solid #e2eaf2;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--secondary) 42%, #fff);
+}
+
+.sentence-meta span,
+.session-library-meta span {
+  background: rgb(255 255 255 / 72%);
+  font-weight: 800;
+}
+
 @media (max-width: 1000px) {
   .editor-layout { grid-template-columns: 1fr; }
   .editor-preview { position: static; }
@@ -488,26 +575,32 @@ textarea {
   grid-template-columns: 130px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
+  padding: 11px;
+  border: 1px solid #e2eaf2;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 74%);
 }
 .progress-track {
   height: 12px;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--secondary);
+  background: color-mix(in srgb, var(--group-accent, var(--primary)) 12%, white);
 }
 .progress-track span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--primary);
+  background: linear-gradient(90deg, var(--group-accent, var(--primary)), color-mix(in srgb, var(--group-accent, var(--primary)) 70%, white));
 }
 .review-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 12px;
+  border: 1px solid #e2eaf2;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 74%);
 }
 .review-row small {
   display: block;
@@ -519,6 +612,27 @@ textarea {
   .review-row {
     grid-template-columns: 1fr;
   }
+}
+
+.summary-grid > .card {
+  overflow: hidden;
+}
+
+.summary-grid > .card::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.summary-grid .big-number {
+  color: var(--portal-ink);
+}
+
+.analytics-grid > .card h2 {
+  color: var(--portal-ink);
+  letter-spacing: -.02em;
 }
 
 
@@ -2826,6 +2940,54 @@ textarea {
   background: var(--surface-elevated);
   color: var(--text);
   font-weight: 800;
+}
+
+.session-library-grid {
+  gap: 18px;
+}
+
+.session-library-card {
+  min-height: 255px;
+  overflow: hidden;
+  border-color: rgb(24 67 105 / 11%);
+  background:
+    radial-gradient(circle at 100% 0%, rgb(40 120 223 / 10%), transparent 10rem),
+    rgb(255 255 255 / 95%);
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.session-library-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: #7757cf;
+}
+
+.session-library-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, #7757cf 34%, var(--border));
+  box-shadow: 0 18px 42px rgb(15 55 88 / 12%);
+}
+
+.session-library-card h3 {
+  color: var(--portal-ink);
+  letter-spacing: -.018em;
+}
+
+.session-assigned-groups span {
+  background: color-mix(in srgb, #7757cf 10%, #fff);
+  color: var(--portal-ink);
+}
+
+.session-choice-card,
+.session-group-choice {
+  background: #fff;
+}
+
+.session-choice-card.selected,
+.session-group-choice.selected {
+  background: color-mix(in srgb, var(--primary) 12%, #fff);
 }
 
 @media (max-width: 1000px) {

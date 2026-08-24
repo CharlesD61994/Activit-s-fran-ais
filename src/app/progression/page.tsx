@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { groupAccentColor } from "@/lib/group-colors";
 import { useAppStore } from "@/store/app-store";
 
 export default function ProgressPage() {
@@ -46,12 +47,18 @@ export default function ProgressPage() {
           <span className="eyebrow">Groupes</span>
           <h2>Progression hebdomadaire</h2>
           <div className="progress-list">
-            {data.groups.map((group) => {
+            {data.groups.map((group, index) => {
               const points = weekly
                 .filter((event) => event.groupId === group.id)
                 .reduce((sum, event) => sum + event.points, 0);
               return (
-                <div className="progress-row" key={group.id}>
+                <div
+                  className="progress-row"
+                  key={group.id}
+                  style={{
+                    "--group-accent": groupAccentColor(index, group.accentColor)
+                  } as React.CSSProperties}
+                >
                   <strong>{group.name}</strong>
                   <div className="progress-track">
                     <span style={{ width: `${Math.min(100, points * 5)}%` }} />
