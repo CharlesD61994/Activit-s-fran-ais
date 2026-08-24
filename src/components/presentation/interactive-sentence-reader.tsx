@@ -639,7 +639,7 @@ export function InteractiveSentenceReader({
     }
   }
 
-  function renderToken(token: LayoutToken) {
+  function renderToken(token: LayoutToken, wrappedLine = false) {
     if (token.type === "break") return null;
 
     if (token.type === "text") {
@@ -661,6 +661,7 @@ export function InteractiveSentenceReader({
         key={correction.id}
         className={[
           "interactive-segment",
+          wrappedLine ? "wrapped-line-segment" : "",
           corrected ? "corrected" : "",
           hinted && !corrected ? "hinted" : ""
         ].filter(Boolean).join(" ")}
@@ -713,11 +714,11 @@ export function InteractiveSentenceReader({
               ? "\u00A0"
               : line.map((key) => {
                   const token = tokenMap.get(key);
-                  return token ? renderToken(token) : null;
+                  return token ? renderToken(token, lineIndex > 0) : null;
                 })}
           </span>
         ))
-      : layoutTokens.map(renderToken);
+      : layoutTokens.map((token) => renderToken(token));
 
   return (
     <div className={`interactive-reader interactive-reader-${displayMode} ${requiresCorrectionCodes ? "has-above-marks" : ""}`}>
