@@ -27,6 +27,7 @@ type AppStoreValue = {
   deleteGroup: (groupId: string) => void;
   resetGroupPoints: (groupId: string) => void;
   setGroupPoints: (groupId: string, points: number) => void;
+  updateGroupAccentColor: (groupId: string, accentColor: string) => void;
   saveSchoolYear: (schoolYear: SchoolYear) => void;
   deleteSchoolYear: (schoolYearId: string) => void;
   updateGroupObjective: (groupId: string, objective: string, targetPoints: number) => void;
@@ -188,6 +189,13 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
               }]
             : [])
         ]
+      })),
+    updateGroupAccentColor: (groupId, accentColor) =>
+      setData((current) => ({
+        ...current,
+        groups: current.groups.map((group) =>
+          group.id === groupId ? { ...group, accentColor } : group
+        )
       })),
     saveSchoolYear: (schoolYear) =>
       setData((current) => {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MoreHorizontal, MonitorPlay, Plus, Trash2, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GROUP_ACCENT_COLORS, groupAccentColor } from "@/lib/group-colors";
 import { useAppStore } from "@/store/app-store";
 import { getCompletedSentenceIds, getWeeklyPoints } from "@/lib/stats";
 
@@ -16,7 +17,8 @@ export default function HomePage() {
     addGroup,
     deleteGroup,
     resetGroupPoints,
-    setGroupPoints
+    setGroupPoints,
+    updateGroupAccentColor
   } = useAppStore();
 
   const [showYearModal, setShowYearModal] = useState(false);
@@ -133,9 +135,16 @@ export default function HomePage() {
                     const level = data.levels.find((item) => item.id === group.levelId);
                     const weeklyPoints = getWeeklyPoints(data.scoreEvents, group.id);
                     const completedCount = getCompletedSentenceIds(data.scoreEvents, group.id).length;
+                    const groupIndex = data.groups.findIndex((item) => item.id === group.id);
 
                     return (
-                      <div key={group.id} className="group-card-wrapper">
+                      <div
+                        key={group.id}
+                        className="group-card-wrapper"
+                        style={{
+                          "--group-accent": groupAccentColor(groupIndex, group.accentColor)
+                        } as React.CSSProperties}
+                      >
                         <Link href={`/groupes/${group.id}`} className="card-link">
                           <Card className="group-hub-card compact">
                             <div className="group-card-title-block">
@@ -189,6 +198,8 @@ export default function HomePage() {
       {groupMenuId && (() => {
         const selectedGroup = data.groups.find((group) => group.id === groupMenuId);
         if (!selectedGroup) return null;
+        const selectedGroupIndex = data.groups.findIndex((group) => group.id === selectedGroup.id);
+        const selectedAccent = groupAccentColor(selectedGroupIndex, selectedGroup.accentColor);
 
         return (
           <div className="modal-backdrop">
@@ -217,6 +228,23 @@ export default function HomePage() {
                 >
                   Réinitialiser les points
                 </button>
+
+                <div className="group-color-option">
+                  <span>Couleur du groupe</span>
+                  <div className="group-color-swatch-row" role="list" aria-label="Couleurs du groupe">
+                    {GROUP_ACCENT_COLORS.map((color) => (
+                      <button
+                        type="button"
+                        key={color}
+                        className={color === selectedAccent ? "active" : ""}
+                        style={{ "--swatch-color": color } as React.CSSProperties}
+                        aria-label={`Choisir la couleur ${color}`}
+                        aria-pressed={color === selectedAccent}
+                        onClick={() => updateGroupAccentColor(selectedGroup.id, color)}
+                      />
+                    ))}
+                  </div>
+                </div>
 
                 <button
                   type="button"

@@ -16,6 +16,7 @@ export type ClassGroup = {
   schoolYearId?: string;
   name: string;
   description?: string;
+  accentColor?: string;
   weeklyObjective?: string;
   weeklyObjectivePoints?: number;
   totalPoints: number;

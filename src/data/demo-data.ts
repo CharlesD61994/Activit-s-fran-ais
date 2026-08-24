@@ -213,10 +213,10 @@ export const demoData: AppData = {
     { id: "sec-4", name: "Secondaire 4", order: 4 }
   ],
   groups: [
-    { id: "groupe-101", levelId: "sec-1", schoolYearId: "year-2026-2027", name: "Groupe 101", description: "Premier cycle", totalPoints: 145, sentenceCount: 12, studentPortalEnabled: true, studentAccessCode: "1010" },
-    { id: "groupe-102", levelId: "sec-1", schoolYearId: "year-2026-2027", name: "Groupe 102", description: "Premier cycle", totalPoints: 132, sentenceCount: 10, studentPortalEnabled: true },
-    { id: "groupe-201", levelId: "sec-2", schoolYearId: "year-2026-2027", name: "Groupe 201", description: "Consolidation", totalPoints: 98, sentenceCount: 8, studentPortalEnabled: true, studentAccessCode: "2010" },
-    { id: "groupe-401", levelId: "sec-4", schoolYearId: "year-2026-2027", name: "Groupe 401", description: "Deuxième cycle", totalPoints: 176, sentenceCount: 15, studentPortalEnabled: true }
+    { id: "groupe-101", levelId: "sec-1", schoolYearId: "year-2026-2027", name: "Groupe 101", description: "Premier cycle", accentColor: "#2878df", totalPoints: 145, sentenceCount: 12, studentPortalEnabled: true, studentAccessCode: "1010" },
+    { id: "groupe-102", levelId: "sec-1", schoolYearId: "year-2026-2027", name: "Groupe 102", description: "Premier cycle", accentColor: "#0f9f91", totalPoints: 132, sentenceCount: 10, studentPortalEnabled: true },
+    { id: "groupe-201", levelId: "sec-2", schoolYearId: "year-2026-2027", name: "Groupe 201", description: "Consolidation", accentColor: "#7757cf", totalPoints: 98, sentenceCount: 8, studentPortalEnabled: true, studentAccessCode: "2010" },
+    { id: "groupe-401", levelId: "sec-4", schoolYearId: "year-2026-2027", name: "Groupe 401", description: "Deuxième cycle", accentColor: "#e6921b", totalPoints: 176, sentenceCount: 15, studentPortalEnabled: true }
   ],
   teams: [
     { id: "team-101-a", groupId: "groupe-101", name: "Équipe A", icon: "🦊", points: 48, members: ["Alex", "Maya", "Émile"] },

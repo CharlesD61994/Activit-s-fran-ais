@@ -26,6 +26,7 @@ import {
 } from "@/components/activity-objective-badges";
 import { useAppStore } from "@/store/app-store";
 import { getWordClassActivityPointTotal } from "@/lib/activity-types";
+import { groupAccentColor } from "@/lib/group-colors";
 import { getWeeklyPoints } from "@/lib/stats";
 import {
   ClassroomGroupEmblem,
@@ -55,6 +56,7 @@ export default function ClassroomGroupPage({
   const [objectivePointsDraft, setObjectivePointsDraft] = useState("10");
 
   const group = data.groups.find((item) => item.id === groupId);
+  const groupIndex = data.groups.findIndex((item) => item.id === groupId);
   const activities = data.sentences.filter((sentence) =>
     sentence.assignedGroupIds.includes(groupId)
   );
@@ -304,7 +306,12 @@ export default function ClassroomGroupPage({
   }
 
   return (
-    <div className="classroom-page classroom-group-dashboard">
+    <div
+      className="classroom-page classroom-group-dashboard"
+      style={{
+        "--group-accent": groupAccentColor(groupIndex, group.accentColor)
+      } as React.CSSProperties}
+    >
       <section className="classroom-dashboard-hero">
         <Link href="/classe" className="classroom-dashboard-back">
           <ArrowLeft size={20} />

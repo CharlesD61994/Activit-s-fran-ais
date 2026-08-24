@@ -16,6 +16,7 @@ import {
   ClassroomGroupEmblem,
   ClassroomPointsMedal
 } from "@/components/classroom-portal-ornaments";
+import { groupAccentColor } from "@/lib/group-colors";
 
 export default function ClassePage() {
   const { data } = useAppStore();
@@ -84,6 +85,7 @@ export default function ClassePage() {
           const groupCode =
             group.name.match(/\d+/)?.[0] ??
             group.name.slice(0, 3).toUpperCase();
+          const groupIndex = data.groups.findIndex((item) => item.id === group.id);
 
           return (
             <Link
@@ -93,6 +95,9 @@ export default function ClassePage() {
             >
               <Card
                 className={"classroom-portal-group-card accent-" + ((index % 4) + 1)}
+                style={{
+                  "--group-accent": groupAccentColor(groupIndex, group.accentColor)
+                } as React.CSSProperties}
               >
                 <div className="classroom-portal-group-card-main">
                   <ClassroomGroupEmblem label={groupCode} />
