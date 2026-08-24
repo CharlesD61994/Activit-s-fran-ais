@@ -153,6 +153,19 @@ textarea {
 .page:has(.sentence-list) .filters { margin-bottom: 8px; }
 .activities-bank-page .sentence-list,
 .page:has(.sentence-list) .sentence-list { gap: 8px; }
+.activities-bank-page .hero.compact { padding: 22px 26px; align-items: flex-start; }
+.activities-bank-page .hero h1 { margin: 4px 0 4px; font-size: clamp(2rem, 3.4vw, 3rem); }
+.activities-bank-page .hero p { margin: 0; line-height: 1.35; }
+.activities-bank-filters {
+  position: sticky;
+  top: 10px;
+  z-index: 30;
+  align-items: center;
+  background: rgba(255, 255, 255, .96);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+.activities-bank-filters .activities-bank-new-button { min-height: 46px; white-space: nowrap; }
 .search-field { display: flex; grid-template-columns: none; flex-direction: row; gap: 8px; align-items: center; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); }
 .search-field input { border: 0; padding: 0; background: transparent; }
 .search-field input:focus { outline: none; }

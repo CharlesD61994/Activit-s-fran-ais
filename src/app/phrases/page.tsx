@@ -67,15 +67,11 @@ export default function SentencesPage() {
         <div>
           <span className="eyebrow">Contenu pédagogique</span>
           <h1>Banque d’activités</h1>
-          <p>Crée, classe, assigne et modifie les phrases destinées à tes groupes.</p>
+          <p>Retrouve, filtre et assigne ton matériel de français.</p>
         </div>
-        <Button onClick={() => setShowTypeModal(true)}>
-          <Plus size={18} />
-          Nouvelle activité
-        </Button>
       </div>
 
-      <Card className="filters">
+      <Card className="filters activities-bank-filters">
         <label className="search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher une activité..." /></label>
         <select value={levelId} onChange={(event) => setLevelId(event.target.value)} aria-label="Filtrer par niveau">
           <option value="all">Tous les niveaux</option>
@@ -105,6 +101,10 @@ export default function SentencesPage() {
           <option value="all">Tous les tags</option>
           {availableTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
         </select>
+        <Button className="activities-bank-new-button" onClick={() => setShowTypeModal(true)}>
+          <Plus size={18} />
+          Nouvelle activité
+        </Button>
       </Card>
 
       <div className="sentence-list">
