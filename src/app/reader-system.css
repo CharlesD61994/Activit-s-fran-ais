@@ -24,6 +24,7 @@
   --reader-floating-annotation-font-size: clamp(15px, 1.25vw, 23px);
   --reader-annotation-gap: 4px;
   --reader-correction-code-y-compensation: .16em;
+  --reader-wrapped-correction-box-compensation: .28em;
   --reader-wrapped-correction-code-compensation: .18em;
   --reader-wrapped-class-label-compensation: .18em;
   --reader-annotation-leading-compensation: 0px;
@@ -130,6 +131,14 @@
   border-width: 2px;
   font-size: var(--reader-annotation-font-size);
   line-height: 1;
+}
+
+.reader-activity-flow .interactive-sentence .interactive-segment.wrapped-line-segment .interactive-code-box:not(.filled) {
+  bottom: calc(
+    100%
+    + var(--reader-annotation-gap)
+    - var(--reader-wrapped-correction-box-compensation)
+  ) !important;
 }
 
 .reader-activity-flow .interactive-sentence .interactive-code-box.filled {
