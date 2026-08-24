@@ -16,7 +16,7 @@ import {
   ClassroomGroupEmblem,
   ClassroomPointsMedal
 } from "@/components/classroom-portal-ornaments";
-import { groupAccentColor } from "@/lib/group-colors";
+import { groupAccentColor, groupShieldLabel } from "@/lib/group-colors";
 
 export default function ClassePage() {
   const { data } = useAppStore();
@@ -82,9 +82,7 @@ export default function ClassePage() {
             data.scoreEvents,
             group.id
           ).length;
-          const groupCode =
-            group.name.match(/\d+/)?.[0] ??
-            group.name.slice(0, 3).toUpperCase();
+          const groupCode = groupShieldLabel(group.name, group.shieldLabel);
           const groupIndex = data.groups.findIndex((item) => item.id === group.id);
 
           return (

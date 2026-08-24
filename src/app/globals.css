@@ -3147,6 +3147,23 @@ textarea {
   outline: 3px solid color-mix(in srgb, var(--swatch-color) 24%, transparent);
 }
 
+.group-shield-option {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--secondary) 54%, #fff);
+  color: var(--text);
+  font-size: .88rem;
+  font-weight: 900;
+}
+
+.group-shield-option input {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
 
 /* V45 — thème portail appliqué au tableau de bord */
 .page > .home-toolbar {

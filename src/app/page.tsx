@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MoreHorizontal, MonitorPlay, Plus, Trash2, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { GROUP_ACCENT_COLORS, groupAccentColor } from "@/lib/group-colors";
+import { GROUP_ACCENT_COLORS, groupAccentColor, groupShieldLabel } from "@/lib/group-colors";
 import { useAppStore } from "@/store/app-store";
 import { getCompletedSentenceIds, getWeeklyPoints } from "@/lib/stats";
 
@@ -18,7 +18,8 @@ export default function HomePage() {
     deleteGroup,
     resetGroupPoints,
     setGroupPoints,
-    updateGroupAccentColor
+    updateGroupAccentColor,
+    updateGroupShieldLabel
   } = useAppStore();
 
   const [showYearModal, setShowYearModal] = useState(false);
@@ -200,6 +201,7 @@ export default function HomePage() {
         if (!selectedGroup) return null;
         const selectedGroupIndex = data.groups.findIndex((group) => group.id === selectedGroup.id);
         const selectedAccent = groupAccentColor(selectedGroupIndex, selectedGroup.accentColor);
+        const selectedShieldLabel = selectedGroup.shieldLabel ?? groupShieldLabel(selectedGroup.name);
 
         return (
           <div className="modal-backdrop">
@@ -245,6 +247,17 @@ export default function HomePage() {
                     ))}
                   </div>
                 </div>
+
+                <label className="group-shield-option">
+                  Chiffres du bouclier
+                  <input
+                    value={selectedShieldLabel}
+                    maxLength={4}
+                    inputMode="numeric"
+                    onChange={(event) => updateGroupShieldLabel(selectedGroup.id, event.target.value)}
+                    aria-label="Chiffres à afficher dans le bouclier"
+                  />
+                </label>
 
                 <button
                   type="button"

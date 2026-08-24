@@ -28,6 +28,7 @@ type AppStoreValue = {
   resetGroupPoints: (groupId: string) => void;
   setGroupPoints: (groupId: string, points: number) => void;
   updateGroupAccentColor: (groupId: string, accentColor: string) => void;
+  updateGroupShieldLabel: (groupId: string, shieldLabel: string) => void;
   saveSchoolYear: (schoolYear: SchoolYear) => void;
   deleteSchoolYear: (schoolYearId: string) => void;
   updateGroupObjective: (groupId: string, objective: string, targetPoints: number) => void;
@@ -84,7 +85,6 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const repository = createRepository(Boolean(user));
 
-    setHydrated(false);
     repository.load()
       .then((loaded) => {
         if (cancelled) return;
@@ -195,6 +195,13 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         ...current,
         groups: current.groups.map((group) =>
           group.id === groupId ? { ...group, accentColor } : group
+        )
+      })),
+    updateGroupShieldLabel: (groupId, shieldLabel) =>
+      setData((current) => ({
+        ...current,
+        groups: current.groups.map((group) =>
+          group.id === groupId ? { ...group, shieldLabel: shieldLabel.replace(/\D/g, "").slice(0, 4) } : group
         )
       })),
     saveSchoolYear: (schoolYear) =>

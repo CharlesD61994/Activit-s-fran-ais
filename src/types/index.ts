@@ -17,6 +17,7 @@ export type ClassGroup = {
   name: string;
   description?: string;
   accentColor?: string;
+  shieldLabel?: string;
   weeklyObjective?: string;
   weeklyObjectivePoints?: number;
   totalPoints: number;

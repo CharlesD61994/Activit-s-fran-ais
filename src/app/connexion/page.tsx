@@ -1,20 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/features/auth/auth-provider";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { loading, user } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) router.replace("/");
+  }, [loading, router, user]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -64,7 +70,7 @@ export default function LoginPage() {
 
         {!isSupabaseConfigured && (
           <div className="form-message">
-            Supabase n’est pas configuré. Tu peux continuer en mode local ou ajouter les variables d’environnement plus tard.
+            Supabase n’est pas configuré. Ajoute les variables d’environnement pour activer la connexion.
           </div>
         )}
 
@@ -104,10 +110,6 @@ export default function LoginPage() {
             ? "Je n’ai pas encore de compte"
             : "J’ai déjà un compte"}
         </button>
-
-        <Button variant="secondary" onClick={() => router.push("/")}>
-          Continuer en mode local
-        </Button>
       </Card>
     </div>
   );

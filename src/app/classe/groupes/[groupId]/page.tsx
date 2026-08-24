@@ -26,7 +26,7 @@ import {
 } from "@/components/activity-objective-badges";
 import { useAppStore } from "@/store/app-store";
 import { getWordClassActivityPointTotal } from "@/lib/activity-types";
-import { groupAccentColor } from "@/lib/group-colors";
+import { groupAccentColor, groupShieldLabel } from "@/lib/group-colors";
 import { getWeeklyPoints } from "@/lib/stats";
 import {
   ClassroomGroupEmblem,
@@ -320,10 +320,7 @@ export default function ClassroomGroupPage({
 
         <div className="classroom-dashboard-identity">
           <ClassroomGroupEmblem
-            label={
-              group.name.match(/\d+/)?.[0] ??
-              group.name.slice(0, 3).toUpperCase()
-            }
+            label={groupShieldLabel(group.name, group.shieldLabel)}
             compact
           />
           <div>
