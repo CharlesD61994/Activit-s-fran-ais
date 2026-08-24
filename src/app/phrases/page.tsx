@@ -62,7 +62,7 @@ export default function SentencesPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page activities-bank-page">
       <div className="hero compact">
         <div>
           <span className="eyebrow">Contenu pédagogique</span>

@@ -147,9 +147,12 @@ textarea {
 .sentence-card h2 { margin: 7px 0; }
 .tag { background: var(--secondary); color: var(--text); }
 .filters { display: grid; grid-template-columns: minmax(240px, 1fr) 220px 220px; gap: 12px; margin-bottom: 14px; }
-.page:has(.sentence-list) .hero { margin-bottom: 16px; }
-.page:has(.sentence-list) .filters { margin-bottom: 10px; }
-.page:has(.sentence-list) .sentence-list { gap: 10px; }
+.activities-bank-page .hero,
+.page:has(.sentence-list) .hero { margin-bottom: 12px; }
+.activities-bank-page .filters,
+.page:has(.sentence-list) .filters { margin-bottom: 8px; }
+.activities-bank-page .sentence-list,
+.page:has(.sentence-list) .sentence-list { gap: 8px; }
 .search-field { display: flex; grid-template-columns: none; flex-direction: row; gap: 8px; align-items: center; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); }
 .search-field input { border: 0; padding: 0; background: transparent; }
 .search-field input:focus { outline: none; }

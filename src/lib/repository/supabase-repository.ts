@@ -1,27 +1,13 @@
 "use client";
 
 import { demoData } from "@/data/demo-data";
+import { normalizeAppData } from "@/lib/data-migration";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { AppRepository } from "@/lib/repository/types";
 import type { AppData } from "@/types";
 
-const DATA_VERSION = 34;
-
 function cloneDemoData(): AppData {
   return JSON.parse(JSON.stringify(demoData)) as AppData;
-}
-
-function isCurrentData(value: unknown): value is AppData {
-  if (!value || typeof value !== "object") return false;
-  const data = value as Partial<AppData>;
-
-  return (
-    data.dataVersion === DATA_VERSION &&
-    Array.isArray(data.schoolYears) &&
-    Array.isArray(data.levels) &&
-    Array.isArray(data.groups) &&
-    Array.isArray(data.sentences)
-  );
 }
 
 export class SupabaseRepository implements AppRepository {
@@ -40,14 +26,8 @@ export class SupabaseRepository implements AppRepository {
 
     if (error) throw error;
 
-    if (isCurrentData(data?.payload)) {
-      const migrated: AppData = {
-        ...data.payload,
-        dataVersion: DATA_VERSION,
-        competitionResults: Array.isArray(data.payload.competitionResults)
-          ? data.payload.competitionResults
-          : []
-      };
+    const migrated = normalizeAppData(data?.payload);
+    if (migrated) {
       await this.save(migrated);
       return migrated;
     }
@@ -69,10 +49,7 @@ export class SupabaseRepository implements AppRepository {
       .upsert(
         {
           user_id: userData.user.id,
-          payload: {
-            ...data,
-            dataVersion: DATA_VERSION
-          },
+          payload: normalizeAppData(data) ?? data,
           updated_at: new Date().toISOString()
         },
         {

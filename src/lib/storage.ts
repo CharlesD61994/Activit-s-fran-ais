@@ -1,48 +1,49 @@
 "use client";
 
 import { demoData } from "@/data/demo-data";
+import { DATA_VERSION, dataRecoveryWeight, normalizeAppData } from "@/lib/data-migration";
 import type { AppData } from "@/types";
 
 const STORAGE_KEY = "alinea-activites-francais-v21";
 const LEGACY_STORAGE_KEYS = ["phrase-du-jour-v21"];
-const DATA_VERSION = 34;
 
 function cloneDemoData(): AppData {
   return JSON.parse(JSON.stringify(demoData)) as AppData;
-}
-
-function isCurrentData(value: unknown): value is AppData {
-  if (!value || typeof value !== "object") return false;
-  const data = value as Partial<AppData>;
-
-  return (
-    data.dataVersion === DATA_VERSION &&
-    Array.isArray(data.schoolYears) &&
-    Array.isArray(data.levels) &&
-    Array.isArray(data.groups) &&
-    Array.isArray(data.sentences)
-  );
 }
 
 export function loadData(): AppData {
   if (typeof window === "undefined") return cloneDemoData();
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY) ?? LEGACY_STORAGE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean);
+    const knownKeys = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
+    const discoveredKeys = Array.from({ length: window.localStorage.length }, (_, index) => window.localStorage.key(index))
+      .filter((key): key is string => Boolean(key))
+      .filter((key) =>
+        key === STORAGE_KEY ||
+        LEGACY_STORAGE_KEYS.includes(key) ||
+        key.includes("phrase-du-jour") ||
+        key.includes("alinea") ||
+        key.includes("activites-francais")
+      );
+    const candidateKeys = Array.from(new Set([...knownKeys, ...discoveredKeys]));
+    const candidates = candidateKeys
+      .map((key) => {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return null;
 
-    if (raw) {
-      const parsed = JSON.parse(raw) as unknown;
-      if (isCurrentData(parsed)) {
-        const migrated = {
-          ...parsed,
-          dataVersion: DATA_VERSION,
-          competitionResults: Array.isArray(parsed.competitionResults)
-            ? parsed.competitionResults
-            : []
-        };
-        saveData(migrated);
-        return migrated;
-      }
+        try {
+          const normalized = normalizeAppData(JSON.parse(raw) as unknown);
+          return normalized ? { key, data: normalized } : null;
+        } catch {
+          return null;
+        }
+      })
+      .filter((candidate): candidate is { key: string; data: AppData } => Boolean(candidate))
+      .sort((a, b) => dataRecoveryWeight(b.data) - dataRecoveryWeight(a.data));
+
+    if (candidates[0]) {
+      saveData(candidates[0].data);
+      return candidates[0].data;
     }
 
     const initial = cloneDemoData();
