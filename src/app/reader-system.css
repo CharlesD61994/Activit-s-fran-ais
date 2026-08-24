@@ -19,7 +19,7 @@
   --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
   --reader-sentence-font-weight: 800;
   --reader-sentence-line-height: 1.48;
-  --reader-annotation-gap: 8px;
+  --reader-annotation-gap: 4px;
   --reader-annotation-leading-compensation: 0px;
   --reader-function-label-extra-offset: 0px;
   --reader-agreement-label-gap: var(--reader-annotation-gap);
