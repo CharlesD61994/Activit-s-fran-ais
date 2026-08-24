@@ -95,6 +95,7 @@
 .reader-activity-flow .interactive-sentence .interactive-segment {
   margin: 0 !important;
   padding: 0 !important;
+  line-height: 1.08 !important;
 }
 
 .reader-activity-flow .interactive-sentence .interactive-word,
@@ -102,6 +103,7 @@
 .reader-activity-flow .word-group-reader-token.group-confirmed {
   font-weight: inherit !important;
   letter-spacing: inherit !important;
+  line-height: 1.08 !important;
 }
 
 .reader-activity-flow .interactive-sentence .interactive-code-box {
