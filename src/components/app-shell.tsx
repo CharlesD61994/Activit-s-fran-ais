@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">P</div>
+          <div className="brand-mark">A</div>
           <div>
             <strong>Activités de français</strong>
             <span>Tableau de bord</span>

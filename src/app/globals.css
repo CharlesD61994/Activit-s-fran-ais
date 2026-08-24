@@ -3,29 +3,35 @@
 @tailwind utilities;
 
 :root {
-  --background: #eef2f7;
+  --background: #f3f7fb;
   --surface: #ffffff;
-  --surface-elevated: #f8fafc;
-  --text: #18212f;
-  --text-muted: #64748b;
-  --primary: #315a7d;
+  --surface-elevated: #f8fbfe;
+  --text: #123b5d;
+  --text-muted: #63788d;
+  --primary: #176595;
   --primary-contrast: #ffffff;
-  --secondary: #dbe6ef;
-  --accent: #7a9bb8;
+  --secondary: #e7f0f8;
+  --accent: #0f9f91;
   --success: #2f855a;
   --warning: #b7791f;
   --danger: #b42318;
-  --border: #d7e0ea;
-  --focus: #2b6cb0;
-  --radius: 18px;
-  --shadow: 0 14px 35px rgba(40, 61, 82, 0.08);
+  --border: #dce8f2;
+  --focus: #2878df;
+  --radius: 20px;
+  --shadow: 0 16px 38px rgb(15 55 88 / 9%);
+  --shadow-sm: 0 8px 22px rgb(15 55 88 / 7%);
+  --portal-ink: #082f55;
+  --portal-ink-soft: #104d7e;
+  --portal-gold: #ffb322;
 }
 
 * { box-sizing: border-box; }
 html { background: var(--background); }
 body {
   margin: 0;
-  background: var(--background);
+  background:
+    radial-gradient(circle at 10% 0%, rgb(47 99 140 / 9%), transparent 26rem),
+    var(--background);
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   transition: background .2s ease, color .2s ease;
@@ -36,20 +42,31 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .55; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
-.app-shell { min-height: 100vh; display: grid; grid-template-columns: 250px 1fr; }
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 268px 1fr; }
 .sidebar {
   position: sticky; top: 0; height: 100vh;
-  padding: 24px 18px; background: var(--surface); border-right: 1px solid var(--border);
+  padding: 24px 18px;
+  background: rgb(255 255 255 / 88%);
+  border-right: 1px solid rgb(24 67 105 / 10%);
+  box-shadow: 12px 0 36px rgb(15 55 88 / 5%);
+  backdrop-filter: blur(16px);
 }
 .brand { display: flex; gap: 12px; align-items: center; margin-bottom: 30px; }
 .brand-mark {
   width: 42px; height: 42px; display: grid; place-items: center;
-  border-radius: 14px; background: var(--primary); color: var(--primary-contrast); font-weight: 800;
+  border-radius: 15px;
+  background: linear-gradient(145deg, var(--portal-ink-soft), var(--primary));
+  color: var(--primary-contrast);
+  font-weight: 900;
+  box-shadow: 0 10px 22px rgb(8 47 85 / 18%);
 }
+.brand strong { color: var(--portal-ink); }
 .brand span { display: block; margin-top: 2px; color: var(--text-muted); font-size: .8rem; }
 .sidebar nav { display: grid; gap: 8px; }
-.nav-link { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; color: var(--text-muted); }
-.nav-link:hover, .nav-link.active { background: var(--secondary); color: var(--text); }
+.nav-link { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; color: var(--text-muted); font-weight: 800; transition: background .16s ease, color .16s ease, transform .16s ease; }
+.nav-link:hover, .nav-link.active { background: color-mix(in srgb, var(--primary) 11%, white); color: var(--portal-ink); }
+.nav-link:hover { transform: translateX(2px); }
+.nav-link.active { box-shadow: inset 3px 0 0 var(--primary); }
 .page-area { min-width: 0; }
 .mobile-header { display: none; }
 main { min-height: 100vh; }
@@ -73,18 +90,19 @@ main { min-height: 100vh; }
 .grid { display: grid; gap: 20px; }
 .summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 20px; }
 .card {
-  position: relative; padding: 24px; border-radius: var(--radius); background: var(--surface);
-  border: 1px solid var(--border); box-shadow: var(--shadow);
+  position: relative; padding: 24px; border-radius: var(--radius); background: rgb(255 255 255 / 94%);
+  border: 1px solid rgb(24 67 105 / 12%); box-shadow: var(--shadow);
 }
 .card-link .card { height: 100%; transition: transform .15s ease, border-color .15s ease; }
 .card-link:hover .card { transform: translateY(-3px); border-color: var(--primary); }
 .card h2 { margin: 8px 0; font-size: 1.35rem; }
 .button {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 44px; padding: 0 17px; border: 1px solid transparent; border-radius: 12px; font-weight: 800;
+  min-height: 44px; padding: 0 17px; border: 1px solid transparent; border-radius: 12px; font-weight: 900;
+  box-shadow: 0 7px 18px rgb(15 55 88 / 8%);
 }
-.button-primary { background: var(--primary); color: var(--primary-contrast); }
-.button-secondary { background: var(--secondary); color: var(--text); border-color: var(--border); }
+.button-primary { background: linear-gradient(135deg, var(--primary), var(--portal-ink-soft)); color: var(--primary-contrast); }
+.button-secondary { background: rgb(255 255 255 / 82%); color: var(--text); border-color: var(--border); }
 .button-danger { background: var(--danger); color: white; }
 form { display: grid; gap: 18px; }
 label { display: grid; gap: 7px; font-weight: 700; }
@@ -2928,6 +2946,135 @@ textarea {
 
 .group-option-list .danger-option {
   color: var(--danger);
+}
+
+
+/* V45 — thème portail appliqué au tableau de bord */
+.page > .home-toolbar {
+  margin-bottom: 30px;
+}
+
+.page > .home-toolbar .button:first-child {
+  background: linear-gradient(135deg, var(--portal-ink), var(--primary));
+  color: #fff;
+}
+
+.school-year-list {
+  gap: 30px;
+}
+
+.school-year-section {
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid rgb(24 67 105 / 10%);
+  border-radius: 26px;
+  background: rgb(255 255 255 / 62%);
+  box-shadow: 0 14px 34px rgb(15 55 88 / 6%);
+}
+
+.school-year-heading {
+  padding-bottom: 16px;
+  border-bottom-color: #e2eaf2;
+}
+
+.school-year-heading h2 {
+  color: var(--portal-ink);
+  font-size: 1.55rem;
+  letter-spacing: -.025em;
+}
+
+.school-year-heading span {
+  font-weight: 800;
+}
+
+.group-card-wrapper:nth-child(4n + 1) { --group-accent: #2878df; }
+.group-card-wrapper:nth-child(4n + 2) { --group-accent: #0f9f91; }
+.group-card-wrapper:nth-child(4n + 3) { --group-accent: #7757cf; }
+.group-card-wrapper:nth-child(4n + 4) { --group-accent: #e6921b; }
+
+.group-hub-card.compact {
+  min-height: 230px;
+  gap: 18px;
+  padding: 24px;
+  overflow: hidden;
+  border-color: rgb(24 67 105 / 12%);
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--group-accent, var(--primary)) 17%, transparent), transparent 10rem),
+    rgb(255 255 255 / 96%);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.group-hub-card.compact::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--group-accent, var(--primary));
+}
+
+.card-link:hover .group-hub-card.compact {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--group-accent, var(--primary)) 48%, white);
+  box-shadow: 0 18px 42px rgb(15 55 88 / 14%);
+}
+
+.group-hub-card.compact .eyebrow {
+  color: var(--group-accent, var(--primary));
+  letter-spacing: .07em;
+}
+
+.group-hub-card.compact h2 {
+  color: var(--portal-ink);
+  font-size: 1.8rem;
+  letter-spacing: -.035em;
+}
+
+.group-hub-stats > div {
+  min-height: 70px;
+  display: grid;
+  align-content: center;
+  border-color: #dfe8f1;
+  background: color-mix(in srgb, var(--group-accent, var(--primary)) 7%, white);
+}
+
+.group-hub-stats strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--portal-ink);
+}
+
+.group-hub-stats strong svg {
+  color: var(--group-accent, var(--primary));
+}
+
+.group-card-menu-button {
+  border-radius: 50%;
+  background: rgb(255 255 255 / 86%);
+  color: var(--group-accent, var(--primary));
+  box-shadow: 0 8px 18px rgb(15 55 88 / 10%);
+}
+
+.group-card-menu-button:hover {
+  border-color: color-mix(in srgb, var(--group-accent, var(--primary)) 35%, var(--border));
+  background: #fff;
+}
+
+.empty-year-card {
+  border-style: dashed;
+  background: rgb(255 255 255 / 70%);
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .school-year-section {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .group-hub-card.compact {
+    min-height: 210px;
+  }
 }
 
 
