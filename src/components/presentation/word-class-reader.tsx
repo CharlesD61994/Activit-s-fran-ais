@@ -57,6 +57,7 @@ type Props = {
   correctionArrowAuthoring?: boolean;
   onAgreementCorrectionArrowsChange?: (arrows: AgreementCorrectionArrow[]) => void;
   correctionMarks?: ResolvedCorrectionMark[];
+  forcedLineBreaks?: number[];
 };
 
 type WordToken = {
@@ -205,7 +206,8 @@ export function WordClassReader({
   embedded = false,
   correctionArrowAuthoring = false,
   onAgreementCorrectionArrowsChange,
-  correctionMarks = []
+  correctionMarks = [],
+  forcedLineBreaks = []
 }: Props) {
   const selectedClasses = useMemo(
     () => sentence.selectedWordClasses ?? [],
@@ -415,6 +417,7 @@ export function WordClassReader({
     height: 0
   });
   const [dismissedReviewIds, setDismissedReviewIds] = useState<string[]>([]);
+  const [autoLineBreaks, setAutoLineBreaks] = useState<number[]>([]);
 
   const textContainerRef = useRef<HTMLDivElement>(null);
   const activeDrawingPointerRef = useRef<number | null>(null);
@@ -423,6 +426,13 @@ export function WordClassReader({
   const wordSuccessTimerRef = useRef<number | null>(null);
   const restoreRef = useRef(onRestorePoints);
   const completeRef = useRef(onCompleteChange);
+  const shouldControlLineBreaks =
+    relationTasks.length === 0 && !correctionArrowAuthoring;
+  const controlledLineBreaks = shouldControlLineBreaks
+    ? forcedLineBreaks.length > 0
+      ? forcedLineBreaks
+      : autoLineBreaks
+    : [];
 
   const persistentGroupAnnotations = useMemo(
     () => sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled))
@@ -856,6 +866,73 @@ export function WordClassReader({
       observer.disconnect();
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (!shouldControlLineBreaks || forcedLineBreaks.length > 0) {
+      setAutoLineBreaks([]);
+      return;
+    }
+
+    const container = textContainerRef.current;
+    if (!container) return;
+
+    let frameId = 0;
+
+    function calculateBreaks() {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const activeContainer = textContainerRef.current;
+        if (!activeContainer) return;
+
+        const tokenStarts = new Map(
+          tokens.map((token) => [token.id, token.start])
+        );
+        const measured = Array.from(
+          activeContainer.querySelectorAll<HTMLElement>("[data-class-token-id]")
+        ).filter((element) => element.dataset.classTokenId);
+
+        const nextBreaks: number[] = [];
+        let currentTop: number | null = null;
+        measured.forEach((element) => {
+          const tokenId = element.dataset.classTokenId;
+          if (!tokenId) return;
+
+          const start = tokenStarts.get(tokenId);
+          if (start === undefined || start <= 0) return;
+
+          const top = element.getBoundingClientRect().top;
+          if (currentTop === null) {
+            currentTop = top;
+            return;
+          }
+
+          if (top > currentTop + 1) {
+            nextBreaks.push(start);
+            currentTop = top;
+          }
+        });
+
+        setAutoLineBreaks((current) =>
+          current.length === nextBreaks.length &&
+          current.every((value, index) => value === nextBreaks[index])
+            ? current
+            : nextBreaks
+        );
+      });
+    }
+
+    calculateBreaks();
+    window.addEventListener("resize", calculateBreaks);
+    const observer = new ResizeObserver(calculateBreaks);
+    observer.observe(container);
+    document.fonts?.ready.then(calculateBreaks);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", calculateBreaks);
+      observer.disconnect();
+    };
+  }, [forcedLineBreaks.length, shouldControlLineBreaks, tokens]);
 
   useEffect(() => {
     if (
@@ -1607,6 +1684,12 @@ export function WordClassReader({
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
     const next = tokens[index + 1];
+    const breakBefore = controlledLineBreaks.some(
+      (position) => position >= token.start && position < token.end
+    );
+    if (breakBefore) {
+      renderedTokens.push(<br key={`line-break-${token.id}`} />);
+    }
     if (
       token.isWord &&
       endsWithFrenchElision(token.text) &&

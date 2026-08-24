@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
   PointerEvent as ReactPointerEvent
@@ -128,6 +128,7 @@ export function GrammarExtensionReader({
   const [stroke, setStroke] = useState<Point[]>([]);
   const [message, setMessage] = useState("");
   const [dismissedReviewIds, setDismissedReviewIds] = useState<string[]>([]);
+  const [autoLineBreaks, setAutoLineBreaks] = useState<number[]>([]);
 
   const surfaceRef = useRef<HTMLDivElement>(null);
   const activePointerRef = useRef<number | null>(null);
@@ -138,6 +139,8 @@ export function GrammarExtensionReader({
     () => tokenizeGrammarText(sentence.originalText, "extension-token"),
     [sentence.originalText]
   );
+  const controlledLineBreaks =
+    forcedLineBreaks.length > 0 ? forcedLineBreaks : autoLineBreaks;
   const layoutAnnotations = useMemo(() => [...annotations, ...correctionMarks], [annotations, correctionMarks]);
   const positions = useRangeTargetPositions(
     surfaceRef,
@@ -200,6 +203,73 @@ export function GrammarExtensionReader({
       !solvedIds.includes(annotation.id) &&
       (leftIds.includes(annotation.id) || rightIds.includes(annotation.id))
   );
+
+  useLayoutEffect(() => {
+    if (forcedLineBreaks.length > 0) {
+      setAutoLineBreaks([]);
+      return;
+    }
+
+    const surface = surfaceRef.current;
+    if (!surface) return;
+
+    let frameId = 0;
+
+    function calculateBreaks() {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const activeSurface = surfaceRef.current;
+        if (!activeSurface) return;
+
+        const tokenStarts = new Map(
+          tokens.map((token) => [token.id, token.start])
+        );
+        const measured = Array.from(
+          activeSurface.querySelectorAll<HTMLElement>("[data-extension-token-id]")
+        ).filter((element) => element.dataset.extensionTokenId);
+
+        const nextBreaks: number[] = [];
+        let currentTop: number | null = null;
+        measured.forEach((element) => {
+          const tokenId = element.dataset.extensionTokenId;
+          if (!tokenId) return;
+
+          const start = tokenStarts.get(tokenId);
+          if (start === undefined || start <= 0) return;
+
+          const top = element.getBoundingClientRect().top;
+          if (currentTop === null) {
+            currentTop = top;
+            return;
+          }
+
+          if (top > currentTop + 1) {
+            nextBreaks.push(start);
+            currentTop = top;
+          }
+        });
+
+        setAutoLineBreaks((current) =>
+          current.length === nextBreaks.length &&
+          current.every((value, index) => value === nextBreaks[index])
+            ? current
+            : nextBreaks
+        );
+      });
+    }
+
+    calculateBreaks();
+    window.addEventListener("resize", calculateBreaks);
+    const observer = new ResizeObserver(calculateBreaks);
+    observer.observe(surface);
+    document.fonts?.ready.then(calculateBreaks);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", calculateBreaks);
+      observer.disconnect();
+    };
+  }, [forcedLineBreaks.length, tokens]);
 
   useEffect(() => {
     const mergeInitialIds = (current: string[]) => {
@@ -620,7 +690,7 @@ export function GrammarExtensionReader({
 
           <div className="word-group-reader-text shared-grammar-reader-text">
             {tokens.map((token) => {
-              const breakBefore = forcedLineBreaks.some(
+              const breakBefore = controlledLineBreaks.some(
                 (position) =>
                   position >= token.start && position < token.end
               );

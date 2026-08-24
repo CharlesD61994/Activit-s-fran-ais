@@ -772,6 +772,7 @@ export function InteractiveSentenceReader({
             onCompleteChange={setHybridWordClassComplete}
             correctionMarks={resolvedCorrectionMarks}
             finishControl={finishControl}
+            forcedLineBreaks={forcedGrammarLineBreaks}
             embedded
           />
         ) : (

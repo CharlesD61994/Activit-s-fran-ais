@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -120,11 +121,14 @@ export function WordGroupReader({
     Record<string, { x: number; y: number }>
   >({});
   const [dismissedReviewIds, setDismissedReviewIds] = useState<string[]>([]);
+  const [autoLineBreaks, setAutoLineBreaks] = useState<number[]>([]);
 
   const surfaceRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const restoreRef = useRef(onRestorePoints);
   const completeRef = useRef(onCompleteChange);
+  const controlledLineBreaks =
+    forcedLineBreaks.length > 0 ? forcedLineBreaks : autoLineBreaks;
 
   useEffect(() => {
     restoreRef.current = onRestorePoints;
@@ -133,6 +137,73 @@ export function WordGroupReader({
   useEffect(() => {
     completeRef.current = onCompleteChange;
   }, [onCompleteChange]);
+
+  useLayoutEffect(() => {
+    if (forcedLineBreaks.length > 0) {
+      setAutoLineBreaks([]);
+      return;
+    }
+
+    const surface = surfaceRef.current;
+    if (!surface) return;
+
+    let frameId = 0;
+
+    function calculateBreaks() {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const activeSurface = surfaceRef.current;
+        if (!activeSurface) return;
+
+        const tokenStarts = new Map(
+          tokens.map((token) => [token.id, token.start])
+        );
+        const measured = Array.from(
+          activeSurface.querySelectorAll<HTMLElement>("[data-group-token-id]")
+        ).filter((element) => element.dataset.groupTokenId);
+
+        const nextBreaks: number[] = [];
+        let currentTop: number | null = null;
+        measured.forEach((element) => {
+          const tokenId = element.dataset.groupTokenId;
+          if (!tokenId) return;
+
+          const start = tokenStarts.get(tokenId);
+          if (start === undefined || start <= 0) return;
+
+          const top = element.getBoundingClientRect().top;
+          if (currentTop === null) {
+            currentTop = top;
+            return;
+          }
+
+          if (top > currentTop + 1) {
+            nextBreaks.push(start);
+            currentTop = top;
+          }
+        });
+
+        setAutoLineBreaks((current) =>
+          current.length === nextBreaks.length &&
+          current.every((value, index) => value === nextBreaks[index])
+            ? current
+            : nextBreaks
+        );
+      });
+    }
+
+    calculateBreaks();
+    window.addEventListener("resize", calculateBreaks);
+    const observer = new ResizeObserver(calculateBreaks);
+    observer.observe(surface);
+    document.fonts?.ready.then(calculateBreaks);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", calculateBreaks);
+      observer.disconnect();
+    };
+  }, [forcedLineBreaks.length, tokens]);
 
   const functionAnnotations = useMemo(() => (sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "function"), [sentence.grammarAnnotations]);
   const functionTargets = useMemo<WordGroupTarget[]>(() => functionAnnotations.map((annotation) => ({ id: annotation.id, start: annotation.start, end: annotation.end, text: sentence.originalText.slice(annotation.start, annotation.end), groupType: "GN", nucleusStart: annotation.start, nucleusEnd: annotation.end, nucleusText: sentence.originalText.slice(annotation.start, annotation.end) })), [functionAnnotations, sentence.originalText]);
@@ -1237,7 +1308,7 @@ export function WordGroupReader({
 
         <div className="word-group-reader-text shared-grammar-reader-text">
           {tokens.map((token) => {
-            const breakBefore = forcedLineBreaks.some((position) => position >= token.start && position < token.end);
+            const breakBefore = controlledLineBreaks.some((position) => position >= token.start && position < token.end);
             const measurableToken =
               token.isWord || token.text.trim().length > 0;
 
