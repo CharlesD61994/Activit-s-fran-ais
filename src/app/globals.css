@@ -10064,6 +10064,182 @@ textarea {
 .worksheet-band-choices img { display: block; max-width: 100%; height: auto; }
 @media (max-width: 900px) { .worksheet-lines-toolbar { grid-template-columns: 1fr 1fr; } }
 
+/* V49 — cosmétique portail pour éditeurs complexes */
+.mixed-workspace-meta,
+.mixed-workspace-toolbar,
+.mixed-workspace-surface,
+.mixed-workspace-answers,
+.mixed-workspace-test {
+  border-color: rgb(24 67 105 / 11%);
+  background:
+    radial-gradient(circle at 100% 0%, rgb(40 120 223 / 8%), transparent 12rem),
+    rgb(255 255 255 / 95%);
+  box-shadow: var(--shadow-sm);
+}
+
+.mixed-workspace-toolbar button,
+.mixed-workspace-answers button,
+.mixed-answer-heading-actions button,
+.mixed-answer-card,
+.mixed-inline-workflow,
+.mixed-answer-section {
+  border-color: #dfe8f1;
+}
+
+.mixed-workspace-toolbar button:hover,
+.mixed-answer-heading-actions button:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, #fff);
+  color: var(--portal-ink);
+}
+
+.mixed-workspace-editable {
+  border-color: #dfe8f1;
+  background: #fff;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 86%);
+}
+
+.mixed-workspace-preview,
+.mixed-inline-workflow,
+.mixed-answer-section {
+  background: color-mix(in srgb, var(--secondary) 44%, #fff);
+}
+
+.mixed-answer-card.is-child {
+  border-left-color: color-mix(in srgb, var(--primary) 58%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, #fff);
+}
+
+.mixed-workspace-editable:focus {
+  border-color: var(--primary);
+  outline-color: color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.tree-analysis-editor .card,
+.tree-analysis-editor .tree-analysis-builder-card,
+.tree-analysis-editor .tree-analysis-inspector,
+.tree-analysis-editor .tree-analysis-document-header-controls,
+.tree-analysis-editor .tree-analysis-linked-node-picker,
+.tree-analysis-editor .tree-analysis-link-hint,
+.tree-analysis-editor .tree-analysis-page-controls,
+.tree-analysis-editor .tree-analysis-text-toolbar {
+  border-color: rgb(24 67 105 / 11%);
+  background:
+    radial-gradient(circle at 100% 0%, rgb(40 120 223 / 8%), transparent 12rem),
+    rgb(255 255 255 / 95%);
+  box-shadow: var(--shadow-sm);
+}
+
+.tree-analysis-editor .tree-analysis-builder-heading h2,
+.tree-analysis-editor .tree-analysis-inspector h3,
+.tree-analysis-editor .tree-analysis-document-header-controls h4 {
+  color: var(--portal-ink);
+}
+
+.tree-analysis-editor .tree-analysis-stepper > span b {
+  border-color: #dfe8f1;
+  background: #fff;
+}
+
+.tree-analysis-editor .tree-analysis-stepper > span.active b,
+.tree-analysis-editor .tree-analysis-stepper > span.done b {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 11%, #fff);
+  color: var(--primary);
+}
+
+.tree-analysis-editor .tree-analysis-builder-tools button,
+.tree-analysis-editor .tree-analysis-page-controls button,
+.tree-analysis-editor .tree-analysis-text-toolbar button {
+  border-color: #dfe8f1;
+  background: #fff;
+}
+
+.tree-analysis-editor .tree-analysis-builder-tools button:hover,
+.tree-analysis-editor .tree-analysis-page-controls button:hover,
+.tree-analysis-editor .tree-analysis-text-toolbar button:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, #fff);
+  color: var(--portal-ink);
+}
+
+.tree-analysis-editor .tree-analysis-builder-tools button[aria-pressed="true"],
+.tree-analysis-editor .tree-analysis-page-controls button.active,
+.tree-analysis-editor .tree-analysis-text-toolbar button.active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 13%, #fff);
+  color: var(--primary);
+}
+
+.tree-analysis-editor input,
+.tree-analysis-editor select,
+.tree-analysis-editor textarea {
+  border-color: #dfe8f1;
+  background: #fff;
+}
+
+.worksheet-editor .tree-analysis-builder-card,
+.worksheet-editor .worksheet-topbar,
+.worksheet-editor .tree-analysis-quick-add,
+.worksheet-editor .worksheet-settings-panel,
+.worksheet-editor .tree-analysis-document-header-controls,
+.worksheet-editor .tree-analysis-text-toolbar,
+.worksheet-editor .worksheet-lines-toolbar,
+.worksheet-editor .worksheet-table-toolbar,
+.worksheet-editor .worksheet-score-toolbar,
+.worksheet-editor .worksheet-band-toolbar {
+  border-color: rgb(24 67 105 / 11%);
+  background:
+    radial-gradient(circle at 100% 0%, rgb(40 120 223 / 8%), transparent 12rem),
+    rgb(255 255 255 / 95%);
+  box-shadow: var(--shadow-sm);
+}
+
+.worksheet-editor .worksheet-settings-toggle,
+.worksheet-editor .worksheet-header-controls-toggle,
+.worksheet-editor .worksheet-page-tabs,
+.worksheet-editor .worksheet-lines-toolbar button,
+.worksheet-editor .tree-analysis-text-toolbar button,
+.worksheet-editor .worksheet-table-toolbar button,
+.worksheet-editor .worksheet-score-toolbar button,
+.worksheet-editor .worksheet-band-toolbar button {
+  border-color: #dfe8f1;
+  background: color-mix(in srgb, var(--secondary) 44%, #fff);
+}
+
+.worksheet-editor .worksheet-settings-toggle:hover,
+.worksheet-editor .worksheet-header-controls-toggle:hover,
+.worksheet-editor .worksheet-lines-toolbar button:hover,
+.worksheet-editor .tree-analysis-text-toolbar button:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, #fff);
+  color: var(--portal-ink);
+}
+
+.worksheet-editor .worksheet-page-tabs button.active,
+.worksheet-editor .worksheet-lines-toolbar button[aria-pressed="true"],
+.worksheet-editor .tree-analysis-text-toolbar button.active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 13%, #fff);
+  color: var(--primary);
+}
+
+.worksheet-editor input,
+.worksheet-editor select,
+.worksheet-editor textarea {
+  border-color: #dfe8f1;
+  background: #fff;
+}
+
+.worksheet-editor .worksheet-page-presentation-controls section {
+  border-color: #dfe8f1;
+  background: color-mix(in srgb, var(--secondary) 34%, #fff);
+}
+
+.worksheet-editor .worksheet-page-presentation-controls h4 {
+  color: var(--portal-ink);
+}
+
 @media print {
   html:has(.worksheet-editor),
   body:has(.worksheet-editor) {
