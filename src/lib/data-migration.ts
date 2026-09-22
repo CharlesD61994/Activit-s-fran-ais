@@ -39,11 +39,15 @@ export function normalizeAppData(value: unknown): AppData | null {
   }
 
   const fallback = cloneDemoData();
+  const levels = source.levels as AppData["levels"];
+  const missingLevels = fallback.levels.filter(
+    (level) => !levels.some((existing) => existing.id === level.id)
+  );
 
   return {
     dataVersion: DATA_VERSION,
     schoolYears: source.schoolYears as AppData["schoolYears"],
-    levels: source.levels as AppData["levels"],
+    levels: [...levels, ...missingLevels].sort((a, b) => a.order - b.order),
     groups: source.groups as AppData["groups"],
     teams: arrayOr(source.teams, []),
     correctionCodes: arrayOr(source.correctionCodes, fallback.correctionCodes),
@@ -67,4 +71,3 @@ export function dataRecoveryWeight(data: AppData): number {
     numberOr(data.dataVersion, 0)
   );
 }
-

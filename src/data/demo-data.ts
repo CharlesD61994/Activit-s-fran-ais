@@ -210,6 +210,7 @@ export const demoData: AppData = {
   levels: [
     { id: "sec-1", name: "Secondaire 1", order: 1 },
     { id: "sec-2", name: "Secondaire 2", order: 2 },
+    { id: "sec-3", name: "Secondaire 3", order: 3 },
     { id: "sec-4", name: "Secondaire 4", order: 4 }
   ],
   groups: [

@@ -533,7 +533,7 @@ export function InteractiveSentenceReader({
   }
 
   function openCodeDialog(correction: SentenceCorrection) {
-    if (!correctedIds.includes(correction.id) || codedIds.includes(correction.id)) return;
+    if (!requiresCorrectionCodes || !correctedIds.includes(correction.id) || codedIds.includes(correction.id)) return;
 
     setActiveCorrection(correction);
     setDialogMode("code");
@@ -667,7 +667,7 @@ export function InteractiveSentenceReader({
         ].filter(Boolean).join(" ")}
       >
         <span className="interactive-word-shell">
-          {corrected && (
+          {corrected && requiresCorrectionCodes && (
             <button
               type="button"
               className={`interactive-code-box ${coded ? "filled" : ""}`}
