@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { createWorkflowPhase, defaultWorkflowForObjective, getAgreementWorkflowSettings, getSecondaryObjectives, normalizeGrammarWorkflow, reviewPhaseImmediatelyAfter, shuffledGrammarTargetIds } from "./grammar-workflow";
 import type { Sentence } from "../types";
+import { getCorrectionPointStages } from "./grammar-workflow";
+
+describe("correction scoring", () => {
+  it("awards only the correction point when codes are disabled", () => {
+    const phase = createWorkflowPhase("correction");
+    phase.actions.find((action) => action.kind === "identify_codes")!.enabled = false;
+    const stages = getCorrectionPointStages({ workflowPhases: [phase] } as Sentence);
+    expect(stages).toEqual(["word"]);
+    expect(stages).not.toContain("click");
+    expect(stages).not.toContain("code");
+  });
+
+  it("preserves scoring with codes enabled and for legacy activities", () => {
+    expect(getCorrectionPointStages({ workflowPhases: [createWorkflowPhase("correction")] } as Sentence))
+      .toEqual(["click", "word", "code"]);
+    expect(getCorrectionPointStages({} as Sentence)).toEqual(["click", "word", "code"]);
+  });
+});
 
 describe("grammar workflow", () => {
   it("keeps nucleus identification inside the groups phase", () => {

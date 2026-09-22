@@ -118,6 +118,8 @@ Ne pas supprimer les champs “legacy” sans migration. `src/lib/storage.ts` li
 
 ## Conventions de travail
 
+- Après chaque modification validée, créer un commit, pousser sur GitHub et vérifier que le déploiement Vercel réussit, sauf instruction contraire de l’utilisateur.
+
 - Avant de modifier une mécanique, chercher d’abord un helper ou un lecteur existant.
 - Préférer une correction centralisée à un patch CSS/composant local qui crée une exception.
 - Garder les composants de présentation visuellement uniformes : mêmes espacements, mêmes boutons, mêmes barres d’outils pour actions similaires.

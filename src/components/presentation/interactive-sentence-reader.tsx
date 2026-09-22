@@ -10,7 +10,7 @@ import { WordClassReader } from "@/components/presentation/word-class-reader";
 import { WordGroupReader } from "@/components/presentation/word-group-reader";
 import { resolveCorrectionBounds } from "@/lib/correction-ranges";
 import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
-import { reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
+import { getCorrectionPointStages, reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
 import {
   endsWithFrenchElision,
   protectFrenchElisionBreaks
@@ -209,6 +209,9 @@ export function InteractiveSentenceReader({
   onRestoreWordClassPoints,
   onCompleteChange
 }: Props) {
+  const correctionPointStages = getCorrectionPointStages(sentence);
+  const requiresCorrectionCodes = correctionPointStages.includes("code");
+  const awardsClickPoint = correctionPointStages.includes("click");
   const [correctedIds, setCorrectedIds] = useState<string[]>([]);
   const [codedIds, setCodedIds] = useState<string[]>([]);
   const [activeCorrection, setActiveCorrection] = useState<SentenceCorrection | null>(null);
@@ -290,7 +293,7 @@ export function InteractiveSentenceReader({
 
         sentence.corrections.forEach((correction) => {
           if (
-            restoredClickedIds.includes(correction.id) &&
+            awardsClickPoint && restoredClickedIds.includes(correction.id) &&
             !restoredHintedIds.includes(correction.id)
           ) {
             restoredPoints.push({
@@ -308,7 +311,7 @@ export function InteractiveSentenceReader({
             });
           }
 
-          if (restoredCodePointIds.includes(correction.id)) {
+          if (requiresCorrectionCodes && restoredCodePointIds.includes(correction.id)) {
             restoredPoints.push({
               correction,
               stage: "code",
@@ -324,7 +327,7 @@ export function InteractiveSentenceReader({
     } finally {
       setPersistenceHydrated(true);
     }
-  }, [persistenceKey, sentence.corrections, sentence.id]);
+  }, [awardsClickPoint, requiresCorrectionCodes, persistenceKey, sentence.corrections, sentence.id]);
 
   useEffect(() => {
     if (
@@ -363,9 +366,6 @@ export function InteractiveSentenceReader({
   const ordered = useMemo(
     () => [...sentence.corrections].sort((a, b) => a.revealOrder - b.revealOrder),
     [sentence.corrections]
-  );
-  const requiresCorrectionCodes = !sentence.workflowPhases?.length || sentence.workflowPhases.some((phase) =>
-    phase.kind === "correction" && phase.actions.some((action) => action.kind === "identify_codes" && action.enabled)
   );
   const correctedText = useMemo(() => buildCorrectedText(sentence), [sentence]);
   const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
@@ -521,7 +521,7 @@ export function InteractiveSentenceReader({
     if (!clickedIds.includes(correction.id)) {
       setClickedIds((items) => [...items, correction.id]);
 
-      if (!hintedIds.includes(correction.id)) {
+      if (awardsClickPoint && !hintedIds.includes(correction.id)) {
         onPoint(correction, "click", 1);
       }
     }

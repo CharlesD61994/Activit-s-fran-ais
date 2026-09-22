@@ -139,6 +139,16 @@ export function getSentenceWorkflow(sentence: Sentence): GrammarWorkflowPhase[] 
   return normalizeGrammarWorkflow(phases, Boolean(sentence.grammarAnnotations?.some((annotation) => annotation.kind === "nucleus")));
 }
 
+export function getCorrectionPointStages(sentence: Sentence): Array<"click" | "word" | "code"> {
+  const identifyCodes = !sentence.workflowPhases?.length || sentence.workflowPhases.some(
+    (phase) => phase.kind === "correction" && phase.actions.some(
+      (action) => action.kind === "identify_codes" && action.enabled
+    )
+  );
+  // Without codes, locating and correcting the same error earns one point together.
+  return identifyCodes ? ["click", "word", "code"] : ["word"];
+}
+
 export function getAgreementWorkflowSettings(sentence: Sentence) {
   const phase = sentence.workflowPhases?.find(
     (candidate) => candidate.kind === "agreements"
