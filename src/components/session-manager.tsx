@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   CalendarPlus,
   Check,
   Pencil,
@@ -84,6 +86,17 @@ export function SessionManager({
     });
 
     setDraft(null);
+  }
+
+  function moveActivity(index: number, direction: -1 | 1) {
+    setDraft((current) => {
+      if (!current) return current;
+      const destination = index + direction;
+      if (destination < 0 || destination >= current.sentenceIds.length) return current;
+      const sentenceIds = [...current.sentenceIds];
+      [sentenceIds[index], sentenceIds[destination]] = [sentenceIds[destination], sentenceIds[index]];
+      return { ...current, sentenceIds };
+    });
   }
 
   function toggleGroupAssignment(session: SentenceCollection, groupId: string) {
@@ -363,6 +376,37 @@ export function SessionManager({
                     })}
                 </div>
               </section>
+
+              {draft.sentenceIds.length > 0 && (
+                <section className="session-editor-section" aria-labelledby="session-order-title">
+                  <div>
+                    <h3 id="session-order-title">Ordre des activités</h3>
+                    <p>Utilise les flèches pour choisir l’ordre de présentation.</p>
+                  </div>
+                  <ol className="session-activity-order">
+                    {draft.sentenceIds.map((id, index) => {
+                      const activity = activities.find((item) => item.id === id);
+                      const title = activity?.title ?? "Activité indisponible";
+                      return (
+                        <li key={id}>
+                          <span className="session-activity-position">{index + 1}</span>
+                          <strong>{title}</strong>
+                          <div className="session-order-actions">
+                            <Button type="button" variant="secondary" disabled={index === 0}
+                              aria-label={`Monter l’activité ${title}`} onClick={() => moveActivity(index, -1)}>
+                              <ArrowUp size={17} />
+                            </Button>
+                            <Button type="button" variant="secondary" disabled={index === draft.sentenceIds.length - 1}
+                              aria-label={`Descendre l’activité ${title}`} onClick={() => moveActivity(index, 1)}>
+                              <ArrowDown size={17} />
+                            </Button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              )}
 
               <div className="form-actions">
                 <Button type="submit">
