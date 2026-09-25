@@ -13,9 +13,9 @@
 
 .reader-activity-flow {
   display: contents;
-  --reader-sentence-padding-top: 48px;
+  --reader-sentence-padding-top: 24px;
   --reader-sentence-padding-inline: 44px;
-  --reader-sentence-padding-bottom: 36px;
+  --reader-sentence-padding-bottom: 18px;
   --reader-sentence-font-size: clamp(1.75rem, 3.85vw, 4.45rem);
   --reader-sentence-font-weight: 800;
   --reader-sentence-line-height: 1.48;
@@ -257,8 +257,6 @@
 .reader-activity-flow .interactive-reader-text {
   --reader-sentence-font-size: clamp(1.45rem, 2.7vw, 3.2rem);
   --reader-sentence-line-height: 1.62;
-  --reader-sentence-padding-top: 54px;
-  --reader-sentence-padding-bottom: 42px;
 }
 
 .reader-activity-flow .interactive-reader-text.has-above-marks .interactive-line + .interactive-line {
