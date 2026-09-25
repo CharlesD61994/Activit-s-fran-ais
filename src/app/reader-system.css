@@ -76,7 +76,8 @@
   font-weight: var(--reader-sentence-font-weight) !important;
   line-height: var(--reader-sentence-line-height) !important;
   letter-spacing: -.03em !important;
-  text-align: center !important;
+  text-align: justify !important;
+  text-align-last: left;
   white-space: pre-wrap !important;
   overflow-wrap: normal !important;
   word-break: normal !important;
@@ -86,13 +87,20 @@
  * superposent au texte et ne réservent jamais une largeur supplémentaire. */
 .reader-activity-flow .interactive-sentence .interactive-line,
 .reader-activity-flow .interactive-sentence .interactive-line-empty {
-  width: max-content !important;
+  width: 100% !important;
   max-width: 100% !important;
   min-height: 0 !important;
   margin-inline: auto !important;
   padding-top: 0 !important;
   line-height: var(--reader-sentence-line-height) !important;
-  text-align: center !important;
+  text-align: justify !important;
+  text-align-last: justify;
+}
+
+/* Une fin de paragraphe garde un espacement naturel entre les mots. */
+.reader-activity-flow .interactive-sentence .interactive-line-paragraph-end,
+.reader-activity-flow .interactive-sentence .interactive-line:last-child {
+  text-align-last: left;
 }
 
 .reader-activity-flow .interactive-sentence .interactive-line + .interactive-line {
