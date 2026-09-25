@@ -76,8 +76,8 @@
   font-weight: var(--reader-sentence-font-weight) !important;
   line-height: var(--reader-sentence-line-height) !important;
   letter-spacing: -.03em !important;
-  text-align: left !important;
-  text-align-last: left;
+  text-align: center !important;
+  text-align-last: center;
   white-space: pre-wrap !important;
   overflow-wrap: normal !important;
   word-break: normal !important;
@@ -93,8 +93,8 @@
   margin-inline: auto !important;
   padding-top: 0 !important;
   line-height: var(--reader-sentence-line-height) !important;
-  text-align: left !important;
-  text-align-last: left;
+  text-align: center !important;
+  text-align-last: center;
 }
 
 .reader-activity-flow .interactive-sentence .interactive-line + .interactive-line {
