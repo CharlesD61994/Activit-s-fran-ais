@@ -707,7 +707,7 @@ export function InteractiveSentenceReader({
     layoutLines.length > 0
       ? layoutLines.map((line, lineIndex) => (
           <span
-            className={`interactive-line ${line.length === 0 ? "interactive-line-empty" : ""} ${line.length > 0 && layoutTokens[layoutTokens.findIndex((token) => token.key === line[line.length - 1]) + 1]?.type === "break" ? "interactive-line-paragraph-end" : ""}`}
+            className={`interactive-line ${line.length === 0 ? "interactive-line-empty" : ""}`}
             key={`line-${lineIndex}`}
           >
             {line.length === 0

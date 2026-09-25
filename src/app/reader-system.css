@@ -76,7 +76,7 @@
   font-weight: var(--reader-sentence-font-weight) !important;
   line-height: var(--reader-sentence-line-height) !important;
   letter-spacing: -.03em !important;
-  text-align: justify !important;
+  text-align: left !important;
   text-align-last: left;
   white-space: pre-wrap !important;
   overflow-wrap: normal !important;
@@ -93,13 +93,7 @@
   margin-inline: auto !important;
   padding-top: 0 !important;
   line-height: var(--reader-sentence-line-height) !important;
-  text-align: justify !important;
-  text-align-last: justify;
-}
-
-/* Une fin de paragraphe garde un espacement naturel entre les mots. */
-.reader-activity-flow .interactive-sentence .interactive-line-paragraph-end,
-.reader-activity-flow .interactive-sentence .interactive-line:last-child {
+  text-align: left !important;
   text-align-last: left;
 }
 
