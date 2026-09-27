@@ -9,7 +9,6 @@ import {
   Maximize,
   Minimize,
   Plus,
-  Target,
   Trophy
 } from "lucide-react";
 import { InteractiveSentenceReader } from "@/components/presentation/interactive-sentence-reader";
@@ -714,9 +713,8 @@ export default function PresentationPage({
       >
         <section className={`reader-command-ribbon ${isWorksheetActivity ? "worksheet-reader-ribbon" : ""}`}>
           <div className="reader-command-instruction">
-            <span className="reader-command-number"><Target size={25} /></span>
             <div>
-              <span className="eyebrow">{sentence.title}</span>
+              <h1 className="reader-command-title">{sentence.title}</h1>
               <ReaderChromeTarget slot="instruction" className="reader-command-instruction-slot" />
             </div>
           </div>
