@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { CorrectionPause } from "@/components/presentation/correction-pause";
 import { groupLabelPlacement } from "@/components/grammar/group-label-layout";
+import { ReaderLineSpacing, useReaderLineClearances } from "@/components/grammar/reader-line-spacing";
 import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
@@ -463,6 +464,8 @@ export function WordClassReader({
     () => [...persistentGroupAnnotations, ...persistentFunctionAnnotations, ...correctionMarks],
     [correctionMarks, persistentFunctionAnnotations, persistentGroupAnnotations]
   );
+  const lineClearances = useReaderLineClearances(textContainerRef, tokens, persistentGroupAnnotations,
+    persistentGroupAnnotations.map((annotation) => annotation.id), "data-class-token-id");
   const persistentRangePositions = useRangeTargetPositions(
     textContainerRef,
     persistentRangeTargets,
@@ -1767,6 +1770,7 @@ export function WordClassReader({
       lineIndex += 1;
     }
     const wrappedLine = lineIndex > 0;
+    if (lineClearances[token.start]) renderedTokens.push(<ReaderLineSpacing key={`spacing-${token.id}`} height={lineClearances[token.start]} />);
     if (
       token.isWord &&
       endsWithFrenchElision(token.text) &&

@@ -260,12 +260,21 @@
 .reader-activity-flow .word-group-reader-text.shared-grammar-reader-text,
 .reader-activity-flow .word-class-reader-text.shared-grammar-reader-text {
   padding-top: calc(var(--reader-sentence-padding-top) + var(--range-group-label-top-space, 0px)) !important;
-  line-height: calc(var(--reader-sentence-line-height) * 1em + var(--range-mark-line-clearance, 0px)) !important;
+  --reader-line-base-height: calc(var(--reader-sentence-line-height) * 1em);
+  line-height: var(--reader-sentence-line-height) !important;
 }
 
 .reader-activity-flow .word-class-reader-text.has-agreement-relations {
   padding-top: calc(2px + var(--range-group-label-top-space, 0px)) !important;
-  line-height: calc(.98em + var(--range-mark-line-clearance, 0px)) !important;
+  --reader-line-base-height: .98em;
+  line-height: .98 !important;
+}
+
+.reader-line-spacing {
+  display: inline-block;
+  width: 0;
+  vertical-align: bottom;
+  pointer-events: none;
 }
 .word-group-range-bracket.vector {
   border: 0;

@@ -16,6 +16,7 @@ import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeG
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
 import { groupLabelPlacement } from "@/components/grammar/group-label-layout";
+import { ReaderLineSpacing, useReaderLineClearances } from "@/components/grammar/reader-line-spacing";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
@@ -134,6 +135,8 @@ export function WordGroupReader({
   const completeRef = useRef(onCompleteChange);
   const controlledLineBreaks =
     forcedLineBreaks.length > 0 ? forcedLineBreaks : autoLineBreaks;
+  const lineClearances = useReaderLineClearances(surfaceRef, tokens, targets,
+    targets.filter((target) => leftFoundIds.includes(target.id) && rightFoundIds.includes(target.id)).map((target) => target.id), "data-group-token-id");
 
   useEffect(() => {
     restoreRef.current = onRestorePoints;
@@ -1343,6 +1346,7 @@ export function WordGroupReader({
             return (
               <span key={token.id}>
               {breakBefore && <br />}
+              <ReaderLineSpacing height={lineClearances[token.start]} />
               <span
                 className={
                   token.isWord

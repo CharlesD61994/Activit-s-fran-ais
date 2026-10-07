@@ -1,6 +1,5 @@
 import type { Sentence } from "@/types";
 import type { CSSProperties } from "react";
-import { rangeMarkNesting } from "./range-mark-nesting";
 import { tokenizeGrammarText } from "./range-interaction-engine";
 import { isPrincipalGroup } from "./group-label-layout";
 
@@ -9,7 +8,6 @@ type Range = { id: string; start: number; end: number };
 
 export function rangeReaderStyle(sentence: Sentence): CSSProperties {
   const ranges = normalizeRangeTargets(tokenizeGrammarText(sentence.originalText, "range-layout"), sentenceRangeTargets(sentence));
-  const inset = Math.max(0, ...ranges.map((range) => rangeMarkNesting(range, ranges).verticalInset));
   const groupIds = new Set([
     ...(sentence.wordGroupTargets ?? []).map((group) => group.id),
     ...(sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group").map((group) => group.id)
@@ -17,7 +15,6 @@ export function rangeReaderStyle(sentence: Sentence): CSSProperties {
   const groups = ranges.filter((range) => groupIds.has(range.id));
   const principal = groups.some((group) => isPrincipalGroup(group, groups));
   return {
-    "--range-mark-line-clearance": `${Math.max(ranges.length ? 16 + inset * 2 : 0, principal ? 60 : 0)}px`,
     "--range-group-label-top-space": principal ? "40px" : "0px"
   } as CSSProperties;
 }

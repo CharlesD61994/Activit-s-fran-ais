@@ -27,6 +27,7 @@ import type {
 } from "@/components/grammar/range-interaction-engine";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { groupLabelPlacement } from "@/components/grammar/group-label-layout";
+import { ReaderLineSpacing, useReaderLineClearances } from "@/components/grammar/reader-line-spacing";
 import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
@@ -184,6 +185,9 @@ export function GrammarExtensionReader({
   const displayedSolvedIds = complete
     ? new Set(annotations.map((annotation) => annotation.id))
     : new Set(solvedIds);
+  const lineClearances = useReaderLineClearances(surfaceRef, tokens,
+    annotations.filter((annotation) => annotation.kind === "group"),
+    annotations.filter((annotation) => annotation.kind === "group" && (displayedSolvedIds.has(annotation.id) || (leftIds.includes(annotation.id) && rightIds.includes(annotation.id)))).map((annotation) => annotation.id), "data-extension-token-id");
   const stepTargets = step
     ? annotations.filter((annotation) => annotation.kind === step.kind)
     : [];
@@ -713,6 +717,7 @@ export function GrammarExtensionReader({
               return (
                 <span key={token.id}>
                   {breakBefore && <br />}
+                  <ReaderLineSpacing height={lineClearances[token.start]} />
                   {token.isWord ? (
                     <button
                       type="button"
