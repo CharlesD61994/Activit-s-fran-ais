@@ -14,6 +14,7 @@ import { CorrectionPause } from "@/components/presentation/correction-pause";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
+import { rangeReaderStyle, rangeTokenPadding, sentenceRangeTargets } from "@/components/grammar/range-token-spacing";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
@@ -96,6 +97,9 @@ export function WordGroupReader({
     () => tokenizeGrammarText(sentence.originalText, "group-token"),
     [sentence.originalText]
   );
+
+  const rangeStyle = useMemo(() => rangeReaderStyle(sentence), [sentence]);
+  const tokenPadding = useMemo(() => rangeTokenPadding(tokens, sentenceRangeTargets(sentence)), [tokens, sentence]);
 
   const [leftFoundIds, setLeftFoundIds] = useState<string[]>([]);
   const [rightFoundIds, setRightFoundIds] = useState<string[]>([]);
@@ -208,7 +212,11 @@ export function WordGroupReader({
   const functionAnnotations = useMemo(() => (sentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "function"), [sentence.grammarAnnotations]);
   const functionTargets = useMemo<WordGroupTarget[]>(() => functionAnnotations.map((annotation) => ({ id: annotation.id, start: annotation.start, end: annotation.end, text: sentence.originalText.slice(annotation.start, annotation.end), groupType: "GN", nucleusStart: annotation.start, nucleusEnd: annotation.end, nucleusText: sentence.originalText.slice(annotation.start, annotation.end) })), [functionAnnotations, sentence.originalText]);
   const layoutTargets = useMemo(() => [...targets, ...functionTargets, ...correctionMarks], [correctionMarks, functionTargets, targets]);
-  const labelPositions = useRangeTargetPositions(surfaceRef, layoutTargets, tokens, "data-group-token-id");
+  const bracketGeometryTargets = useMemo(() => [
+    ...(boundaryMode === "brackets" ? targets : []),
+    ...(continuationBoundaryMode === "brackets" ? functionTargets : [])
+  ], [boundaryMode, continuationBoundaryMode, targets, functionTargets]);
+  const labelPositions = useRangeTargetPositions(surfaceRef, layoutTargets, tokens, "data-group-token-id", controlledLineBreaks);
   const currentTarget = targets[currentIndex];
   const targetNeedsNucleus = (target: WordGroupTarget) =>
     identifyNuclei && target.analyzeNucleus !== false;
@@ -1198,8 +1206,8 @@ export function WordGroupReader({
         className={`word-group-drawing-surface phase-${phase}`}
         ref={surfaceRef}
       >
-        <RangeMarksLayer text={sentence.originalText} targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>
-        <RangeMarksLayer text={sentence.originalText} targets={functionTargets} positions={labelPositions} leftIds={functionLeftIds} rightIds={functionRightIds} mode={continuationBoundaryMode}/>
+        <RangeMarksLayer text={sentence.originalText} targets={targets} geometryTargets={bracketGeometryTargets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>
+        <RangeMarksLayer text={sentence.originalText} targets={functionTargets} geometryTargets={bracketGeometryTargets} positions={labelPositions} leftIds={functionLeftIds} rightIds={functionRightIds} mode={continuationBoundaryMode}/>
         <ResolvedCorrectionLabels marks={correctionMarks} positions={labelPositions} />
         {targets.map((target) => {
           const position = labelPositions[target.id];
@@ -1306,7 +1314,7 @@ export function WordGroupReader({
           );
         })}
 
-        <div className="word-group-reader-text shared-grammar-reader-text">
+        <div className="word-group-reader-text shared-grammar-reader-text" style={rangeStyle}>
           {tokens.map((token) => {
             const breakBefore = controlledLineBreaks.some((position) => position >= token.start && position < token.end);
             const measurableToken =
@@ -1321,7 +1329,7 @@ export function WordGroupReader({
                   token.end > target.start
               );
             return (
-              <span key={token.id}>
+              <span key={token.id} className="range-token-spacing" style={tokenPadding[token.id]}>
               {breakBefore && <br />}
               <span
                 className={

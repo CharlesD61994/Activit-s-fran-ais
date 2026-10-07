@@ -46,6 +46,8 @@ type RectMetrics = {
   height: number;
 };
 
+const EMPTY_LINE_BREAKS: readonly number[] = [];
+
 function positionsAreEqual(
   current: Record<string, RangePosition>,
   next: Record<string, RangePosition>
@@ -139,7 +141,8 @@ export function useRangeTargetPositions(
   surfaceRef: RefObject<HTMLElement | null>,
   targets: RangeTarget[],
   tokens: RangeToken[],
-  tokenAttribute: string
+  tokenAttribute: string,
+  lineBreaks: readonly number[] = EMPTY_LINE_BREAKS
 ) {
   const [positions, setPositions] = useState<Record<string, RangePosition>>({});
 
@@ -256,7 +259,7 @@ export function useRangeTargetPositions(
       window.removeEventListener("resize", update);
       void fontsReady;
     };
-  }, [surfaceRef, targets, tokenAttribute, tokens]);
+  }, [surfaceRef, targets, tokenAttribute, tokens, lineBreaks]);
 
   return positions;
 }

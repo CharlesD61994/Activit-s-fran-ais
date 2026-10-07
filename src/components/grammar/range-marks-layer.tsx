@@ -2,6 +2,8 @@
 
 import type { RangePosition } from "@/components/grammar/use-range-target-positions";
 import { rangeMarkNesting } from "./range-mark-nesting";
+import { normalizeRangeTargets } from "./range-token-spacing";
+import { tokenizeGrammarText } from "./range-interaction-engine";
 import {
   adjacentBracketPair,
   areRangeMarksAdjacent,
@@ -12,6 +14,7 @@ type Target = { id: string; start: number; end: number };
 type Props = {
   text: string;
   targets: Target[];
+  geometryTargets?: Target[];
   positions: Record<string, RangePosition>;
   leftIds: string[];
   rightIds: string[];
@@ -21,6 +24,7 @@ type Props = {
 export function RangeMarksLayer({
   text,
   targets,
+  geometryTargets = targets,
   positions,
   leftIds,
   rightIds,
@@ -56,14 +60,17 @@ export function RangeMarksLayer({
     );
   }
 
+  const layoutTargets = normalizeRangeTargets(tokenizeGrammarText(text, "range-geometry"), geometryTargets);
+
   return (
     <>
-      {targets.flatMap((target) => {
+      {targets.flatMap((rawTarget) => {
+        const target = layoutTargets.find((candidate) => candidate.id === rawTarget.id) ?? rawTarget;
         const position = positions[target.id];
         if (!position) return [];
 
-        const { leftDepth, rightDepth, verticalInset } = rangeMarkNesting(target, targets);
-        const previous = targets
+        const { leftDepth, rightDepth, verticalInset } = rangeMarkNesting(target, layoutTargets);
+        const previous = layoutTargets
           .filter(
             (candidate) =>
               candidate.id !== target.id &&
@@ -78,7 +85,7 @@ export function RangeMarksLayer({
                 ) * .5
           )
           .sort((a, b) => b.end - a.end)[0];
-        const next = targets
+        const next = layoutTargets
           .filter(
             (candidate) =>
               candidate.id !== target.id &&
@@ -97,10 +104,10 @@ export function RangeMarksLayer({
           ? positions[previous.id]
           : undefined;
         const nextPosition = next ? positions[next.id] : undefined;
-        const leftCount = targets.filter((candidate) => candidate.start === target.start).length;
-        const rightCount = targets.filter((candidate) => candidate.end === target.end).length;
-        const previousCount = previous ? targets.filter((candidate) => candidate.end === previous.end).length : 0;
-        const nextCount = next ? targets.filter((candidate) => candidate.start === next.start).length : 0;
+        const leftCount = layoutTargets.filter((candidate) => candidate.start === target.start).length;
+        const rightCount = layoutTargets.filter((candidate) => candidate.end === target.end).length;
+        const previousCount = previous ? layoutTargets.filter((candidate) => candidate.end === previous.end).length : 0;
+        const nextCount = next ? layoutTargets.filter((candidate) => candidate.start === next.start).length : 0;
         const leftSpacing = boundedBracketSpacing(
           previousPosition ? (position.startX - previousPosition.endX) / 2 : position.startGap,
           leftCount

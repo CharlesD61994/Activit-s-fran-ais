@@ -256,3 +256,16 @@
 .reader-activity-flow .interactive-reader-text.has-above-marks .interactive-line + .interactive-line {
   margin-top: .18em !important;
 }
+.range-token-spacing {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.reader-activity-flow .word-group-reader-text.shared-grammar-reader-text,
+.reader-activity-flow .word-class-reader-text.shared-grammar-reader-text {
+  line-height: calc(var(--reader-sentence-line-height) * 1em + var(--range-mark-line-clearance, 0px)) !important;
+}
+
+.reader-activity-flow .word-class-reader-text.has-agreement-relations {
+  line-height: calc(.98em + var(--range-mark-line-clearance, 0px)) !important;
+}

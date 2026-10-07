@@ -26,6 +26,7 @@ import type {
   InteractionPoint
 } from "@/components/grammar/range-interaction-engine";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
+import { rangeReaderStyle, rangeTokenPadding, sentenceRangeTargets } from "@/components/grammar/range-token-spacing";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { CorrectionPause } from "@/components/presentation/correction-pause";
@@ -139,6 +140,9 @@ export function GrammarExtensionReader({
     () => tokenizeGrammarText(sentence.originalText, "extension-token"),
     [sentence.originalText]
   );
+
+  const rangeStyle = useMemo(() => rangeReaderStyle(sentence), [sentence]);
+  const tokenPadding = useMemo(() => rangeTokenPadding(tokens, sentenceRangeTargets(sentence)), [tokens, sentence]);
   const controlledLineBreaks =
     forcedLineBreaks.length > 0 ? forcedLineBreaks : autoLineBreaks;
   const layoutAnnotations = useMemo(() => [...annotations, ...correctionMarks], [annotations, correctionMarks]);
@@ -146,7 +150,8 @@ export function GrammarExtensionReader({
     surfaceRef,
     layoutAnnotations,
     tokens,
-    "data-extension-token-id"
+    "data-extension-token-id",
+    controlledLineBreaks
   );
 
   const step = steps[stepIndex];
@@ -186,6 +191,10 @@ export function GrammarExtensionReader({
     solvedIds.includes(annotation.id)
   ).length;
 
+  const bracketGeometryTargets = annotations.filter(
+    (annotation) => annotation.visualEffect?.kind === "brackets" ||
+      (!annotation.visualEffect && annotation.kind === "group")
+  );
   const solvedBracketTargets = annotations.filter(
     (annotation) =>
       displayedSolvedIds.has(annotation.id) &&
@@ -634,6 +643,7 @@ export function GrammarExtensionReader({
         <ResolvedCorrectionLabels marks={correctionMarks} positions={positions} />
           <RangeMarksLayer text={sentence.originalText}
             targets={solvedBracketTargets}
+            geometryTargets={bracketGeometryTargets}
             positions={positions}
             leftIds={solvedBracketTargets.map((target) => target.id)}
             rightIds={solvedBracketTargets.map((target) => target.id)}
@@ -641,6 +651,7 @@ export function GrammarExtensionReader({
           />
           <RangeMarksLayer text={sentence.originalText}
             targets={partialBracketTargets}
+            geometryTargets={bracketGeometryTargets}
             positions={positions}
             leftIds={leftIds}
             rightIds={rightIds}
@@ -688,7 +699,7 @@ export function GrammarExtensionReader({
               );
             })}
 
-          <div className="word-group-reader-text shared-grammar-reader-text">
+          <div className="word-group-reader-text shared-grammar-reader-text" style={rangeStyle}>
             {tokens.map((token) => {
               const breakBefore = controlledLineBreaks.some(
                 (position) =>
@@ -699,7 +710,7 @@ export function GrammarExtensionReader({
               const style = tokenStyle(token.start, token.end);
 
               return (
-                <span key={token.id}>
+                <span key={token.id} className="range-token-spacing" style={tokenPadding[token.id]}>
                   {breakBefore && <br />}
                   {token.isWord ? (
                     <button

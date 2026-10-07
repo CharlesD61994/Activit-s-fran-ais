@@ -10,6 +10,7 @@ import { Check, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { CorrectionPause } from "@/components/presentation/correction-pause";
+import { rangeReaderStyle, rangeTokenPadding, sentenceRangeTargets } from "@/components/grammar/range-token-spacing";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
@@ -229,6 +230,9 @@ export function WordClassReader({
     () => tokenizeGrammarText(sentence.originalText, "class-token"),
     [sentence.originalText]
   );
+
+  const rangeStyle = useMemo(() => rangeReaderStyle(sentence), [sentence]);
+  const tokenPadding = useMemo(() => rangeTokenPadding(tokens, sentenceRangeTargets(sentence)), [tokens, sentence]);
 
   const analysisTargets = useMemo(
     () =>
@@ -463,10 +467,15 @@ export function WordClassReader({
     textContainerRef,
     persistentRangeTargets,
     tokens,
-    "data-class-token-id"
+    "data-class-token-id",
+    controlledLineBreaks
   );
   const persistentGroupMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const persistentFunctionMode = sentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame";
+  const bracketGeometryTargets = [
+    ...(persistentGroupMode === "brackets" ? persistentGroupAnnotations : []),
+    ...(persistentFunctionMode === "brackets" ? persistentFunctionAnnotations : [])
+  ];
   const activeClassTargets = classTargets;
 
   useEffect(() => {
@@ -1681,7 +1690,7 @@ export function WordClassReader({
       ? "Activité terminée — toutes les réponses ont été trouvées."
       : instruction;
 
-  function renderToken(token: WordToken, wrappedLine = false): ReactNode {
+  function renderTokenGlyph(token: WordToken, wrappedLine = false): ReactNode {
     if (!token.isWord) {
       return <span key={token.id} data-class-token-id={token.text.trim().length > 0 ? token.id : undefined}>{protectFrenchElisionBreaks(token.text)}</span>;
     }
@@ -1741,6 +1750,10 @@ export function WordClassReader({
     );
   }
 
+  function renderToken(token: WordToken, wrappedLine = false): ReactNode {
+    return <span key={token.id} className="range-token-spacing" style={tokenPadding[token.id]}>{renderTokenGlyph(token, wrappedLine)}</span>;
+  }
+
   const renderedTokens: ReactNode[] = [];
   let lineIndex = 0;
   for (let index = 0; index < tokens.length; index += 1) {
@@ -1773,7 +1786,7 @@ export function WordClassReader({
   }
 
   return (
-    <div className={`word-class-reader ${embedded ? "embedded" : ""}`}>
+    <div className={`word-class-reader ${embedded ? "embedded" : ""}`} style={rangeStyle}>
       {!reviewActive && <ReaderChromePortal slot="instruction">
         <div className="reader-chrome-instruction-copy"><strong>{toolbarText}</strong>{message && <span className="reader-chrome-feedback">{message}</span>}</div>
       </ReaderChromePortal>}
@@ -1838,6 +1851,7 @@ export function WordClassReader({
       >
         <RangeMarksLayer text={sentence.originalText}
           targets={persistentGroupAnnotations}
+          geometryTargets={bracketGeometryTargets}
           positions={persistentRangePositions}
           leftIds={persistentGroupAnnotations.map((annotation) => annotation.id)}
           rightIds={persistentGroupAnnotations.map((annotation) => annotation.id)}
@@ -1845,6 +1859,7 @@ export function WordClassReader({
         />
         <RangeMarksLayer text={sentence.originalText}
           targets={persistentFunctionAnnotations}
+          geometryTargets={bracketGeometryTargets}
           positions={persistentRangePositions}
           leftIds={persistentFunctionAnnotations.map((annotation) => annotation.id)}
           rightIds={persistentFunctionAnnotations.map((annotation) => annotation.id)}
