@@ -21,6 +21,8 @@ export type RangePosition = {
   markStartY: number;
   markStartHeight: number;
   endX: number;
+  startGap?: number;
+  endGap?: number;
   endY: number;
   endHeight: number;
   markEndY: number;
@@ -54,7 +56,7 @@ function positionsAreEqual(
 
   const closeEnough = (left: number, right: number) =>
     Math.abs(left - right) < 0.1;
-  const scalarKeys: Array<Exclude<keyof RangePosition, "segments">> = [
+  const scalarKeys: Array<Exclude<keyof RangePosition, "segments" | "startGap" | "endGap">> = [
     "x", "y", "width", "height", "startX", "startY", "startHeight",
     "markStartY", "markStartHeight", "endX", "endY", "endHeight",
     "markEndY", "markEndHeight"
@@ -64,6 +66,11 @@ function positionsAreEqual(
     const previous = current[key];
     const incoming = next[key];
     if (!previous || !incoming) return false;
+    if (["startGap", "endGap"].some((key) => {
+      const a = previous[key as "startGap" | "endGap"];
+      const b = incoming[key as "startGap" | "endGap"];
+      return a === undefined || b === undefined ? a !== b : !closeEnough(a, b);
+    })) return false;
     if (scalarKeys.some((metric) => !closeEnough(previous[metric], incoming[metric]))) {
       return false;
     }
@@ -182,6 +189,18 @@ export function useRangeTargetPositions(
           Math.abs(first.top - last.top) <
           Math.min(first.height, last.height) * .5;
 
+        const neighbourGap = (side: "start" | "end") => {
+          const boundary = side === "start" ? first : last;
+          const neighbour = side === "start"
+            ? [...tokens].reverse().find((token) => token.end <= target.start && token.text.trim())
+            : tokens.find((token) => token.start >= target.end && token.text.trim());
+          const element = neighbour && surface.querySelector<HTMLElement>(`[${tokenAttribute}="${neighbour.id}"]`);
+          if (!element) return undefined;
+          const rect = element.getBoundingClientRect();
+          if (Math.abs(rect.top - boundary.top) >= Math.min(rect.height, boundary.height) * .5) return undefined;
+          return Math.max(0, side === "start" ? boundary.left - rect.right : rect.left - boundary.right);
+        };
+
         next[target.id] = {
           x: sameLine
             ? (first.left + last.right) / 2 - surfaceRect.left
@@ -197,6 +216,8 @@ export function useRangeTargetPositions(
           markStartY: firstGlyph.top - surfaceRect.top,
           markStartHeight: firstGlyph.height,
           endX: last.right - surfaceRect.left,
+          startGap: neighbourGap("start"),
+          endGap: neighbourGap("end"),
           endY: last.top - surfaceRect.top,
           endHeight: last.height,
           markEndY: lastGlyph.top - surfaceRect.top,

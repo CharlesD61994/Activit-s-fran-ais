@@ -5,6 +5,23 @@ const MIN_TEXT_GAP = 2;
 const DEFAULT_BRACKET_SEPARATION = 10;
 const MIN_BRACKET_SEPARATION = 12;
 
+/** A shared bracket gap must contain only whitespace, never another word. */
+export function areRangeMarksAdjacent(
+  text: string,
+  left: { end: number },
+  right: { start: number }
+) {
+  return left.end <= right.start && text.slice(left.end, right.start).trim() === "";
+}
+
+/** Fit all marks at a shared boundary inside the existing word space. */
+export function boundedBracketSpacing(availableSpace: number | undefined, count: number) {
+  if (availableSpace === undefined) return { cap: 6, gap: 4 };
+  const slot = Math.max(0, (availableSpace - 1) / count);
+  const gap = Math.min(4, slot * .25);
+  return { cap: Math.min(6, Math.max(0, slot - gap)), gap };
+}
+
 export function bracketSpacing(availableSpace?: number) {
   const defaultFootprint =
     (DEFAULT_BRACKET_CAP + DEFAULT_TEXT_GAP) * 2 +

@@ -4,11 +4,13 @@ import type { RangePosition } from "@/components/grammar/use-range-target-positi
 import { rangeMarkNesting } from "./range-mark-nesting";
 import {
   adjacentBracketPair,
-  bracketSpacing
+  areRangeMarksAdjacent,
+  boundedBracketSpacing
 } from "@/components/grammar/range-mark-spacing";
 
 type Target = { id: string; start: number; end: number };
 type Props = {
+  text: string;
   targets: Target[];
   positions: Record<string, RangePosition>;
   leftIds: string[];
@@ -17,6 +19,7 @@ type Props = {
 };
 
 export function RangeMarksLayer({
+  text,
   targets,
   positions,
   leftIds,
@@ -64,8 +67,7 @@ export function RangeMarksLayer({
           .filter(
             (candidate) =>
               candidate.id !== target.id &&
-              rightIds.includes(candidate.id) &&
-              candidate.end <= target.start &&
+              areRangeMarksAdjacent(text, candidate, target) &&
               positions[candidate.id] &&
               Math.abs(
                 positions[candidate.id].markEndY - position.markStartY
@@ -80,8 +82,7 @@ export function RangeMarksLayer({
           .filter(
             (candidate) =>
               candidate.id !== target.id &&
-              leftIds.includes(candidate.id) &&
-              candidate.start >= target.end &&
+              areRangeMarksAdjacent(text, target, candidate) &&
               positions[candidate.id] &&
               Math.abs(
                 positions[candidate.id].markStartY - position.markEndY
@@ -96,18 +97,22 @@ export function RangeMarksLayer({
           ? positions[previous.id]
           : undefined;
         const nextPosition = next ? positions[next.id] : undefined;
-        const leftSpacing = bracketSpacing(
-          previousPosition
-            ? position.startX - previousPosition.endX
-            : undefined
+        const leftCount = targets.filter((candidate) => candidate.start === target.start).length;
+        const rightCount = targets.filter((candidate) => candidate.end === target.end).length;
+        const previousCount = previous ? targets.filter((candidate) => candidate.end === previous.end).length : 0;
+        const nextCount = next ? targets.filter((candidate) => candidate.start === next.start).length : 0;
+        const leftSpacing = boundedBracketSpacing(
+          previousPosition ? (position.startX - previousPosition.endX) / 2 : position.startGap,
+          leftCount
         );
-        const rightSpacing = bracketSpacing(
-          nextPosition ? nextPosition.startX - position.endX : undefined
+        const rightSpacing = boundedBracketSpacing(
+          nextPosition ? (nextPosition.startX - position.endX) / 2 : position.endGap,
+          rightCount
         );
-        const leftPair = previousPosition
+        const leftPair = previousPosition && leftCount === 1 && previousCount === 1
           ? adjacentBracketPair(previousPosition.endX, position.startX)
           : undefined;
-        const rightPair = nextPosition
+        const rightPair = nextPosition && rightCount === 1 && nextCount === 1
           ? adjacentBracketPair(position.endX, nextPosition.startX)
           : undefined;
         const marks: React.ReactNode[] = [];

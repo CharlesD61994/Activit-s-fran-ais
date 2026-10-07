@@ -1836,14 +1836,14 @@ export function WordClassReader({
         onPointerCancel={cancelAgreementDrawing}
         aria-live="polite"
       >
-        <RangeMarksLayer
+        <RangeMarksLayer text={sentence.originalText}
           targets={persistentGroupAnnotations}
           positions={persistentRangePositions}
           leftIds={persistentGroupAnnotations.map((annotation) => annotation.id)}
           rightIds={persistentGroupAnnotations.map((annotation) => annotation.id)}
           mode={persistentGroupMode}
         />
-        <RangeMarksLayer
+        <RangeMarksLayer text={sentence.originalText}
           targets={persistentFunctionAnnotations}
           positions={persistentRangePositions}
           leftIds={persistentFunctionAnnotations.map((annotation) => annotation.id)}

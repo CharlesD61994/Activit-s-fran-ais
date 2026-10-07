@@ -1198,8 +1198,8 @@ export function WordGroupReader({
         className={`word-group-drawing-surface phase-${phase}`}
         ref={surfaceRef}
       >
-        <RangeMarksLayer targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>
-        <RangeMarksLayer targets={functionTargets} positions={labelPositions} leftIds={functionLeftIds} rightIds={functionRightIds} mode={continuationBoundaryMode}/>
+        <RangeMarksLayer text={sentence.originalText} targets={targets} positions={labelPositions} leftIds={leftFoundIds} rightIds={rightFoundIds} mode={boundaryMode}/>
+        <RangeMarksLayer text={sentence.originalText} targets={functionTargets} positions={labelPositions} leftIds={functionLeftIds} rightIds={functionRightIds} mode={continuationBoundaryMode}/>
         <ResolvedCorrectionLabels marks={correctionMarks} positions={labelPositions} />
         {targets.map((target) => {
           const position = labelPositions[target.id];

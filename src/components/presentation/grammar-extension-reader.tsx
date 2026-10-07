@@ -632,21 +632,21 @@ export function GrammarExtensionReader({
           ref={surfaceRef}
       >
         <ResolvedCorrectionLabels marks={correctionMarks} positions={positions} />
-          <RangeMarksLayer
+          <RangeMarksLayer text={sentence.originalText}
             targets={solvedBracketTargets}
             positions={positions}
             leftIds={solvedBracketTargets.map((target) => target.id)}
             rightIds={solvedBracketTargets.map((target) => target.id)}
             mode="brackets"
           />
-          <RangeMarksLayer
+          <RangeMarksLayer text={sentence.originalText}
             targets={partialBracketTargets}
             positions={positions}
             leftIds={leftIds}
             rightIds={rightIds}
             mode="brackets"
           />
-          <RangeMarksLayer
+          <RangeMarksLayer text={sentence.originalText}
             targets={solvedFrameTargets}
             positions={positions}
             leftIds={solvedFrameTargets.map((target) => target.id)}
