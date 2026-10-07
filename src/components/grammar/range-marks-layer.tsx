@@ -1,6 +1,7 @@
 "use client";
 
 import type { RangePosition } from "@/components/grammar/use-range-target-positions";
+import { rangeMarkNesting } from "./range-mark-nesting";
 import {
   adjacentBracketPair,
   bracketSpacing
@@ -58,20 +59,7 @@ export function RangeMarksLayer({
         const position = positions[target.id];
         if (!position) return [];
 
-        const sameLeft = targets.filter(
-          (candidate) => candidate.start === target.start
-        );
-        const sameRight = targets.filter(
-          (candidate) => candidate.end === target.end
-        );
-        const leftDepth = Math.max(
-          0,
-          sameLeft.findIndex((candidate) => candidate.id === target.id)
-        );
-        const rightDepth = Math.max(
-          0,
-          sameRight.findIndex((candidate) => candidate.id === target.id)
-        );
+        const { leftDepth, rightDepth, verticalInset } = rangeMarkNesting(target, targets);
         const previous = targets
           .filter(
             (candidate) =>
@@ -137,9 +125,9 @@ export function RangeMarksLayer({
                       leftSpacing.gap -
                       leftSpacing.cap -
                       leftDepth * (leftSpacing.cap + leftSpacing.gap),
-                top: position.markStartY - 1,
+                top: position.markStartY - 1 - verticalInset,
                 width: leftPair && leftDepth === 0 ? leftPair.cap : leftSpacing.cap,
-                height: Math.max(34, position.markStartHeight + 2)
+                height: Math.max(34, position.markStartHeight + 2) + verticalInset * 2
               }}
             />
           );
@@ -157,9 +145,9 @@ export function RangeMarksLayer({
                     : position.endX +
                       rightSpacing.gap +
                       rightDepth * (rightSpacing.cap + rightSpacing.gap),
-                top: position.markEndY - 1,
+                top: position.markEndY - 1 - verticalInset,
                 width: rightPair && rightDepth === 0 ? rightPair.cap : rightSpacing.cap,
-                height: Math.max(34, position.markEndHeight + 2)
+                height: Math.max(34, position.markEndHeight + 2) + verticalInset * 2
               }}
             />
           );
