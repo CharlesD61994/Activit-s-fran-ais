@@ -2,12 +2,11 @@
 
 import type { RangePosition } from "@/components/grammar/use-range-target-positions";
 import { rangeMarkNesting } from "./range-mark-nesting";
-import { normalizeRangeTargets } from "./range-token-spacing";
+import { normalizeRangeTargets } from "./range-reader-layout";
 import { tokenizeGrammarText } from "./range-interaction-engine";
 import {
-  adjacentBracketPair,
-  areRangeMarksAdjacent,
-  boundedBracketSpacing
+  naturalBracketGeometry,
+  areRangeMarksAdjacent
 } from "@/components/grammar/range-mark-spacing";
 
 type Target = { id: string; start: number; end: number };
@@ -100,68 +99,40 @@ export function RangeMarksLayer({
                 ) * .5
           )
           .sort((a, b) => a.start - b.start)[0];
-        const previousPosition = previous
-          ? positions[previous.id]
-          : undefined;
-        const nextPosition = next ? positions[next.id] : undefined;
         const leftCount = layoutTargets.filter((candidate) => candidate.start === target.start).length;
         const rightCount = layoutTargets.filter((candidate) => candidate.end === target.end).length;
         const previousCount = previous ? layoutTargets.filter((candidate) => candidate.end === previous.end).length : 0;
         const nextCount = next ? layoutTargets.filter((candidate) => candidate.start === next.start).length : 0;
-        const leftSpacing = boundedBracketSpacing(
-          previousPosition ? (position.startX - previousPosition.endX) / 2 : position.startGap,
-          leftCount
-        );
-        const rightSpacing = boundedBracketSpacing(
-          nextPosition ? (nextPosition.startX - position.endX) / 2 : position.endGap,
-          rightCount
-        );
-        const leftPair = previousPosition && leftCount === 1 && previousCount === 1
-          ? adjacentBracketPair(previousPosition.endX, position.startX)
-          : undefined;
-        const rightPair = nextPosition && rightCount === 1 && nextCount === 1
-          ? adjacentBracketPair(position.endX, nextPosition.startX)
-          : undefined;
+        const leftGeometry = naturalBracketGeometry(position.startInkX ?? position.startX, position.startGap, leftCount + previousCount, leftDepth, "left");
+        const rightGeometry = naturalBracketGeometry(position.endInkX ?? position.endX, position.endGap, rightCount + nextCount, rightDepth, "right");
         const marks: React.ReactNode[] = [];
-
-        if (leftIds.includes(target.id)) {
+        for (const side of ["left", "right"] as const) {
+          if (!(side === "left" ? leftIds : rightIds).includes(target.id)) continue;
+          const geometry = side === "left" ? leftGeometry : rightGeometry;
+          const glyphY = side === "left" ? position.markStartY : position.markEndY;
+          const glyphHeight = side === "left" ? position.markStartHeight : position.markEndHeight;
+          const bandY = geometry.splitStem ? (side === "left" ? position.startBandY ?? position.startY : position.endBandY ?? position.endY) : glyphY;
+          const bandHeight = geometry.splitStem ? (side === "left" ? position.startBandHeight ?? position.startHeight : position.endBandHeight ?? position.endHeight) : glyphHeight;
+          const cornerClearance = geometry.splitStem ? 8 : 3;
+          const height = Math.max(34, bandHeight + cornerClearance * 2) + verticalInset * 2;
+          const width = geometry.cap + geometry.strokeWidth;
+          const stem = side === "left" ? geometry.strokeWidth / 2 : width - geometry.strokeWidth / 2;
+          const tip = side === "left" ? width - geometry.strokeWidth / 2 : geometry.strokeWidth / 2;
+          const top = geometry.strokeWidth / 2;
+          const bottom = height - geometry.strokeWidth / 2;
           marks.push(
-            <span
-              key={`left-mark-${target.id}`}
-              className="word-group-range-bracket left"
-              style={{
-                left:
-                  leftPair && leftDepth === 0
-                    ? leftPair.leftBracketLeft
-                    : position.startX -
-                      leftSpacing.gap -
-                      leftSpacing.cap -
-                      leftDepth * (leftSpacing.cap + leftSpacing.gap),
-                top: position.markStartY - 1 - verticalInset,
-                width: leftPair && leftDepth === 0 ? leftPair.cap : leftSpacing.cap,
-                height: Math.max(34, position.markStartHeight + 2) + verticalInset * 2
-              }}
-            />
-          );
-        }
-
-        if (rightIds.includes(target.id)) {
-          marks.push(
-            <span
-              key={`right-mark-${target.id}`}
-              className="word-group-range-bracket right"
-              style={{
-                left:
-                  rightPair && rightDepth === 0
-                    ? rightPair.rightBracketLeft
-                    : position.endX +
-                      rightSpacing.gap +
-                      rightDepth * (rightSpacing.cap + rightSpacing.gap),
-                top: position.markEndY - 1 - verticalInset,
-                width: rightPair && rightDepth === 0 ? rightPair.cap : rightSpacing.cap,
-                height: Math.max(34, position.markEndHeight + 2) + verticalInset * 2
-              }}
-            />
+            <svg key={`${side}-mark-${target.id}`} aria-hidden="true"
+              className={`word-group-range-bracket vector ${side}`}
+              style={{ left: geometry.stemX - stem, top: bandY - cornerClearance - verticalInset, width, height }}
+              viewBox={`0 0 ${width} ${height}`}>
+              <g fill="none" stroke="currentColor" strokeWidth={geometry.strokeWidth}>
+                {geometry.splitStem ? <>
+                  <line data-bracket-stem="true" x1={stem} x2={stem} y1={top} y2={verticalInset + cornerClearance - 2} />
+                  <line data-bracket-stem="true" x1={stem} x2={stem} y1={height - verticalInset - cornerClearance + 2} y2={bottom} />
+                </> : <line data-bracket-stem="true" x1={stem} x2={stem} y1={top} y2={bottom} />}
+                <path d={`M ${tip} ${top} H ${stem} M ${stem} ${bottom} H ${tip}`} />
+              </g>
+            </svg>
           );
         }
 

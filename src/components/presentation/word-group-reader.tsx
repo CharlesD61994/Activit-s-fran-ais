@@ -14,7 +14,7 @@ import { CorrectionPause } from "@/components/presentation/correction-pause";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
-import { rangeReaderStyle, rangeTokenPadding, sentenceRangeTargets } from "@/components/grammar/range-token-spacing";
+import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
@@ -99,7 +99,6 @@ export function WordGroupReader({
   );
 
   const rangeStyle = useMemo(() => rangeReaderStyle(sentence), [sentence]);
-  const tokenPadding = useMemo(() => rangeTokenPadding(tokens, sentenceRangeTargets(sentence)), [tokens, sentence]);
 
   const [leftFoundIds, setLeftFoundIds] = useState<string[]>([]);
   const [rightFoundIds, setRightFoundIds] = useState<string[]>([]);
@@ -1329,7 +1328,7 @@ export function WordGroupReader({
                   token.end > target.start
               );
             return (
-              <span key={token.id} className="range-token-spacing" style={tokenPadding[token.id]}>
+              <span key={token.id}>
               {breakBefore && <br />}
               <span
                 className={

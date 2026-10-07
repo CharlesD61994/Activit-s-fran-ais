@@ -2,8 +2,22 @@ import { describe, expect, it } from "vitest";
 import {
   buildRangeSegments,
   fitRectToGlyphHeight,
+  horizontalInkBounds,
   isMeasurableRangeToken
 } from "./use-range-target-positions";
+
+describe("horizontal glyph ink", () => {
+  it("finds the visible gap before punctuation even when advance boxes touch", () => {
+    const word = horizontalInkBounds(100, { actualBoundingBoxLeft: -2, actualBoundingBoxRight: 78 });
+    const comma = horizontalInkBounds(180, { actualBoundingBoxLeft: -3, actualBoundingBoxRight: 8 });
+    expect(word.right).toBe(178);
+    expect(comma.left - word.right).toBe(5);
+  });
+
+  it("accounts for a glyph that extends beyond its advance box", () => {
+    expect(horizontalInkBounds(100, { actualBoundingBoxLeft: 2, actualBoundingBoxRight: 81 })).toEqual({ left: 98, right: 181 });
+  });
+});
 
 describe("isMeasurableRangeToken", () => {
   it("measures punctuation so a closing bracket is placed after it", () => {

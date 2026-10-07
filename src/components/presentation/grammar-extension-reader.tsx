@@ -26,7 +26,7 @@ import type {
   InteractionPoint
 } from "@/components/grammar/range-interaction-engine";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
-import { rangeReaderStyle, rangeTokenPadding, sentenceRangeTargets } from "@/components/grammar/range-token-spacing";
+import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { CorrectionPause } from "@/components/presentation/correction-pause";
@@ -142,7 +142,6 @@ export function GrammarExtensionReader({
   );
 
   const rangeStyle = useMemo(() => rangeReaderStyle(sentence), [sentence]);
-  const tokenPadding = useMemo(() => rangeTokenPadding(tokens, sentenceRangeTargets(sentence)), [tokens, sentence]);
   const controlledLineBreaks =
     forcedLineBreaks.length > 0 ? forcedLineBreaks : autoLineBreaks;
   const layoutAnnotations = useMemo(() => [...annotations, ...correctionMarks], [annotations, correctionMarks]);
@@ -710,7 +709,7 @@ export function GrammarExtensionReader({
               const style = tokenStyle(token.start, token.end);
 
               return (
-                <span key={token.id} className="range-token-spacing" style={tokenPadding[token.id]}>
+                <span key={token.id}>
                   {breakBefore && <br />}
                   {token.isWord ? (
                     <button

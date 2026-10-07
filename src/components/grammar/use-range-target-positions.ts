@@ -21,6 +21,12 @@ export type RangePosition = {
   markStartY: number;
   markStartHeight: number;
   endX: number;
+  startInkX?: number;
+  endInkX?: number;
+  startBandY?: number;
+  startBandHeight?: number;
+  endBandY?: number;
+  endBandHeight?: number;
   startGap?: number;
   endGap?: number;
   endY: number;
@@ -58,7 +64,7 @@ function positionsAreEqual(
 
   const closeEnough = (left: number, right: number) =>
     Math.abs(left - right) < 0.1;
-  const scalarKeys: Array<Exclude<keyof RangePosition, "segments" | "startGap" | "endGap">> = [
+  const scalarKeys: Array<Exclude<keyof RangePosition, "segments" | "startGap" | "endGap" | "startInkX" | "endInkX" | "startBandY" | "startBandHeight" | "endBandY" | "endBandHeight">> = [
     "x", "y", "width", "height", "startX", "startY", "startHeight",
     "markStartY", "markStartHeight", "endX", "endY", "endHeight",
     "markEndY", "markEndHeight"
@@ -68,9 +74,9 @@ function positionsAreEqual(
     const previous = current[key];
     const incoming = next[key];
     if (!previous || !incoming) return false;
-    if (["startGap", "endGap"].some((key) => {
-      const a = previous[key as "startGap" | "endGap"];
-      const b = incoming[key as "startGap" | "endGap"];
+    if ((["startGap", "endGap", "startInkX", "endInkX", "startBandY", "startBandHeight", "endBandY", "endBandHeight"] as const).some((key) => {
+      const a = previous[key];
+      const b = incoming[key];
       return a === undefined || b === undefined ? a !== b : !closeEnough(a, b);
     })) return false;
     if (scalarKeys.some((metric) => !closeEnough(previous[metric], incoming[metric]))) {
@@ -86,6 +92,26 @@ function positionsAreEqual(
         closeEnough(previousSegment.height, segment.height);
     });
   });
+}
+
+export function horizontalInkBounds(
+  left: number,
+  metrics: Pick<TextMetrics, "actualBoundingBoxLeft" | "actualBoundingBoxRight">
+) {
+  return { left: left - metrics.actualBoundingBoxLeft, right: left + metrics.actualBoundingBoxRight };
+}
+
+/** Measure visible ink rather than the advance boxes that touch at punctuation. */
+export function rangeTokenInkBounds(element: HTMLElement, text: string, context: CanvasRenderingContext2D | null) {
+  const glyph = element.querySelector<HTMLElement>("[data-word-glyph]") ?? element;
+  const rect = glyph.getBoundingClientRect();
+  if (!context) return { left: rect.left, right: rect.right };
+  const style = window.getComputedStyle(glyph);
+  context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  if ("letterSpacing" in context) context.letterSpacing = style.letterSpacing === "normal" ? "0px" : style.letterSpacing;
+  const metrics = context.measureText(text);
+  if (!Number.isFinite(metrics.actualBoundingBoxLeft) || !Number.isFinite(metrics.actualBoundingBoxRight)) return { left: rect.left, right: rect.right };
+  return horizontalInkBounds(rect.left, metrics);
 }
 
 export function fitRectToGlyphHeight(
@@ -149,25 +175,35 @@ export function useRangeTargetPositions(
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
     if (!surface) return;
+    const inkContext = document.createElement("canvas").getContext("2d");
 
     const update = () => {
       const surfaceRect = surface.getBoundingClientRect();
       const next: Record<string, RangePosition> = {};
+      const lineRects = tokens.filter(isMeasurableRangeToken).flatMap((token) => {
+        const element = surface.querySelector<HTMLElement>(`[${tokenAttribute}="${token.id}"]`);
+        return element ? [element.getBoundingClientRect()] : [];
+      });
+      const lineBand = (boundary: DOMRect) => {
+        const row = lineRects.filter((rect) => Math.abs(rect.top + rect.height / 2 - boundary.top - boundary.height / 2) < Math.min(rect.height, boundary.height) * .5);
+        const top = Math.min(boundary.top, ...row.map((rect) => rect.top));
+        const bottom = Math.max(boundary.bottom, ...row.map((rect) => rect.bottom));
+        return { y: top - surfaceRect.top, height: bottom - top };
+      };
 
       targets.forEach((target) => {
-        const elements = tokens
+        const measuredTokens = tokens
           .filter(
             (token) =>
               isMeasurableRangeToken(token) &&
               token.start < target.end &&
               token.end > target.start
           )
-          .map((token) =>
-            surface.querySelector<HTMLElement>(
+          .map((token) => ({ token, element: surface.querySelector<HTMLElement>(
               `[${tokenAttribute}="${token.id}"]`
-            )
-          )
-          .filter((element): element is HTMLElement => Boolean(element));
+            ) }))
+          .filter((item): item is { token: RangeToken; element: HTMLElement } => Boolean(item.element));
+        const elements = measuredTokens.map((item) => item.element);
         if (!elements.length) return;
 
         const rects = elements.map((element) => element.getBoundingClientRect());
@@ -184,6 +220,10 @@ export function useRangeTargetPositions(
         const last = rects[rects.length - 1];
         const firstGlyph = glyphRects[0];
         const lastGlyph = glyphRects[glyphRects.length - 1];
+        const firstBand = lineBand(first);
+        const lastBand = lineBand(last);
+        const firstInk = rangeTokenInkBounds(elements[0], measuredTokens[0].token.text, inkContext);
+        const lastInk = rangeTokenInkBounds(elements[elements.length - 1], measuredTokens[measuredTokens.length - 1].token.text, inkContext);
         const minLeft = Math.min(...rects.map((rect) => rect.left));
         const maxRight = Math.max(...rects.map((rect) => rect.right));
         const minTop = Math.min(...rects.map((rect) => rect.top));
@@ -201,7 +241,8 @@ export function useRangeTargetPositions(
           if (!element) return undefined;
           const rect = element.getBoundingClientRect();
           if (Math.abs(rect.top - boundary.top) >= Math.min(rect.height, boundary.height) * .5) return undefined;
-          return Math.max(0, side === "start" ? boundary.left - rect.right : rect.left - boundary.right);
+          const ink = rangeTokenInkBounds(element, neighbour!.text, inkContext);
+          return Math.max(0, side === "start" ? firstInk.left - ink.right : ink.left - lastInk.right);
         };
 
         next[target.id] = {
@@ -219,6 +260,12 @@ export function useRangeTargetPositions(
           markStartY: firstGlyph.top - surfaceRect.top,
           markStartHeight: firstGlyph.height,
           endX: last.right - surfaceRect.left,
+          startInkX: firstInk.left - surfaceRect.left,
+          endInkX: lastInk.right - surfaceRect.left,
+          startBandY: firstBand.y,
+          startBandHeight: firstBand.height,
+          endBandY: lastBand.y,
+          endBandHeight: lastBand.height,
           startGap: neighbourGap("start"),
           endGap: neighbourGap("end"),
           endY: last.top - surfaceRect.top,

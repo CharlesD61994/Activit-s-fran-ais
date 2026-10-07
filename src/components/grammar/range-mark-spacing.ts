@@ -1,72 +1,31 @@
-const DEFAULT_BRACKET_CAP = 6;
-const DEFAULT_TEXT_GAP = 4;
-const MIN_BRACKET_CAP = 5;
-const MIN_TEXT_GAP = 2;
-const DEFAULT_BRACKET_SEPARATION = 10;
-const MIN_BRACKET_SEPARATION = 12;
-
 /** A shared bracket gap must contain only whitespace, never another word. */
-export function areRangeMarksAdjacent(
-  text: string,
-  left: { end: number },
-  right: { start: number }
-) {
+export function areRangeMarksAdjacent(text: string, left: { end: number }, right: { start: number }) {
   return left.end <= right.start && text.slice(left.end, right.start).trim() === "";
 }
 
-/** Fit all marks at a shared boundary inside the existing word space. */
-export function boundedBracketSpacing(availableSpace: number | undefined, count: number) {
-  if (availableSpace === undefined) return { cap: 6, gap: 4 };
-  const slot = Math.max(0, (availableSpace - 1) / count);
-  const gap = Math.min(4, slot * .25);
-  return { cap: Math.min(6, Math.max(0, slot - gap)), gap };
-}
-
-export function bracketSpacing(availableSpace?: number) {
-  const defaultFootprint =
-    (DEFAULT_BRACKET_CAP + DEFAULT_TEXT_GAP) * 2 +
-    DEFAULT_BRACKET_SEPARATION;
-
-  if (availableSpace === undefined || availableSpace >= defaultFootprint) {
-    return { cap: DEFAULT_BRACKET_CAP, gap: DEFAULT_TEXT_GAP };
-  }
-
-  const slot = Math.max(
-    MIN_BRACKET_CAP + MIN_TEXT_GAP,
-    (availableSpace - MIN_BRACKET_SEPARATION) / 2
-  );
-  const gap = Math.max(
-    MIN_TEXT_GAP,
-    Math.min(DEFAULT_TEXT_GAP, slot * .25)
-  );
-
-  return {
-    cap: Math.max(MIN_BRACKET_CAP, slot - gap),
-    gap
-  };
-}
-
-/**
- * Places two neighbouring bracket strokes around the real midpoint between
- * words.  Both brackets use the same calculation, so their vertical strokes
- * can never collapse into one shared line.
- */
-export function adjacentBracketPair(
-  leftWordEnd: number,
-  rightWordStart: number
+/** Allocate stems in the natural gap; arms are drawn above/below the glyphs. */
+export function naturalBracketGeometry(
+  edge: number,
+  availableSpace: number | undefined,
+  count: number,
+  depth: number,
+  side: "left" | "right"
 ) {
-  const availableSpace = Math.max(0, rightWordStart - leftWordEnd);
-  const strokeSeparation = Math.max(4, Math.min(8, availableSpace * .28));
-  const cap = Math.max(
-    3,
-    Math.min(DEFAULT_BRACKET_CAP, (availableSpace - strokeSeparation - 2) / 2)
-  );
-  const midpoint = (leftWordEnd + rightWordStart) / 2;
-
+  const direction = side === "left" ? -1 : 1;
+  if (availableSpace === undefined) {
+    return { stemX: edge + direction * (10 + depth * 6), strokeWidth: 2, cap: 6, splitStem: false };
+  }
+  const margin = Math.min(1, availableSpace * .15);
+  const slot = Math.max(0, availableSpace - margin * 2) / Math.max(1, count);
+  // When glyphs touch (punctuation/elision), use separated corners above and
+  // below the letters. A full vertical stroke cannot fit without hiding ink.
+  if (slot < 1.5) return {
+    stemX: edge + direction * (3 + depth * 3), strokeWidth: 1.5, cap: 6, splitStem: true
+  };
   return {
-    cap,
-    rightBracketLeft: midpoint - strokeSeparation / 2 - cap,
-    leftBracketLeft: midpoint + strokeSeparation / 2,
-    strokeSeparation
+    stemX: edge + direction * (margin + (depth + .5) * slot),
+    strokeWidth: Math.min(2, slot * .5),
+    cap: 6,
+    splitStem: false
   };
 }

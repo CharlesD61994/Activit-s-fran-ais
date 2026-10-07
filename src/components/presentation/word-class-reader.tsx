@@ -10,7 +10,7 @@ import { Check, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { CorrectionPause } from "@/components/presentation/correction-pause";
-import { rangeReaderStyle, rangeTokenPadding, sentenceRangeTargets } from "@/components/grammar/range-token-spacing";
+import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
 import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
@@ -232,7 +232,6 @@ export function WordClassReader({
   );
 
   const rangeStyle = useMemo(() => rangeReaderStyle(sentence), [sentence]);
-  const tokenPadding = useMemo(() => rangeTokenPadding(tokens, sentenceRangeTargets(sentence)), [tokens, sentence]);
 
   const analysisTargets = useMemo(
     () =>
@@ -1751,7 +1750,7 @@ export function WordClassReader({
   }
 
   function renderToken(token: WordToken, wrappedLine = false): ReactNode {
-    return <span key={token.id} className="range-token-spacing" style={tokenPadding[token.id]}>{renderTokenGlyph(token, wrappedLine)}</span>;
+    return <span key={token.id}>{renderTokenGlyph(token, wrappedLine)}</span>;
   }
 
   const renderedTokens: ReactNode[] = [];
