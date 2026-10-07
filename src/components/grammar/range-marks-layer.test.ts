@@ -24,7 +24,8 @@ describe("natural bracket geometry", () => {
         if (!stem.splitStem) {
           expect(stem.stemX-stem.strokeWidth/2).toBeGreaterThan(100);
           expect(stem.stemX+stem.strokeWidth/2).toBeLessThan(100+gap);
-        } else expect(stem.strokeWidth).toBe(1.5);
+        }
+        expect(stem.strokeWidth).toBe(2);
         expect(stem.cap).toBe(6);
       }
       for (let i=1;i<stems.length;i++) expect(stems[i].stemX-stems[i].strokeWidth/2).toBeGreaterThan(stems[i-1].stemX+stems[i-1].strokeWidth/2);
@@ -39,6 +40,6 @@ describe("natural bracket geometry", () => {
     expect(naturalBracketGeometry(100,undefined,3,2,"left")).toEqual({stemX:78,strokeWidth:2,cap:6,splitStem:false});
   });
   it("handles punctuation with no whitespace without inserting a text gap", () => {
-    expect(naturalBracketGeometry(100,0,1,0,"right")).toEqual({stemX:103,strokeWidth:1.5,cap:6,splitStem:true});
+    expect(naturalBracketGeometry(100,0,1,0,"right")).toEqual({stemX:103,strokeWidth:2,cap:6,splitStem:true});
   });
 });

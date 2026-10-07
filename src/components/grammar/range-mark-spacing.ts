@@ -3,14 +3,12 @@ export function areRangeMarksAdjacent(text: string, left: { end: number }, right
   return left.end <= right.start && text.slice(left.end, right.start).trim() === "";
 }
 
-/** Center even separated corners on the ink, while keeping stems outside the line band. */
-export function verticalBracketGeometry(glyphY: number, glyphHeight: number, bandY: number, bandHeight: number, inset: number, split: boolean) {
+/** Every bracket on a row uses the same ink band, including tight-gap corners. */
+export function verticalBracketGeometry(glyphY: number, glyphHeight: number, inset: number) {
   const center = glyphY + glyphHeight / 2;
-  const height = split
-    ? Math.max(34, 2 * (Math.max(center - bandY, bandY + bandHeight - center) + 8 + inset))
-    : Math.max(34, glyphHeight + 6) + inset * 2;
+  const height = Math.max(34, glyphHeight + 6) + inset * 2;
   const top = center - height / 2;
-  return { top, height, upperStemEnd: bandY - top - 2, lowerStemStart: bandY + bandHeight - top + 2 };
+  return { top, height, upperStemEnd: glyphY - top - 2, lowerStemStart: glyphY + glyphHeight - top + 2 };
 }
 
 /** Allocate stems in the natural gap; arms are drawn above/below the glyphs. */
@@ -29,12 +27,12 @@ export function naturalBracketGeometry(
   const slot = Math.max(0, availableSpace - margin * 2) / Math.max(1, count);
   // When glyphs touch (punctuation/elision), use separated corners above and
   // below the letters. A full vertical stroke cannot fit without hiding ink.
-  if (slot < 1.5) return {
-    stemX: edge + direction * (3 + depth * 3), strokeWidth: 1.5, cap: 6, splitStem: true
+  if (slot < 3) return {
+    stemX: edge + direction * (3 + depth * 3), strokeWidth: 2, cap: 6, splitStem: true
   };
   return {
     stemX: edge + direction * (margin + (depth + .5) * slot),
-    strokeWidth: Math.min(2, slot * .5),
+    strokeWidth: 2,
     cap: 6,
     splitStem: false
   };

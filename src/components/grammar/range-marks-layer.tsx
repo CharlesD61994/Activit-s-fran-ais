@@ -112,9 +112,7 @@ export function RangeMarksLayer({
           const geometry = side === "left" ? leftGeometry : rightGeometry;
           const glyphY = side === "left" ? position.markStartY : position.markEndY;
           const glyphHeight = side === "left" ? position.markStartHeight : position.markEndHeight;
-          const bandY = geometry.splitStem ? (side === "left" ? position.startBandY ?? position.startY : position.endBandY ?? position.endY) : glyphY;
-          const bandHeight = geometry.splitStem ? (side === "left" ? position.startBandHeight ?? position.startHeight : position.endBandHeight ?? position.endHeight) : glyphHeight;
-          const vertical = verticalBracketGeometry(glyphY, glyphHeight, bandY, bandHeight, verticalInset, geometry.splitStem);
+          const vertical = verticalBracketGeometry(glyphY, glyphHeight, verticalInset);
           const { height } = vertical;
           const width = geometry.cap + geometry.strokeWidth;
           const stem = side === "left" ? geometry.strokeWidth / 2 : width - geometry.strokeWidth / 2;

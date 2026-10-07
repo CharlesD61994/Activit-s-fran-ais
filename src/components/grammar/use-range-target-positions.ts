@@ -200,10 +200,11 @@ export function useRangeTargetPositions(
     const update = () => {
       const surfaceRect = surface.getBoundingClientRect();
       const next: Record<string, RangePosition> = {};
-      const lineRects = tokens.filter(isMeasurableRangeToken).flatMap((token) => {
+      const lineTokens = tokens.filter(isMeasurableRangeToken).flatMap((token) => {
         const element = surface.querySelector<HTMLElement>(`[${tokenAttribute}="${token.id}"]`);
-        return element ? [element.getBoundingClientRect()] : [];
+        return element ? [{ rect: element.getBoundingClientRect(), ink: rangeTokenVerticalInk(element, token.text, inkContext) }] : [];
       });
+      const lineRects = lineTokens.map((item) => item.rect);
       const lineBand = (boundary: DOMRect) => {
         const row = lineRects.filter((rect) => Math.abs(rect.top + rect.height / 2 - boundary.top - boundary.height / 2) < Math.min(rect.height, boundary.height) * .5);
         const top = Math.min(boundary.top, ...row.map((rect) => rect.top));
@@ -240,10 +241,9 @@ export function useRangeTargetPositions(
         const last = rects[rects.length - 1];
         const firstGlyph = glyphRects[0];
         const lastGlyph = glyphRects[glyphRects.length - 1];
-        const visibleInk = measuredTokens.map(({ element, token }) => rangeTokenVerticalInk(element, token.text, inkContext));
         const boundaryInk = (boundary: DOMRect, fallback: RectMetrics) => {
-          const inks = rects.flatMap((rect, index) =>
-            Math.abs(rect.top - boundary.top) < Math.min(rect.height, boundary.height) * .5 && visibleInk[index] ? [visibleInk[index]!] : []);
+          const inks = lineTokens.flatMap(({ rect, ink }) =>
+            Math.abs(rect.top + rect.height / 2 - boundary.top - boundary.height / 2) < Math.min(rect.height, boundary.height) * .5 && ink ? [ink] : []);
           return inks.length ? { top: Math.min(...inks.map((ink) => ink.top)), bottom: Math.max(...inks.map((ink) => ink.bottom)) } : fallback;
         };
         const firstVisibleInk = boundaryInk(first, firstGlyph);
