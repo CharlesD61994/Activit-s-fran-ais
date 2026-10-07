@@ -9678,6 +9678,17 @@ textarea {
   margin: 0;
 }
 
+.correction-print-root .correction-print-capture-source .shared-grammar-reader-text,
+.correction-print-root .correction-print-capture-source .interactive-sentence .interactive-line,
+.correction-print-root .correction-print-capture-source .interactive-sentence .interactive-line-empty {
+  text-align: left !important;
+  text-align-last: left !important;
+}
+
+.correction-print-capture-source .word-class-reader-token {
+  padding-inline: 0;
+}
+
 .correction-arrow-author .agreement-arrow-path.frozen,
 .correction-arrow-author .agreement-arrow-tip.frozen {
   stroke-width: 2.2px !important;
@@ -9698,6 +9709,7 @@ textarea {
 .correction-print-phrase h2 {
   margin: 0 0 10px;
   font-size: 15pt;
+  font-weight: 800;
   break-after: avoid;
 }
 

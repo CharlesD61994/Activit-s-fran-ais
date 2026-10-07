@@ -9,7 +9,7 @@ import {
 
 describe("vertical glyph ink", () => {
   it("centers marks on visible letters rather than the font's unused descent", () => {
-    expect(verticalInkBounds(100, { fontBoundingBoxDescent: 12, actualBoundingBoxAscent: 36, actualBoundingBoxDescent: 2 })).toEqual({ top: 52, bottom: 90 });
+    expect(verticalInkBounds(88, { actualBoundingBoxAscent: 36, actualBoundingBoxDescent: 2 })).toEqual({ top: 52, bottom: 90 });
   });
 });
 

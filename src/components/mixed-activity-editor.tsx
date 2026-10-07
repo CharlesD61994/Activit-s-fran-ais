@@ -908,7 +908,7 @@ export function MixedActivityEditor({
             )}
             <Button type="button" variant="secondary" onClick={printCorrection}>
               <Printer size={17} />
-              {phrasePosition ? "Imprimer cette phrase" : "Imprimer le corrigé"}
+              Imprimer le corrigé
             </Button>
             <Button type="submit">
               <Save size={17} />

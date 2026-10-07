@@ -101,8 +101,7 @@ export function horizontalInkBounds(
   return { left: left - metrics.actualBoundingBoxLeft, right: left + metrics.actualBoundingBoxRight };
 }
 
-export function verticalInkBounds(bottom: number, metrics: Pick<TextMetrics, "fontBoundingBoxDescent" | "actualBoundingBoxAscent" | "actualBoundingBoxDescent">) {
-  const baseline = bottom - metrics.fontBoundingBoxDescent;
+export function verticalInkBounds(baseline: number, metrics: Pick<TextMetrics, "actualBoundingBoxAscent" | "actualBoundingBoxDescent">) {
   return { top: baseline - metrics.actualBoundingBoxAscent, bottom: baseline + metrics.actualBoundingBoxDescent };
 }
 
@@ -111,14 +110,19 @@ function rangeTokenVerticalInk(element: HTMLElement, text: string, context: Canv
   const glyph = element.querySelector<HTMLElement>("[data-word-glyph]") ?? element;
   const textNode = [...glyph.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim());
   if (!context || !textNode) return null;
-  const range = document.createRange();
-  range.selectNodeContents(textNode);
-  const rect = range.getBoundingClientRect();
   const style = window.getComputedStyle(glyph);
   context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
   const metrics = context.measureText(text);
-  if (![metrics.fontBoundingBoxDescent, metrics.actualBoundingBoxAscent, metrics.actualBoundingBoxDescent].every(Number.isFinite)) return null;
-  return verticalInkBounds(rect.bottom, metrics);
+  if (![metrics.actualBoundingBoxAscent, metrics.actualBoundingBoxDescent].every(Number.isFinite)) return null;
+  // A text Range's bottom is not the baseline: its font box includes leading
+  // that differs from Canvas font metrics. A zero-size inline box sits exactly
+  // on the DOM baseline and leaves word widths and line breaks unchanged.
+  const probe = document.createElement("span");
+  probe.style.cssText = "display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline;font-size:0;line-height:0";
+  glyph.insertBefore(probe, textNode.nextSibling);
+  const baseline = probe.getBoundingClientRect().top;
+  probe.remove();
+  return verticalInkBounds(baseline, metrics);
 }
 
 /** Measure visible ink rather than the advance boxes that touch at punctuation. */
