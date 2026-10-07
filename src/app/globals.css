@@ -4987,6 +4987,39 @@ textarea {
 .mixed-inline-workflow .workflow-planner { border: 0; padding: 0; background: transparent; box-shadow: none; }
 .mixed-answer-empty { margin: 0; color: var(--muted-foreground); font-weight: 700; }
 .mixed-answer-section { display: grid; gap: 8px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--secondary) 38%, #fff); overflow: hidden; }
+.activity-sentence-toolbar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.activity-sentence-tabs, .activity-sentence-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.activity-sentence-tabs button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.activity-sentence-tabs button[aria-selected="true"] {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.activity-sentence-toolbar p { margin: 0; color: var(--text-muted); }
+.reader-sentence-counter { color: #58718a; font-size: .82rem; font-weight: 800; }
+
 .mixed-answer-section-toggle { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; min-height: 42px; padding: 9px 12px; border: 0; background: transparent; color: var(--foreground); cursor: pointer; text-align: left; }
 .mixed-answer-section-toggle > span { display: inline-grid; min-width: 26px; height: 26px; place-items: center; border-radius: 999px; background: #fff; color: var(--primary); font-weight: 900; }
 .mixed-answer-section-items { display: grid; gap: 8px; padding: 0 10px 10px; }

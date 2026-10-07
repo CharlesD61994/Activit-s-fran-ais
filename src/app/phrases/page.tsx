@@ -13,6 +13,7 @@ import {
   getWordClassAnalysisTargetCount
 } from "@/lib/activity-types";
 import type { ActivityType, SentenceDifficulty } from "@/types";
+import { getActivitySentences } from "@/lib/activity-sentences";
 
 const difficultyLabels: Record<SentenceDifficulty, string> = {
   easy: "Facile",
@@ -122,18 +123,15 @@ export default function SentencesPage() {
             (sentence.treeAnalysisNodes?.length ?? 0) +
             (sentence.treeAnalysisTables?.length ?? 0);
           const worksheetStepCount = (sentence.worksheetAnswerLines?.length ?? 0) + (sentence.treeAnalysisTables?.filter((table) => table.cells.some((cell) => cell.isCorrect || Boolean(cell.answer?.trim()))).length ?? 0);
-          const maxPoints = isWordClassActivity
-            ? getWordClassActivityPointTotal(sentence)
-            : isWordGroupActivity
-              ? wordGroupCount * 2
-              : isTreeAnalysisActivity
+          const maxPoints = isTreeAnalysisActivity
                 ? treeAnalysisStepCount
                 : isWorksheetActivity
                   ? worksheetStepCount
-                  : sentence.corrections.reduce(
-                (sum, correction) => sum + correction.points,
-                0
-              );
+                  : getActivitySentences(sentence).reduce((sum, part) => sum + (
+                    part.activityType === "word_classes" ? getWordClassActivityPointTotal(part)
+                    : part.activityType === "word_groups" ? (part.wordGroupTargets?.length ?? 0) * 2
+                    : part.corrections.reduce((points, correction) => points + correction.points, 0)
+                  ), 0);
           return (
             <Card key={sentence.id} className="sentence-card">
               <div className="sentence-card-top">
@@ -143,6 +141,7 @@ export default function SentencesPage() {
                   </span>
                   <ActivityObjectiveBadges sentence={sentence} />
                   <h2>{sentence.title}</h2>
+                  {(sentence.activitySentences?.length ?? 0) > 1 && <small>{sentence.activitySentences!.length} phrases · une à la fois</small>}
                 </div>
                 <div className="row-actions">
                   <Link href={`/phrases/${sentence.id}/modifier`} aria-label="Modifier"><Pencil size={18} /></Link>

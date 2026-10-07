@@ -1,4 +1,5 @@
 import type { CorrectionCode, ScoreEvent, Sentence } from "@/types";
+import { getActivitySentences } from "./activity-sentences";
 
 export type CodeStat = {
   codeId: string;
@@ -17,7 +18,7 @@ export function buildCodeStats(
     const related = events.filter((event) => {
       if (event.correctionCodeId) return event.correctionCodeId === code.id;
       const sentence = sentences.find((item) => item.id === event.sentenceId);
-      const correction = sentence?.corrections.find((item) => item.id === event.correctionId);
+      const correction = sentence && getActivitySentences(sentence).flatMap((part) => part.corrections).find((item) => item.id === event.correctionId);
       return correction?.correctionCodeId === code.id;
     });
 
@@ -94,7 +95,7 @@ export function getPerfectSentenceCount(
     const sentence = sentences.find((item) => item.id === sessionEvents[0]?.sentenceId);
     if (!sentence) return;
 
-    const maxPoints = sentence.corrections.reduce((sum, correction) => sum + correction.points, 0);
+    const maxPoints = getActivitySentences(sentence).flatMap((part) => part.corrections).reduce((sum, correction) => sum + correction.points, 0);
     const earned = sessionEvents.reduce((sum, event) => sum + event.points, 0);
 
     if (maxPoints > 0 && earned >= maxPoints) perfect += 1;

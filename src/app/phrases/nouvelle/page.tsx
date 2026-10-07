@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
-import { MixedActivityEditor } from "@/components/mixed-activity-editor";
+import { MultiSentenceActivityEditor } from "@/components/multi-sentence-activity-editor";
 import { WorksheetEditor } from "@/components/worksheet-editor";
 import { useAppStore } from "@/store/app-store";
 
@@ -55,7 +55,7 @@ export default function NewSentencePage() {
       ) : isWorksheet ? (
         <WorksheetEditor levels={data.levels} onSave={saveAndReturn} controlledTitle={worksheetTitle} onTitleChange={setWorksheetTitle}/>
       ) : (
-        <MixedActivityEditor levels={data.levels} correctionCodes={data.correctionCodes} onSave={saveAndReturn}/>
+        <MultiSentenceActivityEditor levels={data.levels} correctionCodes={data.correctionCodes} onSave={saveAndReturn}/>
       )}
     </div>
   );

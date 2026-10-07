@@ -488,6 +488,8 @@ export type Sentence = {
   workflowPhases?: GrammarWorkflowPhase[];
   grammarAnnotations?: GrammarAnnotation[];
   originalText: string;
+  /** Ordered grammatical sentences; absent for existing single-sentence activities. */
+  activitySentences?: Omit<Sentence, "activitySentences">[];
   difficulty: SentenceDifficulty;
   tags: string[];
   corrections: SentenceCorrection[];

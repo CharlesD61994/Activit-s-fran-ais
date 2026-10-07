@@ -28,6 +28,7 @@ import { useAppStore } from "@/store/app-store";
 import { getWordClassActivityPointTotal } from "@/lib/activity-types";
 import { groupAccentColor, groupShieldLabel } from "@/lib/group-colors";
 import { getWeeklyPoints } from "@/lib/stats";
+import { getActivitySentences } from "@/lib/activity-sentences";
 import {
   ClassroomGroupEmblem,
   ClassroomPointsMedal
@@ -218,7 +219,10 @@ export default function ClassroomGroupPage({
     .filter((result) => result.groupId === group.id)
     .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
 
-  function activityPointTotal(activity: typeof activities[number]) {
+  function activityPointTotal(activity: typeof activities[number]): number {
+    if (activity.activitySentences?.length) {
+      return getActivitySentences(activity).reduce((sum, part) => sum + activityPointTotal(part), 0);
+    }
     if (activity.activityType === "word_classes") {
       return getWordClassActivityPointTotal(activity);
     }

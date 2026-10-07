@@ -1,9 +1,34 @@
 import { describe, expect, it } from "vitest";
 import { createWorkflowPhase, defaultWorkflowForObjective, getAgreementWorkflowSettings, getSecondaryObjectives, normalizeGrammarWorkflow, reviewPhaseImmediatelyAfter, shuffledGrammarTargetIds } from "./grammar-workflow";
-import type { Sentence } from "../types";
-import { getCorrectionPointStages } from "./grammar-workflow";
+import type { Sentence, SentenceCorrection } from "../types";
+import { getCorrectionPointStages, syncCorrectionCodePhase } from "./grammar-workflow";
 
 describe("correction scoring", () => {
+  const withCode = { id: "with", correctionCodeId: "code-a" } as SentenceCorrection;
+  const withoutCode = { id: "without", correctionCodeId: "" } as SentenceCorrection;
+
+  it("only asks for codes and awards code-related points on configured errors", () => {
+    const sentence = { workflowPhases: [createWorkflowPhase("correction")] } as Sentence;
+    expect(getCorrectionPointStages(sentence, withCode)).toEqual(["click", "word", "code"]);
+    expect(getCorrectionPointStages(sentence, withoutCode)).toEqual(["word"]);
+    sentence.workflowPhases![0].actions.find((action) => action.kind === "identify_codes")!.enabled = false;
+    expect(getCorrectionPointStages(sentence, withCode)).toEqual(["word"]);
+  });
+
+  it("synchronizes the code phase when adding and removing coded errors", () => {
+    const original = [createWorkflowPhase("correction"), createWorkflowPhase("word_classes")];
+    const codeAction = (phases: typeof original) => phases[0].actions.find((action) => action.kind === "identify_codes")!.enabled;
+    const noCodes = syncCorrectionCodePhase(original, [withoutCode]);
+    expect(codeAction(noCodes)).toBe(false);
+    expect(noCodes[0].actions.find((action) => action.kind === "write_corrections")!.enabled).toBe(true);
+    const mixed = syncCorrectionCodePhase(noCodes, [withoutCode, withCode]);
+    expect(codeAction(mixed)).toBe(true);
+    expect(mixed[1]).toBe(original[1]);
+    expect(codeAction(syncCorrectionCodePhase(mixed, [withoutCode]))).toBe(false);
+    expect(codeAction(syncCorrectionCodePhase(mixed, []))).toBe(false);
+    expect(codeAction(original)).toBe(true);
+  });
+
   it("awards only the correction point when codes are disabled", () => {
     const phase = createWorkflowPhase("correction");
     phase.actions.find((action) => action.kind === "identify_codes")!.enabled = false;

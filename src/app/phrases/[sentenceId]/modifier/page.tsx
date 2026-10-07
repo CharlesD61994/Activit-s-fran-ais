@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { TreeAnalysisEditor } from "@/components/tree-analysis-editor";
-import { MixedActivityEditor } from "@/components/mixed-activity-editor";
+import { MultiSentenceActivityEditor } from "@/components/multi-sentence-activity-editor";
 import { WorksheetEditor } from "@/components/worksheet-editor";
 import { Card } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
@@ -48,7 +48,7 @@ export default function EditSentencePage({ params }: { params: Promise<{ sentenc
       ) : isWorksheetActivity ? (
         <WorksheetEditor initialSentence={sentence} levels={data.levels} onSave={(updated) => { saveSentence(updated); router.push("/phrases"); }}/>
       ) : (
-        <MixedActivityEditor
+        <MultiSentenceActivityEditor
           initialSentence={sentence}
           levels={data.levels}
           correctionCodes={data.correctionCodes}

@@ -28,6 +28,8 @@ import {
 } from "@/components/grammar/shared-annotated-text";
 import {
   createWorkflowPhase,
+  getCorrectionPointStages,
+  syncCorrectionCodePhase,
   getSentenceWorkflow,
   grammarObjectiveLabels,
   grammarPhaseLabels,
@@ -64,6 +66,8 @@ type Props = {
   levels: SchoolLevel[];
   correctionCodes: CorrectionCode[];
   onSave: (sentence: Sentence) => void;
+  onDraftChange?: (sentence: Sentence) => void;
+  phrasePosition?: string;
 };
 
 function correctedTeacherSentence(sentence: Sentence) {
@@ -102,7 +106,7 @@ function correctedTeacherSentence(sentence: Sentence) {
         end: mapPosition(annotation.end, "end")
       }))
     },
-    correctionMarks: ordered.map((correction) => {
+    correctionMarks: ordered.filter((correction) => getCorrectionPointStages(sentence, correction).includes("code")).map((correction) => {
       const start = mapPosition(correction.start, "start");
       return { id: `teacher-correction-${correction.id}`, start, end: start + correction.correctedText.length, correctionCodeId: correction.correctionCodeId };
     })
@@ -154,7 +158,9 @@ export function MixedActivityEditor({
   initialSentence,
   levels,
   correctionCodes,
-  onSave
+  onSave,
+  onDraftChange,
+  phrasePosition
 }: Props) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const correctionPrintRef = useRef<CorrectionPrintSheetHandle>(null);
@@ -216,6 +222,7 @@ export function MixedActivityEditor({
   );
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [correctionIsInsertion, setCorrectionIsInsertion] = useState(false);
+  const [askCorrectionCode, setAskCorrectionCode] = useState(false);
   const [correctedText, setCorrectedText] = useState("");
   const [correctionCodeId, setCorrectionCodeId] = useState(
     correctionCodes.find((code) => code.isActive !== false)?.id ?? ""
@@ -280,6 +287,7 @@ export function MixedActivityEditor({
     () => buildMixedWordClassSentence(correctedTeacherSentence(sentence).sentence),
     [sentence]
   );
+  useEffect(() => { onDraftChange?.(sentence); }, [onDraftChange, sentence]);
   const teacherCorrectionMarks = useMemo(() => correctedTeacherSentence(sentence).correctionMarks.map((mark) => ({
     id: mark.id,
     start: mark.start,
@@ -365,8 +373,7 @@ export function MixedActivityEditor({
     workingTextRef.current = value;
     if (value === text) return value;
 
-    setAnnotations((current) =>
-      current
+    const nextAnnotations = annotations
         .map((annotation) => ({
           ...annotation,
           ...rebaseSharedTextRange(
@@ -376,10 +383,8 @@ export function MixedActivityEditor({
             annotation.end
           )
         }))
-        .filter((annotation) => annotation.start < annotation.end)
-    );
-    setCorrections((current) =>
-      current
+        .filter((annotation) => annotation.start < annotation.end);
+    const nextCorrections = corrections
         .map((correction) => {
           const range = rebaseSharedTextRange(
             text,
@@ -399,9 +404,11 @@ export function MixedActivityEditor({
           (correction) =>
             correction.start < correction.end ||
             correction.originalText.length === 0
-        )
-    );
+        );
+    setAnnotations(nextAnnotations);
+    setCorrections(nextCorrections);
     setText(value);
+    onDraftChange?.({ ...sentence, originalText: value, grammarAnnotations: nextAnnotations, corrections: nextCorrections, agreementCorrectionArrows: [] });
     setSurfaceRevision((current) => current + 1);
     return value;
   }
@@ -454,6 +461,7 @@ export function MixedActivityEditor({
     if (!range) return;
 
     setCorrectionIsInsertion(false);
+    setAskCorrectionCode(false);
     setCorrectedText("");
     setCorrectionCodeId(activeCorrectionCodes[0]?.id ?? "");
     setCorrectionOpen(true);
@@ -489,6 +497,7 @@ export function MixedActivityEditor({
     rememberedSelectionRef.current = value;
     setSelection(value);
     setCorrectionIsInsertion(true);
+    setAskCorrectionCode(false);
     setCorrectedText("");
     setCorrectionCodeId(punctuationCode?.id ?? "");
     setCorrectionOpen(true);
@@ -718,25 +727,29 @@ export function MixedActivityEditor({
     if (
       !selection ||
       !correctedText.trim() ||
-      !correctionCodeId
+      (askCorrectionCode && !correctionCodeId)
     ) {
       return;
     }
 
-    setCorrections((current) => [
-      ...current,
+    const nextCorrections = [
+      ...corrections,
       {
         id: crypto.randomUUID(),
         start: selection.start,
         end: selection.end,
         originalText: correctionIsInsertion ? "" : selection.text,
         correctedText: correctedText.trim(),
-        correctionCodeId,
+        correctionCodeId: askCorrectionCode ? correctionCodeId : "",
         points: 1,
-        revealOrder: current.length + 1
+        revealOrder: corrections.length + 1
       }
-    ]);
-    ensurePhase("correction");
+    ];
+    setCorrections(nextCorrections);
+    setPhases((current) => syncCorrectionCodePhase(
+      current.some((phase) => phase.kind === "correction") ? current : [...current, createWorkflowPhase("correction")],
+      nextCorrections
+    ));
     setCorrectionOpen(false);
     setCorrectionIsInsertion(false);
     setCorrectedText("");
@@ -880,7 +893,7 @@ export function MixedActivityEditor({
           <div className="mixed-workspace-meta-actions">
             <Button type="button" variant="secondary" onClick={openTest}>
               <Play size={17} />
-              Tester
+              {phrasePosition ? "Tester cette phrase" : "Tester"}
             </Button>
             {hasAgreementLinks && (
               <Button type="button" variant="secondary" onClick={() => setShowArrowCorrection(true)}>
@@ -890,7 +903,7 @@ export function MixedActivityEditor({
             )}
             <Button type="button" variant="secondary" onClick={printCorrection}>
               <Printer size={17} />
-              Imprimer le corrigé
+              {phrasePosition ? "Imprimer cette phrase" : "Imprimer le corrigé"}
             </Button>
             <Button type="submit">
               <Save size={17} />
@@ -1026,11 +1039,11 @@ export function MixedActivityEditor({
                               <button
                                 type="button"
                                 aria-label="Supprimer"
-                                onClick={() =>
-                                  setCorrections((current) =>
-                                    current.filter((item) => item.id !== correction.id)
-                                  )
-                                }
+                                onClick={() => {
+                                  const nextCorrections = corrections.filter((item) => item.id !== correction.id);
+                                  setCorrections(nextCorrections);
+                                  setPhases((current) => syncCorrectionCodePhase(current, nextCorrections));
+                                }}
                               >
                                 <Trash2 size={15} />
                               </button>
@@ -1212,7 +1225,12 @@ export function MixedActivityEditor({
                   autoFocus
                 />
               </label>
-              <label>
+              <label className="competition-toggle">
+                <input type="checkbox" checked={askCorrectionCode}
+                  onChange={(event) => setAskCorrectionCode(event.target.checked)} />
+                Demander le code d’erreur
+              </label>
+              {askCorrectionCode && <label>
                 Code
                 <select
                   value={correctionCodeId}
@@ -1224,7 +1242,7 @@ export function MixedActivityEditor({
                     </option>
                   ))}
                 </select>
-              </label>
+              </label>}
               <div className="tree-analysis-modal-actions">
                 <Button
                   type="button"
@@ -1236,7 +1254,7 @@ export function MixedActivityEditor({
                 <Button
                   type="button"
                   onClick={saveCorrection}
-                  disabled={!correctedText.trim() || !correctionCodeId}
+                  disabled={!correctedText.trim() || (askCorrectionCode && !correctionCodeId)}
                 >
                   {correctionIsInsertion
                     ? "Ajouter la ponctuation"

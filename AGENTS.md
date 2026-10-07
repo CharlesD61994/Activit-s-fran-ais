@@ -84,6 +84,7 @@ Le module mixte orchestre plusieurs mécaniques dans une seule phrase/surface : 
 - `activityType` : `"sentence_correction"`, `"text_correction"`, `"word_classes"`, `"word_groups"`, `"tree_analysis"`, `"worksheet"`.
 - `isMixedActivity`, `primaryObjective`, `workflowPhases`, `grammarAnnotations` : orchestration des activités grammaticales.
 - `corrections`, `wordClassTargets`, `wordGroupTargets`, `agreementRelations`, `agreementCorrectionArrows` : réponses grammaticales.
+- `activitySentences` : phrases ordonnées d’une activité grammaticale. Chaque phrase possède ses propres réponses et phases; les champs racines reflètent la première phrase pour compatibilité. Utiliser `src/lib/activity-sentences.ts` pour lire et assembler ces activités.
 - `treeAnalysis*` : données de page/document/arbre/tableau/texte. Certaines sont aussi réutilisées par Feuille d’activité.
 - `worksheetAnswerLines`, `worksheetCheckBoxes`, `worksheetDimensionBands`, `worksheetImages`, `worksheetReaderOrder` : éléments propres à Feuille d’activité.
 
@@ -94,6 +95,9 @@ Ne pas supprimer les champs “legacy” sans migration. `src/lib/storage.ts` li
 - Nom produit : utiliser “Alinéa - Activités de français”. Éviter de réintroduire “Phrase du jour” sauf pour compatibilité/migration interne.
 - Une action interactive vaut 1 point dans les activités mixtes et les arbres.
 - Le lecteur mixte doit garder la même phrase/surface entre les phases. Les annotations déjà réussies restent visibles quand on passe à l’étape suivante.
+- Une activité à plusieurs phrases présente chaque phrase jusqu’à la fin de ses phases avant « Suivant ». Les points des phrases précédentes sont conservés et l’activité n’est terminée qu’après la dernière phrase.
+- Un `correctionCodeId` vide signifie que cette erreur ne demande pas de code. L’ajout/suppression des erreurs synchronise l’action `identify_codes`; une désactivation manuelle de cette action garde priorité dans le lecteur.
+- Les crochets imbriqués sont ordonnés par inclusion, indépendamment de l’ordre de création; les groupes extérieurs ont des crochets plus grands.
 - Les mécaniques existantes doivent être réutilisées : corrections, classes, groupes, fonctions, noyaux, donneurs/receveurs, genre/nombre. Ne pas reconstruire une version parallèle “vite faite”.
 - Les crochets et encadrements ne doivent pas fusionner quand deux groupes sont adjacents.
 - Les labels de groupes, classes, codes, fonctions et genre/nombre doivent rester à des distances cohérentes de leur mot ou segment.

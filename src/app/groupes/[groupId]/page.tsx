@@ -1,4 +1,5 @@
 "use client";
+import { getActivitySentences } from "@/lib/activity-sentences";
 
 import { use } from "react";
 import Link from "next/link";
@@ -108,9 +109,9 @@ export default function GroupPage({ params }: { params: Promise<{ groupId: strin
         .reduce(
           (sum, sentence) =>
           sum +
-          (sentence.activityType === "word_classes"
-            ? getWordClassActivityPointTotal(sentence)
-            : sentence.corrections.length),
+          getActivitySentences(sentence).reduce((total, part) => total + (part.activityType === "word_classes"
+            ? getWordClassActivityPointTotal(part)
+            : part.corrections.length), 0),
           0
         )
     };

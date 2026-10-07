@@ -209,9 +209,7 @@ export function InteractiveSentenceReader({
   onRestoreWordClassPoints,
   onCompleteChange
 }: Props) {
-  const correctionPointStages = getCorrectionPointStages(sentence);
-  const requiresCorrectionCodes = correctionPointStages.includes("code");
-  const awardsClickPoint = correctionPointStages.includes("click");
+  const requiresCorrectionCodes = sentence.corrections.some((correction) => getCorrectionPointStages(sentence, correction).includes("code"));
   const [correctedIds, setCorrectedIds] = useState<string[]>([]);
   const [codedIds, setCodedIds] = useState<string[]>([]);
   const [activeCorrection, setActiveCorrection] = useState<SentenceCorrection | null>(null);
@@ -292,8 +290,9 @@ export function InteractiveSentenceReader({
         }> = [];
 
         sentence.corrections.forEach((correction) => {
+          const stages = getCorrectionPointStages(sentence, correction);
           if (
-            awardsClickPoint && restoredClickedIds.includes(correction.id) &&
+            stages.includes("click") && restoredClickedIds.includes(correction.id) &&
             !restoredHintedIds.includes(correction.id)
           ) {
             restoredPoints.push({
@@ -311,7 +310,7 @@ export function InteractiveSentenceReader({
             });
           }
 
-          if (requiresCorrectionCodes && restoredCodePointIds.includes(correction.id)) {
+          if (stages.includes("code") && restoredCodePointIds.includes(correction.id)) {
             restoredPoints.push({
               correction,
               stage: "code",
@@ -327,7 +326,7 @@ export function InteractiveSentenceReader({
     } finally {
       setPersistenceHydrated(true);
     }
-  }, [awardsClickPoint, requiresCorrectionCodes, persistenceKey, sentence.corrections, sentence.id]);
+  }, [persistenceKey, sentence]);
 
   useEffect(() => {
     if (
@@ -370,7 +369,7 @@ export function InteractiveSentenceReader({
   const correctedText = useMemo(() => buildCorrectedText(sentence), [sentence]);
   const hybridGroupTargets = useMemo(() => buildHybridGroupTargets(sentence, correctedText), [correctedText, sentence]);
   const correctedGrammarSentence = useMemo(() => buildCorrectedGrammarSentence(sentence, correctedText), [correctedText, sentence]);
-  const resolvedCorrectionMarks = useMemo<ResolvedCorrectionMark[]>(() => !requiresCorrectionCodes ? [] : normalizedCorrections(sentence).map((correction) => {
+  const resolvedCorrectionMarks = useMemo<ResolvedCorrectionMark[]>(() => normalizedCorrections(sentence).filter((correction) => getCorrectionPointStages(sentence, correction).includes("code")).map((correction) => {
     const start = mapOriginalPosition(sentence, correction.start, "start");
     const code = correctionCodes.find((item) => item.id === correction.correctionCodeId);
     return {
@@ -379,7 +378,7 @@ export function InteractiveSentenceReader({
       end: start + correction.correctedText.length,
       label: code?.code ?? "?"
     };
-  }), [correctionCodes, requiresCorrectionCodes, sentence]);
+  }), [correctionCodes, sentence]);
   const hybridWordClassSentence = useMemo(() => buildMixedWordClassSentence(correctedGrammarSentence), [correctedGrammarSentence]);
   const usesNativeGroupPhase = Boolean(sentence.workflowPhases?.some((phase) => phase.kind === "groups" && phase.actions.some((action) => action.enabled)) && hybridGroupTargets.length > 0);
   const usesNativeWordClassPhase = Boolean(
@@ -391,7 +390,7 @@ export function InteractiveSentenceReader({
   const usesSharedRangeSurface = Boolean(usesNativeGroupPhase || usesNativeWordClassPhase || usesNativeFunctionPhase);
   const groupBoundaryMode = sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.find((action) => action.kind === "frame_groups")?.responseMode === "frame" ? "frame" : "brackets";
   const identifyGroupNuclei = Boolean(sentence.workflowPhases?.find((phase) => phase.kind === "groups")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled) || sentence.workflowPhases?.find((phase) => phase.kind === "nuclei")?.actions.some((action) => action.kind === "find_nuclei" && action.enabled));
-  const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!requiresCorrectionCodes || codedIds.includes(correction.id)));
+  const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!getCorrectionPointStages(sentence, correction).includes("code") || codedIds.includes(correction.id)));
   const correctionReviewPhase = reviewPhaseImmediatelyAfter(sentence.workflowPhases, "correction");
   const correctionReviewActive = Boolean(
     correctionComplete &&
@@ -521,7 +520,7 @@ export function InteractiveSentenceReader({
     if (!clickedIds.includes(correction.id)) {
       setClickedIds((items) => [...items, correction.id]);
 
-      if (awardsClickPoint && !hintedIds.includes(correction.id)) {
+      if (getCorrectionPointStages(sentence, correction).includes("click") && !hintedIds.includes(correction.id)) {
         onPoint(correction, "click", 1);
       }
     }
@@ -533,7 +532,7 @@ export function InteractiveSentenceReader({
   }
 
   function openCodeDialog(correction: SentenceCorrection) {
-    if (!requiresCorrectionCodes || !correctedIds.includes(correction.id) || codedIds.includes(correction.id)) return;
+    if (!getCorrectionPointStages(sentence, correction).includes("code") || !correctedIds.includes(correction.id) || codedIds.includes(correction.id)) return;
 
     setActiveCorrection(correction);
     setDialogMode("code");
@@ -667,7 +666,7 @@ export function InteractiveSentenceReader({
         ].filter(Boolean).join(" ")}
       >
         <span className="interactive-word-shell">
-          {corrected && requiresCorrectionCodes && (
+          {corrected && getCorrectionPointStages(sentence, correction).includes("code") && (
             <button
               type="button"
               className={`interactive-code-box ${coded ? "filled" : ""}`}

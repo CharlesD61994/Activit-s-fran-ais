@@ -26,6 +26,7 @@ import { Card } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useAppStore } from "@/store/app-store";
 import { buildCompetitionStandings } from "@/lib/competition";
+import { getActivitySentences, replacePhrasePoints } from "@/lib/activity-sentences";
 import type { CompetitionResult, ScoreEvent, SentenceCorrection, WordClassTarget, WordGroupTarget } from "@/types";
 
 type PendingPoint = {
@@ -48,6 +49,7 @@ type PendingPoint = {
     | "nested_type";
   points: number;
   pointId?: string;
+  phraseId?: string;
 };
 
 export default function PresentationPage({
@@ -69,7 +71,12 @@ export default function PresentationPage({
   } = useAppStore();
 
   const group = data.groups.find((item) => item.id === groupId);
-  const sentence = data.sentences.find((item) => item.id === sentenceId);
+  const activity = data.sentences.find((item) => item.id === sentenceId);
+  const sentences = useMemo(() => activity ? getActivitySentences(activity) : [], [activity]);
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const sentence = sentences[Math.min(phraseIndex, Math.max(0, sentences.length - 1))];
+  const phraseId = sentence?.id;
+  const hasNextPhrase = phraseIndex < sentences.length - 1;
   const plannedSessionId = searchParams.get("plan");
   const launchedFromClasse = searchParams.get("from") === "classe";
   const launchedFromPortal = searchParams.get("from") === "portail";
@@ -94,8 +101,29 @@ export default function PresentationPage({
       : null;
 
   const [sessionId] = useState(() => crypto.randomUUID());
-  const readerPersistenceKey = `reader-progress-${groupId}-${plannedSessionId ?? "single"}-${sentenceId}-${competitionSourceId ?? "normal"}`;
+  const activityPersistenceKey = `reader-progress-${groupId}-${plannedSessionId ?? "single"}-${sentenceId}-${competitionSourceId ?? "normal"}`;
+  const readerPersistenceKey = sentences.length > 1 ? `${activityPersistenceKey}-phrase-${phraseId}` : activityPersistenceKey;
   const [pendingPoints, setPendingPoints] = useState<PendingPoint[]>([]);
+  const [phraseProgressHydrated, setPhraseProgressHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!activity) return;
+    try {
+      const raw = window.sessionStorage.getItem(`${activityPersistenceKey}-sequence`);
+      const saved = raw ? JSON.parse(raw) as { phraseId?: string; points?: PendingPoint[] } : null;
+      const resumedIndex = sentences.findIndex((part) => part.id === saved?.phraseId);
+      setPhraseIndex(Math.max(0, resumedIndex));
+      setPendingPoints(saved?.points?.filter((point) => sentences.some((part) => part.id === point.phraseId)) ?? []);
+    } catch { setPhraseIndex(0); setPendingPoints([]); }
+    setPhraseProgressHydrated(true);
+    // Restore once per activity, rather than each score/assignment update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activity?.id, activityPersistenceKey]);
+
+  useEffect(() => {
+    if (!phraseProgressHydrated || sentences.length < 2) return;
+    window.sessionStorage.setItem(`${activityPersistenceKey}-sequence`, JSON.stringify({ phraseId, points: pendingPoints }));
+  }, [activityPersistenceKey, pendingPoints, phraseId, phraseProgressHydrated, sentences.length]);
   const [finished, setFinished] = useState(false);
   const [readerComplete, setReaderComplete] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
@@ -180,7 +208,7 @@ export default function PresentationPage({
   useEffect(() => {
     setReaderComplete(false);
     setFinished(false);
-  }, [sentenceId]);
+  }, [sentenceId, phraseId]);
 
   const pendingTotal = pendingPoints.reduce((sum, item) => sum + item.points, 0);
   const isTextActivity = sentence?.activityType === "text_correction";
@@ -198,8 +226,9 @@ export default function PresentationPage({
   }, [sentence]);
 
   const restorePendingPoints = useCallback((points: PendingPoint[]) => {
-    setPendingPoints(points.map((point) => ({ ...point, points: 1 })));
-  }, []);
+    setPendingPoints((current) => replacePhrasePoints(current,
+      points.map((point) => ({ ...point, points: 1, phraseId })), phraseId, ["click", "word", "code"]));
+  }, [phraseId]);
 
   function queuePoint(
     correction: SentenceCorrection,
@@ -232,7 +261,7 @@ export default function PresentationPage({
 
       return [
         ...items,
-        { correction, stage, points: 1, pointId }
+        { correction, stage, points: 1, pointId, phraseId }
       ];
     });
   }
@@ -277,22 +306,19 @@ export default function PresentationPage({
         pointId?: string;
       }>
     ) => {
-      setPendingPoints((current) => [
-        ...current.filter(
-          (point) => !["find", "class", "role", "agreement"].includes(point.stage)
-        ),
-        ...points.map((point) => ({
+      setPendingPoints((current) => replacePhrasePoints(current,
+        points.map((point) => ({
           correction: toSyntheticCorrection(
             point.target,
             point.pointId
           ),
           stage: point.stage,
           points: 1,
-          pointId: point.pointId
-        }))
-      ]);
+          pointId: point.pointId,
+          phraseId
+        })), phraseId, ["find", "class", "role", "agreement"]));
     },
-    []
+    [phraseId]
   );
 
   function toSyntheticGroupCorrection(
@@ -351,7 +377,7 @@ export default function PresentationPage({
         pointId: string;
       }>
     ) => {
-      setPendingPoints(
+      setPendingPoints((current) => replacePhrasePoints(current,
         points.map((point) => ({
           correction: toSyntheticGroupCorrection(
             point.target,
@@ -359,11 +385,12 @@ export default function PresentationPage({
           ),
           stage: point.stage,
           points: 1,
-          pointId: point.pointId
-        }))
+          pointId: point.pointId,
+          phraseId
+        })), phraseId, ["left_bracket", "right_bracket", "group_type", "nucleus", "contracted_answer", "gprep_nucleus", "nested_presence", "nested_type"])
       );
     },
-    []
+    [phraseId]
   );
 
   useEffect(() => {
@@ -410,6 +437,8 @@ export default function PresentationPage({
   if (requiresTeacherAccess && (!configured || !user)) {
     return null;
   }
+
+  if (!phraseProgressHydrated) return <div className="app-loading-screen">Chargement de l’activité…</div>;
 
   if (launchedFromPortal && !portalUnlocked) {
     return (
@@ -483,6 +512,12 @@ export default function PresentationPage({
 
   function finishSentence() {
     if (finished) return;
+    if (hasNextPhrase) {
+      setReaderComplete(false);
+      setPhraseIndex((current) => current + 1);
+      setActivityAssignmentStatus(sentenceId, groupId, "in_progress", (phraseIndex + 1) / sentences.length);
+      return;
+    }
 
     pendingPoints.forEach(
       ({ correction, stage, points, pointId }) => {
@@ -517,6 +552,11 @@ export default function PresentationPage({
     setFinished(true);
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(readerPersistenceKey);
+      window.sessionStorage.removeItem(`${activityPersistenceKey}-sequence`);
+      sentences.forEach((part) => {
+        const key = sentences.length > 1 ? `${activityPersistenceKey}-phrase-${part.id}` : activityPersistenceKey;
+        [key, `${key}-groups`, `${key}-word-classes`].forEach((value) => window.sessionStorage.removeItem(value));
+      });
     }
 
     if (plannedSession && nextSentence) {
@@ -612,14 +652,14 @@ export default function PresentationPage({
       : `/groupes/${groupId}`;
 
   function leaveSentence() {
-    if (readerComplete) {
+    if (readerComplete && !hasNextPhrase) {
       finishSentence();
       return;
     }
     router.push(exitHref);
   }
 
-  const finishLabel = plannedSession && nextSentence ? "Suivant" : "Quitter";
+  const finishLabel = hasNextPhrase || (plannedSession && nextSentence) ? "Suivant" : "Quitter";
   const finishControl = <Button onClick={finishSentence}>{finishLabel}</Button>;
 
   if (showPodium) {
@@ -715,6 +755,7 @@ export default function PresentationPage({
           <div className="reader-command-instruction">
             <div>
               <h1 className="reader-command-title">{sentence.title}</h1>
+              {sentences.length > 1 && <span className="reader-sentence-counter">Phrase {phraseIndex + 1} / {sentences.length}</span>}
               <ReaderChromeTarget slot="instruction" className="reader-command-instruction-slot" />
             </div>
           </div>
@@ -727,7 +768,7 @@ export default function PresentationPage({
           </div>
         </section>
 
-        <section className="reader-activity-flow">
+        <section className="reader-activity-flow" key={phraseId}>
         {isWorksheetActivity ? (
           <WorksheetReader
             sentence={sentence}

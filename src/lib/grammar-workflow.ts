@@ -4,8 +4,10 @@ import type {
   GrammarObjective,
   GrammarPhaseKind,
   GrammarWorkflowPhase,
-  Sentence
+  Sentence,
+  SentenceCorrection
 } from "@/types";
+import { getActivitySentences } from "./activity-sentences";
 
 export function shuffledGrammarTargetIds(
   ids: string[],
@@ -139,14 +141,23 @@ export function getSentenceWorkflow(sentence: Sentence): GrammarWorkflowPhase[] 
   return normalizeGrammarWorkflow(phases, Boolean(sentence.grammarAnnotations?.some((annotation) => annotation.kind === "nucleus")));
 }
 
-export function getCorrectionPointStages(sentence: Sentence): Array<"click" | "word" | "code"> {
+export function getCorrectionPointStages(sentence: Sentence, correction?: SentenceCorrection): Array<"click" | "word" | "code"> {
   const identifyCodes = !sentence.workflowPhases?.length || sentence.workflowPhases.some(
     (phase) => phase.kind === "correction" && phase.actions.some(
       (action) => action.kind === "identify_codes" && action.enabled
     )
   );
   // Without codes, locating and correcting the same error earns one point together.
-  return identifyCodes ? ["click", "word", "code"] : ["word"];
+  return identifyCodes && (!correction || Boolean(correction.correctionCodeId))
+    ? ["click", "word", "code"] : ["word"];
+}
+
+export function syncCorrectionCodePhase(phases: GrammarWorkflowPhase[], corrections: SentenceCorrection[]): GrammarWorkflowPhase[] {
+  const enabled = corrections.some((correction) => Boolean(correction.correctionCodeId));
+  return phases.map((phase) => phase.kind !== "correction" ? phase : {
+    ...phase,
+    actions: phase.actions.map((action) => action.kind === "identify_codes" ? { ...action, enabled } : action)
+  });
 }
 
 export function getAgreementWorkflowSettings(sentence: Sentence) {
@@ -199,7 +210,7 @@ export function getSecondaryObjectives(sentence: Sentence): GrammarPhaseKind[] {
     functions: "functions",
     agreements: "agreements"
   };
-  return getSentenceWorkflow(sentence)
+  return getActivitySentences(sentence).flatMap(getSentenceWorkflow)
     .map((phase) => phase.kind)
     .filter((kind, index, all) => kind !== "review" && kind !== primaryPhase[primary] && all.indexOf(kind) === index);
 }
