@@ -104,7 +104,8 @@ const groupLabels: Record<WordGroupType, string> = {
   GV: "GV",
   GAdj: "GAdj",
   GAdv: "GAdv",
-  GPrep: "GPrép"
+  GPrep: "GPrép",
+  "Sub. relative": "Sub. relative"
 };
 
 const wordClassLabels: Record<WordClass, string> = {

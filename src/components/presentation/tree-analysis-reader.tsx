@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import type { Sentence, TreeAnalysisInteraction, TreeAnalysisNode, WordClass, WordGroupType } from "@/types";
 
-const groupLabels: Record<WordGroupType, string> = { GN: "GN", GV: "GV", GAdj: "GAdj", GAdv: "GAdv", GPrep: "GPrép" };
+const groupLabels: Record<WordGroupType, string> = { GN: "GN", GV: "GV", GAdj: "GAdj", GAdv: "GAdv", GPrep: "GPrép", "Sub. relative": "Sub. relative" };
 const wordClassLabels: Record<WordClass, string> = { noun: "N", determiner: "Dét", verb: "V", preposition: "Prép", adverb: "Adv", adjective: "Adj", pronoun: "Pron", conjunction: "Conj", interjection: "Interj" };
 
 function normalizeAnswer(value: string) {
@@ -16,6 +16,7 @@ function normalizeAnswer(value: string) {
 
 const nodeAliases: Record<WordGroupType | WordClass, string[]> = {
   GN: ["gn", "groupenominal"], GV: ["gv", "groupeverbal"], GAdj: ["gadj", "groupeadjectival"], GAdv: ["gadv", "groupeadverbial"], GPrep: ["gprep", "groupeprepositionnel"],
+  "Sub. relative": ["subrelative", "subrel", "subordonneerelative", "propositionsubordonneerelative"],
   noun: ["n", "nom"], determiner: ["det", "determinant"], verb: ["v", "verbe"], preposition: ["prep", "preposition"], adverb: ["adv", "adverbe"], adjective: ["adj", "adjectif"], pronoun: ["pron", "pronom"], conjunction: ["conj", "conjonction"], interjection: ["interj", "interjection"]
 };
 const DEFAULT_PHASE_ORDER = ["groups", "nuclei", "linked_nodes", "functions", "remaining_nodes", "tables"] as const;

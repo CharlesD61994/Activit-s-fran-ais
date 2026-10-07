@@ -32,7 +32,8 @@ const groupLabels: Record<WordGroupType, string> = {
   GV: "Groupe verbal (GV)",
   GAdj: "Groupe adjectival (GAdj)",
   GAdv: "Groupe adverbial (GAdv)",
-  GPrep: "Groupe prépositionnel (GPrép)"
+  GPrep: "Groupe prépositionnel (GPrép)",
+  "Sub. relative": "Subordonnée relative (Sub. relative)"
 };
 
 function isContractedNested(target?: WordGroupTarget | null) {

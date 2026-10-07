@@ -11,6 +11,7 @@ import { WordGroupReader } from "@/components/presentation/word-group-reader";
 import { resolveCorrectionBounds } from "@/lib/correction-ranges";
 import { buildMixedWordClassSentence } from "@/lib/mixed-word-class-adapter";
 import { getCorrectionPointStages, reviewPhaseImmediatelyAfter } from "@/lib/grammar-workflow";
+import { wordGroupCodes } from "@/lib/grammar-definitions";
 import {
   endsWithFrenchElision,
   protectFrenchElisionBreaks
@@ -61,7 +62,7 @@ type LayoutToken = {
   correction?: SentenceCorrection;
 };
 
-const hybridGroupTypes = new Set<WordGroupType>(["GN", "GV", "GAdj", "GAdv", "GPrep"]);
+const hybridGroupTypes = new Set<WordGroupType>(wordGroupCodes);
 
 function normalizedCorrections(sentence: Sentence) {
   return sentence.corrections

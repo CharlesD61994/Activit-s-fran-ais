@@ -199,7 +199,8 @@ export type WordGroupType =
   | "GV"
   | "GAdj"
   | "GAdv"
-  | "GPrep";
+  | "GPrep"
+  | "Sub. relative";
 
 export type WordGroupTarget = {
   id: string;

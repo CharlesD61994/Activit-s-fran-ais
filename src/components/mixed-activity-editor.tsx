@@ -151,7 +151,8 @@ const nucleusClassByGroup: Record<
   GAdj: "adjective",
   GAdv: "adverb",
   GPrep: "preposition",
-  GPrép: "preposition"
+  GPrép: "preposition",
+  "Sub. relative": "verb"
 };
 
 export function MixedActivityEditor({
