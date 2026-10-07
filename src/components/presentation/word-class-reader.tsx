@@ -10,6 +10,7 @@ import { Check, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
 import { CorrectionPause } from "@/components/presentation/correction-pause";
+import { groupLabelPlacement } from "@/components/grammar/group-label-layout";
 import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
@@ -1868,8 +1869,9 @@ export function WordClassReader({
         {persistentGroupAnnotations.map((annotation) => {
           const position = persistentRangePositions[annotation.id];
           if (!position) return null;
+          const placement = groupLabelPlacement(annotation, persistentGroupAnnotations, position);
           return (
-            <span className="word-group-label-anchor persistent-range-label" key={`persistent-group-${annotation.id}`} style={{ left: position.x, top: position.y }}>
+            <span className="word-group-label-anchor persistent-range-label" key={`persistent-group-${annotation.id}`} style={{ left: placement.left, top: placement.top }}>
               <span className="word-group-code-box filled">{annotation.label}</span>
             </span>
           );

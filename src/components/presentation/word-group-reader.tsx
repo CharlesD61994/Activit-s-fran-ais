@@ -15,6 +15,7 @@ import { useRangeTargetPositions } from "@/components/grammar/use-range-target-p
 import { chooseBracketTarget, matchDrawnRange, recognizeBracketStroke, tokenizeGrammarText } from "@/components/grammar/range-interaction-engine";
 import type { GrammarRangeToken, InteractionPoint } from "@/components/grammar/range-interaction-engine";
 import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
+import { groupLabelPlacement } from "@/components/grammar/group-label-layout";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ResolvedCorrectionLabels } from "@/components/grammar/resolved-correction-labels";
 import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-correction-labels";
@@ -507,6 +508,7 @@ export function WordGroupReader({
           target,
           contracted:
             element.classList.contains("contracted-result"),
+          principal: element.dataset.principalGroup === "true",
           rect: element.getBoundingClientRect()
         };
       });
@@ -540,7 +542,15 @@ export function WordGroupReader({
           let movable = b;
           let fixed = a;
 
-          if (a.contracted && !b.contracted) {
+          if (a.principal && b.principal) continue;
+
+          if (a.principal) {
+            movable = b;
+            fixed = a;
+          } else if (b.principal) {
+            movable = a;
+            fixed = b;
+          } else if (a.contracted && !b.contracted) {
             movable = b;
             fixed = a;
           } else if (b.contracted && !a.contracted) {
@@ -1215,6 +1225,7 @@ export function WordGroupReader({
             phase === "type" && currentTarget?.id === target.id;
 
           if (!position || (!classified && !selecting)) return null;
+          const placement = groupLabelPlacement(target, targets, position);
 
           return (
             <div
@@ -1226,11 +1237,12 @@ export function WordGroupReader({
               }`}
               key={`label-${target.id}`}
               data-word-group-label-id={target.id}
+              data-principal-group={placement.principal}
               style={{
                 left:
-                  position.x + (labelOffsets[target.id]?.x ?? 0),
+                  placement.left + (placement.principal ? 0 : labelOffsets[target.id]?.x ?? 0),
                 top:
-                  position.y + (labelOffsets[target.id]?.y ?? 0)
+                  placement.top + (labelOffsets[target.id]?.y ?? 0)
               }}
             >
               {selecting ? (

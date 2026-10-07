@@ -26,6 +26,7 @@ import type {
   InteractionPoint
 } from "@/components/grammar/range-interaction-engine";
 import { useRangeTargetPositions } from "@/components/grammar/use-range-target-positions";
+import { groupLabelPlacement } from "@/components/grammar/group-label-layout";
 import { rangeReaderStyle } from "@/components/grammar/range-reader-layout";
 import { RangeMarksLayer } from "@/components/grammar/range-marks-layer";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
@@ -669,11 +670,12 @@ export function GrammarExtensionReader({
             .map((annotation) => {
               const position = positions[annotation.id];
               if (!position) return null;
+              const placement = groupLabelPlacement(annotation, annotations.filter((item) => item.kind === "group"), position);
               return (
                 <div
                   className="word-group-label-anchor persistent-range-label"
                   key={`extension-group-label-${annotation.id}`}
-                  style={{ left: position.x, top: position.y }}
+                  style={{ left: placement.left, top: placement.top }}
                 >
                   <span className="word-group-code-box filled">{annotation.label}</span>
                 </div>
