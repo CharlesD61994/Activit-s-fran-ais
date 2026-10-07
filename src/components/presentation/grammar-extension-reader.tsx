@@ -176,6 +176,7 @@ export function GrammarExtensionReader({
       ? "frame"
       : "click");
   const rawComplete = stepIndex >= steps.length;
+  const wordsSelectable = !rawComplete && responseMode === "click" && Boolean(step && currentTarget);
   const lastPhaseKind = steps[steps.length - 1]?.phase.kind;
   const reviewPhase = lastPhaseKind
     ? reviewPhaseImmediatelyAfter(sentence.workflowPhases, lastPhaseKind)
@@ -722,11 +723,12 @@ export function GrammarExtensionReader({
                     <button
                       type="button"
                       className="word-group-reader-token grammar-extension-token"
+                      disabled={!wordsSelectable}
                       style={style}
                       data-extension-token-id={token.id}
                       onClick={() => {
                         if (
-                          responseMode !== "click" ||
+                          !wordsSelectable ||
                           !step ||
                           !currentTarget
                         ) {

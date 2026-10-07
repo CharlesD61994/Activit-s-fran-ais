@@ -8086,8 +8086,13 @@ textarea {
   cursor: pointer;
 }
 
-.grammar-extension-token:hover,
-.grammar-extension-token:focus-visible {
+.grammar-extension-token:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.grammar-extension-token:hover:not(:disabled),
+.grammar-extension-token:focus-visible:not(:disabled) {
   color: var(--primary);
   outline: none;
   text-decoration: underline;
