@@ -63,6 +63,7 @@ type Props = {
   sentence: Sentence;
   excludedKinds?: GrammarAnnotationKind[];
   initialSolvedIds?: string[];
+  finalState?: boolean;
   forcedLineBreaks?: number[];
   onCompleteChange?: (complete: boolean) => void;
   finishControl?: React.ReactNode;
@@ -73,6 +74,7 @@ export function GrammarExtensionReader({
   sentence,
   excludedKinds = EMPTY_ANNOTATION_KINDS,
   initialSolvedIds = EMPTY_IDS,
+  finalState = false,
   forcedLineBreaks = EMPTY_LINE_BREAKS,
   onCompleteChange,
   finishControl,
@@ -122,10 +124,10 @@ export function GrammarExtensionReader({
     () => new Map(functionTargetOrder.map((id, index) => [id, index])),
     [functionTargetOrder]
   );
-  const [stepIndex, setStepIndex] = useState(0);
-  const [solvedIds, setSolvedIds] = useState<string[]>(initialSolvedIds);
-  const [leftIds, setLeftIds] = useState<string[]>(initialSolvedIds);
-  const [rightIds, setRightIds] = useState<string[]>(initialSolvedIds);
+  const [stepIndex, setStepIndex] = useState(finalState ? steps.length : 0);
+  const [solvedIds, setSolvedIds] = useState<string[]>(() => finalState ? annotations.map((annotation) => annotation.id) : initialSolvedIds);
+  const [leftIds, setLeftIds] = useState<string[]>(() => finalState ? annotations.map((annotation) => annotation.id) : initialSolvedIds);
+  const [rightIds, setRightIds] = useState<string[]>(() => finalState ? annotations.map((annotation) => annotation.id) : initialSolvedIds);
   const [frameStart, setFrameStart] = useState<Point | null>(null);
   const [frameCurrent, setFrameCurrent] = useState<Point | null>(null);
   const [stroke, setStroke] = useState<Point[]>([]);
@@ -181,7 +183,7 @@ export function GrammarExtensionReader({
   const reviewPhase = lastPhaseKind
     ? reviewPhaseImmediatelyAfter(sentence.workflowPhases, lastPhaseKind)
     : undefined;
-  const reviewActive = Boolean(rawComplete && reviewPhase && !dismissedReviewIds.includes(reviewPhase.id));
+  const reviewActive = Boolean(!finalState && rawComplete && reviewPhase && !dismissedReviewIds.includes(reviewPhase.id));
   const complete = rawComplete && !reviewActive;
   const displayedSolvedIds = complete
     ? new Set(annotations.map((annotation) => annotation.id))

@@ -101,6 +101,26 @@ export function horizontalInkBounds(
   return { left: left - metrics.actualBoundingBoxLeft, right: left + metrics.actualBoundingBoxRight };
 }
 
+export function verticalInkBounds(bottom: number, metrics: Pick<TextMetrics, "fontBoundingBoxDescent" | "actualBoundingBoxAscent" | "actualBoundingBoxDescent">) {
+  const baseline = bottom - metrics.fontBoundingBoxDescent;
+  return { top: baseline - metrics.actualBoundingBoxAscent, bottom: baseline + metrics.actualBoundingBoxDescent };
+}
+
+/** Locate the letters' baseline without including absolute annotation labels. */
+function rangeTokenVerticalInk(element: HTMLElement, text: string, context: CanvasRenderingContext2D | null) {
+  const glyph = element.querySelector<HTMLElement>("[data-word-glyph]") ?? element;
+  const textNode = [...glyph.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim());
+  if (!context || !textNode) return null;
+  const range = document.createRange();
+  range.selectNodeContents(textNode);
+  const rect = range.getBoundingClientRect();
+  const style = window.getComputedStyle(glyph);
+  context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const metrics = context.measureText(text);
+  if (![metrics.fontBoundingBoxDescent, metrics.actualBoundingBoxAscent, metrics.actualBoundingBoxDescent].every(Number.isFinite)) return null;
+  return verticalInkBounds(rect.bottom, metrics);
+}
+
 /** Measure visible ink rather than the advance boxes that touch at punctuation. */
 export function rangeTokenInkBounds(element: HTMLElement, text: string, context: CanvasRenderingContext2D | null) {
   const glyph = element.querySelector<HTMLElement>("[data-word-glyph]") ?? element;
@@ -220,6 +240,14 @@ export function useRangeTargetPositions(
         const last = rects[rects.length - 1];
         const firstGlyph = glyphRects[0];
         const lastGlyph = glyphRects[glyphRects.length - 1];
+        const visibleInk = measuredTokens.map(({ element, token }) => rangeTokenVerticalInk(element, token.text, inkContext));
+        const boundaryInk = (boundary: DOMRect, fallback: RectMetrics) => {
+          const inks = rects.flatMap((rect, index) =>
+            Math.abs(rect.top - boundary.top) < Math.min(rect.height, boundary.height) * .5 && visibleInk[index] ? [visibleInk[index]!] : []);
+          return inks.length ? { top: Math.min(...inks.map((ink) => ink.top)), bottom: Math.max(...inks.map((ink) => ink.bottom)) } : fallback;
+        };
+        const firstVisibleInk = boundaryInk(first, firstGlyph);
+        const lastVisibleInk = boundaryInk(last, lastGlyph);
         const firstBand = lineBand(first);
         const lastBand = lineBand(last);
         const firstInk = rangeTokenInkBounds(elements[0], measuredTokens[0].token.text, inkContext);
@@ -257,8 +285,8 @@ export function useRangeTargetPositions(
           startX: first.left - surfaceRect.left,
           startY: first.top - surfaceRect.top,
           startHeight: first.height,
-          markStartY: firstGlyph.top - surfaceRect.top,
-          markStartHeight: firstGlyph.height,
+          markStartY: firstVisibleInk.top - surfaceRect.top,
+          markStartHeight: firstVisibleInk.bottom - firstVisibleInk.top,
           endX: last.right - surfaceRect.left,
           startInkX: firstInk.left - surfaceRect.left,
           endInkX: lastInk.right - surfaceRect.left,
@@ -270,8 +298,8 @@ export function useRangeTargetPositions(
           endGap: neighbourGap("end"),
           endY: last.top - surfaceRect.top,
           endHeight: last.height,
-          markEndY: lastGlyph.top - surfaceRect.top,
-          markEndHeight: lastGlyph.height,
+          markEndY: lastVisibleInk.top - surfaceRect.top,
+          markEndHeight: lastVisibleInk.bottom - lastVisibleInk.top,
           // Les cadres suivent les glyphes; les crochets et les gestes gardent
           // les rectangles de ligne complets afin de rester faciles à tracer.
           segments: buildRangeSegments(glyphRects, surfaceRect)

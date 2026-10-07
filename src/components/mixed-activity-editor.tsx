@@ -68,6 +68,7 @@ type Props = {
   onSave: (sentence: Sentence) => void;
   onDraftChange?: (sentence: Sentence) => void;
   phrasePosition?: string;
+  printSentences?: Sentence[];
 };
 
 function correctedTeacherSentence(sentence: Sentence) {
@@ -161,7 +162,8 @@ export function MixedActivityEditor({
   correctionCodes,
   onSave,
   onDraftChange,
-  phrasePosition
+  phrasePosition,
+  printSentences
 }: Props) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const correctionPrintRef = useRef<CorrectionPrintSheetHandle>(null);
@@ -772,10 +774,12 @@ export function MixedActivityEditor({
       return;
     }
     try {
+      // Let the edited text and its rebased answers reach every print surface.
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
       await correctionPrintRef.current?.capture();
       window.print();
-    } catch {
-      setMessage("Le corrigé n’a pas pu être préparé pour l’impression. Réessaie.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Le corrigé n’a pas pu être préparé pour l’impression. Réessaie.");
     }
   }
 
@@ -1347,8 +1351,8 @@ export function MixedActivityEditor({
 
       <CorrectionPrintSheet
         ref={correctionPrintRef}
-        sentence={agreementCorrectionSentence}
-        correctionMarks={teacherCorrectionMarks}
+        sentence={{ ...sentence, activitySentences: printSentences?.map((part) => part.id === sentence.id ? sentence : part) }}
+        correctionCodes={correctionCodes}
       />
     </>
   );

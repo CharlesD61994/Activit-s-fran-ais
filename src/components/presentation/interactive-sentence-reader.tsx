@@ -21,6 +21,7 @@ import type { CorrectionCode, Sentence, SentenceCorrection, WordClassTarget, Wor
 
 type Props = {
   sentence: Sentence;
+  finalState?: boolean;
   displayMode?: "sentence" | "text";
   correctionCodes: CorrectionCode[];
   onPoint: (
@@ -200,6 +201,7 @@ function measureTextWidth(
 
 export function InteractiveSentenceReader({
   sentence,
+  finalState = false,
   displayMode = "sentence",
   correctionCodes,
   onPoint,
@@ -211,8 +213,8 @@ export function InteractiveSentenceReader({
   onCompleteChange
 }: Props) {
   const requiresCorrectionCodes = sentence.corrections.some((correction) => getCorrectionPointStages(sentence, correction).includes("code"));
-  const [correctedIds, setCorrectedIds] = useState<string[]>([]);
-  const [codedIds, setCodedIds] = useState<string[]>([]);
+  const [correctedIds, setCorrectedIds] = useState<string[]>(() => finalState ? sentence.corrections.map((correction) => correction.id) : []);
+  const [codedIds, setCodedIds] = useState<string[]>(() => finalState ? sentence.corrections.map((correction) => correction.id) : []);
   const [activeCorrection, setActiveCorrection] = useState<SentenceCorrection | null>(null);
   const [dialogMode, setDialogMode] = useState<"word" | "code">("word");
   const [answer, setAnswer] = useState("");
@@ -222,12 +224,13 @@ export function InteractiveSentenceReader({
   const [codePointIds, setCodePointIds] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
-  const [hybridGroupComplete, setHybridGroupComplete] = useState(false);
+  const [hybridGroupComplete, setHybridGroupComplete] = useState(finalState);
   const [hybridWordClassComplete, setHybridWordClassComplete] = useState(false);
   const [hybridExtensionComplete, setHybridExtensionComplete] = useState(false);
   const [readerRevision, setReaderRevision] = useState(0);
   const [dismissedReviewIds, setDismissedReviewIds] = useState<string[]>([]);
   const sentenceRef = useRef<HTMLDivElement>(null);
+  const readerRef = useRef<HTMLDivElement>(null);
   const restorePointsRef = useRef(onRestorePoints);
 
   useEffect(() => {
@@ -235,6 +238,14 @@ export function InteractiveSentenceReader({
   }, [onRestorePoints]);
 
   useEffect(() => {
+    if (finalState) {
+      setCorrectedIds(sentence.corrections.map((correction) => correction.id));
+      setCodedIds(sentence.corrections.map((correction) => correction.id));
+      setHybridGroupComplete(true);
+      setDismissedReviewIds([]);
+      setPersistenceHydrated(true);
+      return;
+    }
     if (!persistenceKey || typeof window === "undefined") {
       setDismissedReviewIds([]);
       setPersistenceHydrated(true);
@@ -327,7 +338,7 @@ export function InteractiveSentenceReader({
     } finally {
       setPersistenceHydrated(true);
     }
-  }, [persistenceKey, sentence]);
+  }, [finalState, persistenceKey, sentence]);
 
   useEffect(() => {
     if (
@@ -394,6 +405,7 @@ export function InteractiveSentenceReader({
   const correctionComplete = ordered.every((correction) => correctedIds.includes(correction.id) && (!getCorrectionPointStages(sentence, correction).includes("code") || codedIds.includes(correction.id)));
   const correctionReviewPhase = reviewPhaseImmediatelyAfter(sentence.workflowPhases, "correction");
   const correctionReviewActive = Boolean(
+    !finalState &&
     correctionComplete &&
     correctionReviewPhase &&
     !dismissedReviewIds.includes(correctionReviewPhase.id)
@@ -440,11 +452,14 @@ export function InteractiveSentenceReader({
   }, [layoutLines, layoutTokens]);
 
   useEffect(() => {
-    const element = sentenceRef.current;
+    const layoutSurface = () => sentenceRef.current ?? (finalState
+      ? readerRef.current?.querySelector<HTMLElement>(".shared-grammar-reader-text")
+      : null);
+    const element = layoutSurface();
     if (!element) return;
 
     function calculateLines() {
-      const target = sentenceRef.current;
+      const target = layoutSurface();
       if (!target) return;
 
       const styles = window.getComputedStyle(target);
@@ -513,7 +528,7 @@ export function InteractiveSentenceReader({
     const observer = new ResizeObserver(calculateLines);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [layoutTokens]);
+  }, [finalState, layoutTokens]);
 
   function openWordDialog(correction: SentenceCorrection) {
     if (correctedIds.includes(correction.id)) return;
@@ -721,7 +736,7 @@ export function InteractiveSentenceReader({
       : layoutTokens.map((token) => renderToken(token));
 
   return (
-    <div className={`interactive-reader interactive-reader-${displayMode} ${requiresCorrectionCodes ? "has-above-marks" : ""}`}>
+    <div ref={readerRef} className={`interactive-reader interactive-reader-${displayMode} ${requiresCorrectionCodes ? "has-above-marks" : ""}`}>
       {!correctionComplete && (
         <>
           <ReaderChromePortal slot="instruction"><div className="reader-chrome-instruction-copy"><strong>Corrige les erreurs dans la phrase.</strong><span>Clique sur la partie à corriger, puis entre ta réponse.</span></div></ReaderChromePortal>
@@ -767,6 +782,7 @@ export function InteractiveSentenceReader({
           <WordClassReader
             key={`mixed-word-classes-${readerRevision}`}
             sentence={hybridWordClassSentence}
+            finalState={finalState}
             persistenceKey={persistenceKey ? `${persistenceKey}-word-classes` : undefined}
             onPoint={onWordClassPoint}
             onRestorePoints={onRestoreWordClassPoints}
@@ -780,6 +796,7 @@ export function InteractiveSentenceReader({
           <GrammarExtensionReader
             key={`mixed-grammar-${readerRevision}`}
             sentence={correctedGrammarSentence}
+            finalState={finalState}
             excludedKinds={["group", "nucleus"]}
             initialSolvedIds={(correctedGrammarSentence.grammarAnnotations ?? []).filter((annotation) => annotation.kind === "group" || annotation.kind === "nucleus").map((annotation) => annotation.id)}
             forcedLineBreaks={forcedGrammarLineBreaks}
@@ -797,6 +814,7 @@ export function InteractiveSentenceReader({
         <GrammarExtensionReader
           key={`mixed-extension-${readerRevision}`}
           sentence={correctedGrammarSentence}
+          finalState={finalState}
           forcedLineBreaks={forcedGrammarLineBreaks}
           correctionMarks={resolvedCorrectionMarks}
           onCompleteChange={setHybridExtensionComplete}

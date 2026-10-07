@@ -98,6 +98,7 @@ export function MultiSentenceActivityEditor({ initialSentence, levels, correctio
     </section>
     <MixedActivityEditor key={activeId} initialSentence={active} levels={levels}
       correctionCodes={correctionCodes} onDraftChange={updateDraft} onSave={save}
+      printSentences={sentences}
       phrasePosition={sentences.length > 1 ? `${index + 1}/${sentences.length}` : undefined} />
   </>;
 }

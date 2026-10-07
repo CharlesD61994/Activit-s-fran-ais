@@ -21,9 +21,9 @@ describe("conditional spacing below the first reader line", () => {
     expect(principalLineClearances(groups, [10, 20], [lower.id])).toEqual({ 10: 60 });
   });
 
-  it("follows a principal group over wrapped lines without spacing unrelated lines", () => {
+  it("keeps continuation and expansion lines compact", () => {
     const parent = { id: "parent", start: 5, end: 25 };
-    expect(principalLineClearances([parent, lowerChild], [10, 20, 30], [parent.id])).toEqual({ 10: 60, 20: 60 });
+    expect(principalLineClearances([parent, lowerChild], [10, 20, 30], [parent.id])).toEqual({});
   });
 
   it("uses one gap when several enclosed principals share a line", () => {

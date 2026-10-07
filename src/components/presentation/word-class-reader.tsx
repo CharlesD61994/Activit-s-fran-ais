@@ -59,6 +59,7 @@ type Props = {
   finishControl?: React.ReactNode;
   embedded?: boolean;
   correctionArrowAuthoring?: boolean;
+  finalState?: boolean;
   onAgreementCorrectionArrowsChange?: (arrows: AgreementCorrectionArrow[]) => void;
   correctionMarks?: ResolvedCorrectionMark[];
   forcedLineBreaks?: number[];
@@ -209,10 +210,12 @@ export function WordClassReader({
   finishControl,
   embedded = false,
   correctionArrowAuthoring = false,
+  finalState = false,
   onAgreementCorrectionArrowsChange,
   correctionMarks = [],
   forcedLineBreaks = []
 }: Props) {
+  const revealAnswers = correctionArrowAuthoring || finalState;
   const selectedClasses = useMemo(
     () => sentence.selectedWordClasses ?? [],
     [sentence.selectedWordClasses]
@@ -374,17 +377,17 @@ export function WordClassReader({
       : agreementWorkflow.identifyReceivers;
 
   const [foundIds, setFoundIds] = useState<string[]>(() =>
-    correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []
+    revealAnswers ? analysisTargets.map((target) => target.id) : []
   );
   const [classPointIds, setClassPointIds] = useState<string[]>([]);
   const [resolvedRoleIds, setResolvedRoleIds] = useState<string[]>(() =>
-    correctionArrowAuthoring ? roleTasks.map((task) => task.targetId) : []
+    revealAnswers ? roleTasks.map((task) => task.targetId) : []
   );
   const [resolvedGenderIds, setResolvedGenderIds] = useState<string[]>(() =>
-    correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []
+    revealAnswers ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []
   );
   const [resolvedNumberIds, setResolvedNumberIds] = useState<string[]>(() =>
-    correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []
+    revealAnswers ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []
   );
   const [rolePointIds, setRolePointIds] = useState<string[]>([]);
   const [relationAnswers, setRelationAnswers] = useState<
@@ -405,7 +408,7 @@ export function WordClassReader({
   const [hydrated, setHydrated] = useState(false);
   const [drawnAgreementArrows, setDrawnAgreementArrows] = useState<
     DrawnAgreementArrow[]
-  >(correctionArrowAuthoring ? sentence.agreementCorrectionArrows ?? [] : []);
+  >(revealAnswers ? sentence.agreementCorrectionArrows ?? [] : []);
   const [draftAgreementPoints, setDraftAgreementPoints] = useState<
     AgreementPoint[]
   >([]);
@@ -496,12 +499,12 @@ export function WordClassReader({
   }, [correctionArrowAuthoring, drawnAgreementArrows, onAgreementCorrectionArrowsChange]);
 
   useEffect(() => {
-    if (!correctionArrowAuthoring) return;
+    if (!revealAnswers) return;
     setFoundIds(analysisTargets.map((target) => target.id));
     setResolvedRoleIds(roleTasks.map((task) => task.targetId));
     setResolvedGenderIds(analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id));
     setResolvedNumberIds(analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id));
-  }, [analysisTargets, correctionArrowAuthoring, roleTasks]);
+  }, [analysisTargets, revealAnswers, roleTasks]);
 
   useEffect(
     () => () => {
@@ -536,23 +539,23 @@ export function WordClassReader({
   useEffect(() => {
     setHydrated(false);
 
-    if (!persistenceKey || typeof window === "undefined") {
-      const presetArrows = correctionArrowAuthoring
+    if (finalState || !persistenceKey || typeof window === "undefined") {
+      const presetArrows = revealAnswers
         ? sentence.agreementCorrectionArrows ?? []
         : [];
       const presetAnswers = presetArrows.reduce<Record<string, string[]>>((answers, arrow) => {
         answers[arrow.taskTargetId] = [...(answers[arrow.taskTargetId] ?? []), arrow.answerId];
         return answers;
       }, {});
-      setFoundIds(correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []);
+      setFoundIds(revealAnswers ? analysisTargets.map((target) => target.id) : []);
       setClassPointIds([]);
-      setResolvedRoleIds(correctionArrowAuthoring ? roleTasks.map((task) => task.targetId) : []);
-      setResolvedGenderIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
-      setResolvedNumberIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
+      setResolvedRoleIds(revealAnswers ? roleTasks.map((task) => task.targetId) : []);
+      setResolvedGenderIds(revealAnswers ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
+      setResolvedNumberIds(revealAnswers ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
       setRolePointIds([]);
       setRoleTriggeredTargetIds([]);
       setSuspendedRelationTargetId(null);
-      setRelationAnswers(presetAnswers);
+      setRelationAnswers(finalState ? Object.fromEntries(relationTasks.map((task) => [task.targetId, task.expectedIds])) : presetAnswers);
       setDrawnAgreementArrows(presetArrows);
       setDismissedReviewIds([]);
       setAgreementArrowsVisible(true);
@@ -567,16 +570,16 @@ export function WordClassReader({
     const raw = window.sessionStorage.getItem(persistenceKey);
 
     if (!raw) {
-      const presetArrows = correctionArrowAuthoring ? sentence.agreementCorrectionArrows ?? [] : [];
+      const presetArrows = revealAnswers ? sentence.agreementCorrectionArrows ?? [] : [];
       const presetAnswers = presetArrows.reduce<Record<string, string[]>>((answers, arrow) => {
         answers[arrow.taskTargetId] = [...(answers[arrow.taskTargetId] ?? []), arrow.answerId];
         return answers;
       }, {});
-      setFoundIds(correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []);
+      setFoundIds(revealAnswers ? analysisTargets.map((target) => target.id) : []);
       setClassPointIds([]);
-      setResolvedRoleIds(correctionArrowAuthoring ? roleTasks.map((task) => task.targetId) : []);
-      setResolvedGenderIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
-      setResolvedNumberIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
+      setResolvedRoleIds(revealAnswers ? roleTasks.map((task) => task.targetId) : []);
+      setResolvedGenderIds(revealAnswers ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
+      setResolvedNumberIds(revealAnswers ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
       setRolePointIds([]);
       setRoleTriggeredTargetIds([]);
       setSuspendedRelationTargetId(null);
@@ -706,6 +709,8 @@ export function WordClassReader({
   }, [
     analysisTargets,
     correctionArrowAuthoring,
+    finalState,
+    revealAnswers,
     hasExplicitClassModes,
     multipleClasses,
     persistenceKey,
@@ -1010,7 +1015,7 @@ export function WordClassReader({
   const reviewPhase = lastRelevantPhase
     ? reviewPhaseImmediatelyAfter(sentence.workflowPhases, lastRelevantPhase.kind)
     : undefined;
-  const reviewActive = Boolean(!correctionArrowAuthoring && rawComplete && reviewPhase && !dismissedReviewIds.includes(reviewPhase.id));
+  const reviewActive = Boolean(!revealAnswers && rawComplete && reviewPhase && !dismissedReviewIds.includes(reviewPhase.id));
   const complete = rawComplete && !reviewActive;
 
   useEffect(() => {
@@ -1036,7 +1041,7 @@ export function WordClassReader({
 
   useEffect(() => {
     if (
-      correctionArrowAuthoring ||
+      revealAnswers ||
       !hydrated ||
       activeRelationTargetId ||
       roleTargetId ||
@@ -1071,6 +1076,7 @@ export function WordClassReader({
     activeRelationTargetId,
     activeToken,
     correctionArrowAuthoring,
+    revealAnswers,
     foundIds,
     genderNumberTargetId,
     hydrated,
@@ -1614,11 +1620,11 @@ export function WordClassReader({
   }
 
   function restart() {
-    setFoundIds(correctionArrowAuthoring ? analysisTargets.map((target) => target.id) : []);
+    setFoundIds(revealAnswers ? analysisTargets.map((target) => target.id) : []);
     setClassPointIds([]);
-    setResolvedRoleIds(correctionArrowAuthoring ? roleTasks.map((task) => task.targetId) : []);
-    setResolvedGenderIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
-    setResolvedNumberIds(correctionArrowAuthoring ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
+    setResolvedRoleIds(revealAnswers ? roleTasks.map((task) => task.targetId) : []);
+    setResolvedGenderIds(revealAnswers ? analysisTargets.filter((target) => target.grammaticalGender).map((target) => target.id) : []);
+    setResolvedNumberIds(revealAnswers ? analysisTargets.filter((target) => target.grammaticalNumber).map((target) => target.id) : []);
     setRolePointIds([]);
     setRelationAnswers({});
     setDrawnAgreementArrows([]);
@@ -1719,8 +1725,9 @@ export function WordClassReader({
         data-class-token-id={token.id}
         data-target-id={target?.id}
         aria-pressed={found || relationSelected}
+        disabled={finalState}
         onClick={() => {
-          if (currentTask) return;
+          if (finalState || currentTask) return;
           const clickedTarget = findTarget(token);
           if (!clickedTarget || foundIds.includes(clickedTarget.id)) return;
           const shouldChooseClass = usesClassChoice(

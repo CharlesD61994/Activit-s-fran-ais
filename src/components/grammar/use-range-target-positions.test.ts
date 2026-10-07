@@ -3,8 +3,15 @@ import {
   buildRangeSegments,
   fitRectToGlyphHeight,
   horizontalInkBounds,
+  verticalInkBounds,
   isMeasurableRangeToken
 } from "./use-range-target-positions";
+
+describe("vertical glyph ink", () => {
+  it("centers marks on visible letters rather than the font's unused descent", () => {
+    expect(verticalInkBounds(100, { fontBoundingBoxDescent: 12, actualBoundingBoxAscent: 36, actualBoundingBoxDescent: 2 })).toEqual({ top: 52, bottom: 90 });
+  });
+});
 
 describe("horizontal glyph ink", () => {
   it("finds the visible gap before punctuation even when advance boxes touch", () => {

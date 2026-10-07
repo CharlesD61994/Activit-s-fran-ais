@@ -16,7 +16,7 @@ export function principalLineClearances(groups: Group[], lineStarts: number[], e
     if (!enclosedIds.includes(group.id) || !isPrincipalGroup(group, groups)) continue;
     const clearance = Math.max(60, 16 + rangeMarkNesting(group, groups).verticalInset * 2);
     for (let index = 1; index < starts.length; index += 1) {
-      if (group.start < (starts[index + 1] ?? Infinity) && group.end > starts[index]) {
+      if (group.start >= starts[index] && group.start < (starts[index + 1] ?? Infinity)) {
         result[starts[index]] = Math.max(result[starts[index]] ?? 0, clearance);
       }
     }

@@ -3,6 +3,16 @@ export function areRangeMarksAdjacent(text: string, left: { end: number }, right
   return left.end <= right.start && text.slice(left.end, right.start).trim() === "";
 }
 
+/** Center even separated corners on the ink, while keeping stems outside the line band. */
+export function verticalBracketGeometry(glyphY: number, glyphHeight: number, bandY: number, bandHeight: number, inset: number, split: boolean) {
+  const center = glyphY + glyphHeight / 2;
+  const height = split
+    ? Math.max(34, 2 * (Math.max(center - bandY, bandY + bandHeight - center) + 8 + inset))
+    : Math.max(34, glyphHeight + 6) + inset * 2;
+  const top = center - height / 2;
+  return { top, height, upperStemEnd: bandY - top - 2, lowerStemStart: bandY + bandHeight - top + 2 };
+}
+
 /** Allocate stems in the natural gap; arms are drawn above/below the glyphs. */
 export function naturalBracketGeometry(
   edge: number,

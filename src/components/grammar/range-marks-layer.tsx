@@ -6,6 +6,7 @@ import { normalizeRangeTargets } from "./range-reader-layout";
 import { tokenizeGrammarText } from "./range-interaction-engine";
 import {
   naturalBracketGeometry,
+  verticalBracketGeometry,
   areRangeMarksAdjacent
 } from "@/components/grammar/range-mark-spacing";
 
@@ -113,8 +114,8 @@ export function RangeMarksLayer({
           const glyphHeight = side === "left" ? position.markStartHeight : position.markEndHeight;
           const bandY = geometry.splitStem ? (side === "left" ? position.startBandY ?? position.startY : position.endBandY ?? position.endY) : glyphY;
           const bandHeight = geometry.splitStem ? (side === "left" ? position.startBandHeight ?? position.startHeight : position.endBandHeight ?? position.endHeight) : glyphHeight;
-          const cornerClearance = geometry.splitStem ? 8 : 3;
-          const height = Math.max(34, bandHeight + cornerClearance * 2) + verticalInset * 2;
+          const vertical = verticalBracketGeometry(glyphY, glyphHeight, bandY, bandHeight, verticalInset, geometry.splitStem);
+          const { height } = vertical;
           const width = geometry.cap + geometry.strokeWidth;
           const stem = side === "left" ? geometry.strokeWidth / 2 : width - geometry.strokeWidth / 2;
           const tip = side === "left" ? width - geometry.strokeWidth / 2 : geometry.strokeWidth / 2;
@@ -123,12 +124,12 @@ export function RangeMarksLayer({
           marks.push(
             <svg key={`${side}-mark-${target.id}`} aria-hidden="true"
               className={`word-group-range-bracket vector ${side}`}
-              style={{ left: geometry.stemX - stem, top: bandY - cornerClearance - verticalInset, width, height }}
+              style={{ left: geometry.stemX - stem, top: vertical.top, width, height }}
               viewBox={`0 0 ${width} ${height}`}>
               <g fill="none" stroke="currentColor" strokeWidth={geometry.strokeWidth}>
                 {geometry.splitStem ? <>
-                  <line data-bracket-stem="true" x1={stem} x2={stem} y1={top} y2={verticalInset + cornerClearance - 2} />
-                  <line data-bracket-stem="true" x1={stem} x2={stem} y1={height - verticalInset - cornerClearance + 2} y2={bottom} />
+                  <line data-bracket-stem="true" x1={stem} x2={stem} y1={top} y2={vertical.upperStemEnd} />
+                  <line data-bracket-stem="true" x1={stem} x2={stem} y1={vertical.lowerStemStart} y2={bottom} />
                 </> : <line data-bracket-stem="true" x1={stem} x2={stem} y1={top} y2={bottom} />}
                 <path d={`M ${tip} ${top} H ${stem} M ${stem} ${bottom} H ${tip}`} />
               </g>

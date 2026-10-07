@@ -9613,7 +9613,7 @@ textarea {
   width: 1780px;
   color: #142033;
   background: #fff;
-  font-family: Arial, sans-serif;
+  font-family: inherit;
   pointer-events: none;
   page: correctionPrintPage;
 }
@@ -9678,19 +9678,6 @@ textarea {
   margin: 0;
 }
 
-/* La capture conserve le geste fin et sa pointe. Les anciens filtres et
- * animations SVG pouvaient épaissir le tracé pendant la conversion en PNG. */
-.correction-print-capture-source .agreement-arrow-path,
-.correction-print-capture-source .agreement-arrow-tip {
-  animation: none !important;
-  opacity: 1 !important;
-  filter: none !important;
-  stroke-width: 2px !important;
-  stroke-dasharray: none !important;
-  stroke-dashoffset: 0 !important;
-  vector-effect: non-scaling-stroke;
-}
-
 .correction-arrow-author .agreement-arrow-path.frozen,
 .correction-arrow-author .agreement-arrow-tip.frozen {
   stroke-width: 2.2px !important;
@@ -9701,6 +9688,22 @@ textarea {
   display: none;
   width: 100%;
   height: auto;
+}
+
+.correction-print-phrase {
+  margin-top: 20px;
+  break-inside: avoid;
+}
+
+.correction-print-phrase h2 {
+  margin: 0 0 10px;
+  font-size: 15pt;
+  break-after: avoid;
+}
+
+.word-class-reader-token:disabled {
+  opacity: 1;
+  cursor: default;
 }
 
 .word-class-reader-text .resolved-correction-label,
