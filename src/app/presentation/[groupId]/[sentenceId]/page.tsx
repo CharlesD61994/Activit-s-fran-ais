@@ -26,7 +26,7 @@ import { Card } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useAppStore } from "@/store/app-store";
 import { buildCompetitionStandings } from "@/lib/competition";
-import { getActivitySentences, replacePhrasePoints } from "@/lib/activity-sentences";
+import { appendPhrasePoint, getActivitySentences, replacePhrasePoints } from "@/lib/activity-sentences";
 import type { CompetitionResult, ScoreEvent, SentenceCorrection, WordClassTarget, WordGroupTarget } from "@/types";
 
 type PendingPoint = {
@@ -251,19 +251,8 @@ export default function PresentationPage({
     _points: number,
     pointId?: string
   ) {
-    setPendingPoints((items) => {
-      if (
-        pointId &&
-        items.some((item) => item.pointId === pointId)
-      ) {
-        return items;
-      }
-
-      return [
-        ...items,
-        { correction, stage, points: 1, pointId, phraseId }
-      ];
-    });
+    setPendingPoints((items) => appendPhrasePoint(items,
+      { correction, stage, points: 1, pointId, phraseId }));
   }
 
   function toSyntheticCorrection(
@@ -809,6 +798,8 @@ export default function PresentationPage({
             persistenceKey={readerPersistenceKey}
             onRestorePoints={restorePendingPoints}
             onRestoreWordClassPoints={restoreWordClassPoints}
+            onWordGroupPoint={queueWordGroupPoint}
+            onRestoreWordGroupPoints={restoreWordGroupPoints}
             onCompleteChange={setReaderComplete}
           />
         )}

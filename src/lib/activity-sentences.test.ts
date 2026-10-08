@@ -1,11 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { assembleActivity, getActivitySentences, replacePhrasePoints } from "./activity-sentences";
+import { appendPhrasePoint, assembleActivity, getActivitySentences, replacePhrasePoints } from "./activity-sentences";
 import type { Sentence } from "../types";
 
 const first: Sentence = { id: "phrase-a", title: "Accords", levelId: "sec-2", difficulty: "easy", tags: [], assignedGroupIds: [], originalText: "Les chats jouent.", corrections: [], workflowPhases: [], createdAt: "2026-10-07", updatedAt: "2026-10-07" };
 const second: Sentence = { ...first, id: "phrase-b", originalText: "Les oiseaux chantent.", corrections: [{ id: "second-error", correctionCodeId: "code-a", start: 0, end: 3, originalText: "Les", correctedText: "Les", points: 1, revealOrder: 1 }], workflowPhases: [{ id: "second-phase", title: "Correction", kind: "correction", actions: [] }] };
 
 describe("activity sentence sequence", () => {
+  it("accumulates repeated answer IDs across phrases, without counting the same answer twice", () => {
+    const point = { phraseId: "phrase-a", pointId: "group-left-g", correction: { id: "g" }, stage: "left_bracket", points: 1 };
+    let points = appendPhrasePoint([], point);
+    expect(appendPhrasePoint(points, point)).toBe(points);
+    points = appendPhrasePoint(points, { ...point, phraseId: "phrase-b" });
+    points = appendPhrasePoint(points, { ...point, phraseId: "phrase-c" });
+    expect(points.reduce((sum, item) => sum + item.points, 0)).toBe(3);
+    const saved = JSON.parse(JSON.stringify(points));
+    expect(replacePhrasePoints(saved, [points[2]], "phrase-c", ["left_bracket"])).toEqual(points);
+    expect(replacePhrasePoints(saved, [], "phrase-c", ["left_bracket"])).toEqual(points.slice(0, 2));
+  });
+  it("counts distinct correction actions separately when no point ID is supplied", () => {
+    const word = { phraseId: "phrase-a", correction: { id: "error" }, stage: "word", points: 1 };
+    const points = appendPhrasePoint([word], { ...word, stage: "code" });
+    expect(points).toHaveLength(2);
+    expect(appendPhrasePoint(points, word)).toBe(points);
+  });
   it("keeps legacy activities as a single unchanged sentence", () => {
     expect(getActivitySentences(first)).toEqual([first]);
     expect(assembleActivity([first], "activity-id", first).activitySentences).toBeUndefined();

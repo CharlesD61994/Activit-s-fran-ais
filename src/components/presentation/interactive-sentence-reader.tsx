@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentProps } from "react";
 import { Check, Lightbulb, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReaderChromePortal } from "@/components/presentation/reader-chrome";
@@ -20,6 +21,8 @@ import type { ResolvedCorrectionMark } from "@/components/grammar/resolved-corre
 import type { CorrectionCode, Sentence, SentenceCorrection, WordClassTarget, WordGroupTarget, WordGroupType } from "@/types";
 
 type Props = {
+  onWordGroupPoint?: ComponentProps<typeof WordGroupReader>["onPoint"];
+  onRestoreWordGroupPoints?: ComponentProps<typeof WordGroupReader>["onRestorePoints"];
   sentence: Sentence;
   finalState?: boolean;
   displayMode?: "sentence" | "text";
@@ -210,6 +213,8 @@ export function InteractiveSentenceReader({
   onRestorePoints,
   onWordClassPoint = () => undefined,
   onRestoreWordClassPoints,
+  onWordGroupPoint = () => undefined,
+  onRestoreWordGroupPoints,
   onCompleteChange
 }: Props) {
   const requiresCorrectionCodes = sentence.corrections.some((correction) => getCorrectionPointStages(sentence, correction).includes("code"));
@@ -647,6 +652,7 @@ export function InteractiveSentenceReader({
     setReaderRevision((current) => current + 1);
     restorePointsRef.current?.([]);
     onRestoreWordClassPoints?.([]);
+    onRestoreWordGroupPoints?.([]);
     if (persistenceKey && typeof window !== "undefined") {
       window.sessionStorage.removeItem(persistenceKey);
       window.sessionStorage.removeItem(`${persistenceKey}-groups`);
@@ -769,7 +775,8 @@ export function InteractiveSentenceReader({
             key={`mixed-groups-${readerRevision}`}
             sentence={{ ...correctedGrammarSentence, wordGroupTargets: hybridGroupTargets }}
             persistenceKey={persistenceKey ? `${persistenceKey}-groups` : undefined}
-            onPoint={() => undefined}
+            onPoint={onWordGroupPoint}
+            onRestorePoints={onRestoreWordGroupPoints}
             onCompleteChange={setHybridGroupComplete}
             boundaryMode={groupBoundaryMode}
             continuationBoundaryMode={correctedGrammarSentence.workflowPhases?.find((phase) => phase.kind === "functions")?.actions.find((action) => action.kind === "frame_functions")?.responseMode === "brackets" ? "brackets" : "frame"}

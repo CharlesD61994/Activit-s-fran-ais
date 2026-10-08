@@ -36,3 +36,11 @@ export function replacePhrasePoints<T extends { phraseId?: string; stage: string
     ...restored
   ];
 }
+
+/** Answer IDs may be reused in another phrase; only deduplicate within one. */
+export function appendPhrasePoint<T extends { phraseId?: string; pointId?: string; stage: string; correction: { id: string } }>(current: T[], point: T): T[] {
+  const duplicate = current.some((item) => item.phraseId === point.phraseId &&
+    item.stage === point.stage &&
+    (item.pointId ?? item.correction.id) === (point.pointId ?? point.correction.id));
+  return duplicate ? current : [...current, point];
+}
