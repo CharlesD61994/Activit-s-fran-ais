@@ -7,6 +7,16 @@ export function worksheetVerticalLength(spacing: number) {
 export const worksheetAnswerLineHeight = worksheetVerticalLength;
 
 type WorksheetBounds = { x: number; y: number; width: number; height: number };
+export function worksheetPointFromClient(rect: { left: number; top: number; width: number; height: number }, clientX: number, clientY: number) {
+  if (rect.width <= 0 || rect.height <= 0 || clientX < rect.left || clientX > rect.left + rect.width || clientY < rect.top || clientY > rect.top + rect.height) return null;
+  return { x: (clientX - rect.left) / rect.width * WORKSHEET_WIDTH, y: (clientY - rect.top) / rect.height * WORKSHEET_HEIGHT };
+}
+
+export function worksheetPasteDelta(items: WorksheetBounds[], position: { x: number; y: number }) {
+  if (!items.length) return { dx: 0, dy: 0 };
+  return boundedWorksheetDelta(items, position.x - Math.min(...items.map((item) => item.x)), position.y - Math.min(...items.map((item) => item.y)));
+}
+
 export function snapWorksheetBox(moving: WorksheetBounds, targets: WorksheetBounds[], vertical: number[], horizontal: number[], tolerance = 6) {
   const edges = (start: number, size: number) => [start, start + size / 2, start + size];
   const match = (start: number, size: number, candidates: number[]) => {

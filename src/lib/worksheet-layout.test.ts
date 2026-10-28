@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { boundedWorksheetDelta, snapWorksheetBox, worksheetAnswerLineHeight } from "./worksheet-layout";
+import { boundedWorksheetDelta, snapWorksheetBox, worksheetAnswerLineHeight, worksheetPasteDelta, worksheetPointFromClient } from "./worksheet-layout";
 
 describe("worksheet portrait layout", () => {
+  it("converts the mouse position using the current page size and scroll position", () => {
+    expect(worksheetPointFromClient({ left: 100, top: -200, width: 528, height: 684 }, 364, 142)).toEqual({ x: 528, y: 408 });
+    expect(worksheetPointFromClient({ left: 100, top: -200, width: 528, height: 684 }, 50, 142)).toBeNull();
+    expect(worksheetPointFromClient({ left: 0, top: 0, width: 0, height: 0 }, 0, 0)).toBeNull();
+  });
+  it("pastes a group with its top-left corner at the mouse and preserves its offsets", () => {
+    const items = [{ x: 200, y: 100, width: 100, height: 40 }, { x: 10, y: 20, width: 100, height: 40 }];
+    const delta = worksheetPasteDelta(items, { x: 300, y: 200 });
+    expect(delta).toEqual({ dx: 290, dy: 180 });
+    expect(items.map((item) => ({ x: item.x + delta.dx, y: item.y + delta.dy }))).toEqual([{ x: 490, y: 280 }, { x: 300, y: 200 }]);
+  });
+  it("keeps the entire pasted group inside the page near the mouse", () => {
+    expect(worksheetPasteDelta([{ x: 200, y: 100, width: 120, height: 42 }], { x: 1050, y: 810 })).toEqual({ dx: 736, dy: 674 });
+    expect(worksheetPasteDelta([], { x: 100, y: 100 })).toEqual({ dx: 0, dy: 0 });
+  });
   it("aligns a score box with another box's edges and center", () => {
     const target = { x: 500, y: 100, width: 120, height: 42 };
     const result = snapWorksheetBox({ x: 503, y: 104, width: 120, height: 42 }, [target], [], []);
