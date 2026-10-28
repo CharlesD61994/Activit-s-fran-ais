@@ -259,6 +259,8 @@ export type TreeAnalysisScoreBox = {
   /** Worksheet-only geometry. Kept optional for legacy tree activities. */
   width?: number;
   height?: number;
+  fontSize?: number;
+  answerLineWidth?: number;
   pageId?: string;
 };
 

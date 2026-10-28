@@ -5,7 +5,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { reduceDocumentHistory, type DocumentHistory } from "@/lib/document-history";
 
 export function useDocumentHistory<T extends object>(initial: () => T) {
-  const [history, dispatch] = useReducer(reduceDocumentHistory<T>, undefined, (): DocumentHistory<T> => ({ value: initial(), past: [], group: null, revision: 0 }));
+  const [history, dispatch] = useReducer(reduceDocumentHistory<T>, undefined, (): DocumentHistory<T> => ({ value: initial(), past: [], future: [], group: null, revision: 0 }));
   const action = useRef(0);
   const typing = useRef<{ target: EventTarget | null; time: number }>({ target: null, time: 0 });
   const keys = useRef(Object.keys(history.value));
@@ -19,5 +19,6 @@ export function useDocumentHistory<T extends object>(initial: () => T) {
   ])) as { [K in keyof T]: Dispatch<SetStateAction<T[K]>> }, []); // The document's fields stay fixed.
   const updateDerived = useCallback(<K extends keyof T>(key: K, next: SetStateAction<T[K]>) => dispatch({ kind: "update", key, next, group: action.current, record: false }), []);
   const undo = useCallback(() => { beginAction(); dispatch({ kind: "undo" }); }, [beginAction]);
-  return { ...history, setters, beginAction, updateDerived, undo, canUndo: history.past.length > 0 };
+  const redo = useCallback(() => { beginAction(); dispatch({ kind: "redo" }); }, [beginAction]);
+  return { ...history, setters, beginAction, updateDerived, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 };
 }

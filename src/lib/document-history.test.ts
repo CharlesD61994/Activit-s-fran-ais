@@ -1,8 +1,30 @@
 import { describe, expect, it } from "vitest";
 import { reduceDocumentHistory, type DocumentHistory } from "./document-history";
 
-const initial = (): DocumentHistory<{ text: string; x: number; height: number }> => ({ value: { text: "Avant", x: 10, height: 40 }, past: [], group: null, revision: 0 });
+const initial = (): DocumentHistory<{ text: string; x: number; height: number }> => ({ value: { text: "Avant", x: 10, height: 40 }, past: [], future: [], group: null, revision: 0 });
 describe("document undo", () => {
+  it("restores several undone actions in their original order", () => {
+    let state = reduceDocumentHistory(initial(), { kind: "update", key: "x", next: 50, group: 1, record: true });
+    state = reduceDocumentHistory(state, { kind: "update", key: "text", next: "Après", group: 2, record: true });
+    const final = state.value;
+    state = reduceDocumentHistory(reduceDocumentHistory(state, { kind: "undo" }), { kind: "undo" });
+    expect(state.value).toEqual(initial().value);
+    state = reduceDocumentHistory(state, { kind: "redo" });
+    expect(state.value.x).toBe(50);
+    state = reduceDocumentHistory(state, { kind: "redo" });
+    expect(state.value).toEqual(final);
+    expect(state.future).toHaveLength(0);
+    expect(reduceDocumentHistory(state, { kind: "redo" })).toBe(state);
+  });
+  it("preserves redo through layout and no-op updates, but clears it on a new edit", () => {
+    const edited = reduceDocumentHistory(initial(), { kind: "update", key: "x", next: 50, group: 1, record: true });
+    let state = reduceDocumentHistory(edited, { kind: "undo" });
+    state = reduceDocumentHistory(state, { kind: "update", key: "height", next: 20, group: 2, record: false });
+    state = reduceDocumentHistory(state, { kind: "update", key: "x", next: 10, group: 2, record: true });
+    expect(state.future).toHaveLength(1);
+    state = reduceDocumentHistory(state, { kind: "update", key: "text", next: "Autre", group: 3, record: true });
+    expect(state.future).toHaveLength(0);
+  });
   it("undoes a complete drag as one action, including multiple fields", () => {
     let state = initial();
     for (const x of [20, 30, 45]) state = reduceDocumentHistory(state, { kind: "update", key: "x", next: x, group: 1, record: true });

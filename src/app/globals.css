@@ -10203,6 +10203,21 @@ textarea {
 .worksheet-line-numbers span { position: absolute; right: 0; transform: translateY(-50%); }
 .worksheet-score-box { display: grid; min-width: 0; min-height: 0; place-items: center; font-weight: 750; }
 .worksheet-score-box.selected { outline: 2px dashed #3976bf; outline-offset: 4px; }
+.worksheet-score-content { display: inline-flex; align-items: baseline; gap: .25em; }
+.worksheet-score-answer-line { display: inline-block; height: .8em; border-bottom: 1px solid currentColor; }
+.worksheet-editor .tree-analysis-quick-add { overflow: visible; flex-wrap: wrap; }
+.worksheet-history-menu { position: relative; flex-shrink: 0; }
+.worksheet-history-menu summary { display: flex; align-items: center; gap: 7px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; list-style: none; }
+.worksheet-history-menu summary::-webkit-details-marker { display: none; }
+.worksheet-history-menu > div { position: absolute; top: calc(100% + 6px); left: 0; z-index: 100; min-width: 245px; padding: 5px; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: var(--shadow-sm); }
+.worksheet-history-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px; border: 0; border-radius: 6px; background: #fff; text-align: left; cursor: pointer; }
+.worksheet-history-menu button:hover:not(:disabled) { background: var(--secondary); }
+.worksheet-history-menu button:disabled { opacity: .4; cursor: default; }
+.worksheet-history-menu kbd { margin-left: auto; font-size: 11px; }
+@media (max-width: 1000px) {
+  .worksheet-editor .tree-analysis-quick-add,
+  .worksheet-editor .tree-analysis-text-toolbar { position: relative; top: auto; }
+}
 .worksheet-score-guide { opacity: .75; border-color: #3976bf; }
 .worksheet-score-delete, .worksheet-band-delete { top: -11px !important; right: -11px !important; }
 .worksheet-score-resize, .worksheet-band-resize, .worksheet-table-resize { right: -6px; bottom: -6px; }
