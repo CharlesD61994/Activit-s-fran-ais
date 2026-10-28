@@ -10,6 +10,8 @@ import type { Sentence, TreeAnalysisTable, TreeAnalysisTableCell, TreeAnalysisTe
 import { isFixedWorksheetTable, normalizedColumnWidths, normalizedRowHeights, worksheetTableWidth } from "@/lib/worksheet-tables";
 import { worksheetDimensionAsset } from "@/lib/worksheet-dimensions";
 import { worksheetTextWrap } from "@/lib/worksheet-images";
+import { worksheetAnswerLineHeight } from "@/lib/worksheet-layout";
+import { useWorksheetAnswerBaseline } from "@/components/worksheet-answer-layout";
 import { renderSharedAnnotatedText } from "@/components/grammar/shared-annotated-text";
 
 type Props = {
@@ -20,7 +22,11 @@ type Props = {
 };
 const W = 1056;
 const H = 816;
-const answerLineHeight = (item: WorksheetAnswerLines) => `${item.lineSpacing / W * 100}cqw`;
+function WorksheetAnswerCopy({ item }: { item: WorksheetAnswerLines }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useWorksheetAnswerBaseline(ref, item);
+  return <div ref={ref} className="worksheet-answer-copy" style={{ fontSize: `${item.answerFontSize / W * 100}cqw`, lineHeight: worksheetAnswerLineHeight(item.lineSpacing), fontWeight: item.answerBold ? 800 : 400, textAlign: item.answerTextAlign ?? "left" }}>{item.answer}</div>;
+}
 const WORKSHEET_TEXT_LINE_HEIGHT = 1.1;
 
 function ReaderText({ box, wrap }: { box: TreeAnalysisTextBox; wrap: ReturnType<typeof worksheetTextWrap> }) {
@@ -143,7 +149,7 @@ export function WorksheetReader({ sentence, persistenceKey, finishControl, onCom
           {table.cells.map((cell, index) => { if (cell.columnSpan === 0) return null; const revealed = revealedCells.includes(`${table.id}:${index}`); const cellInteractive = Boolean(cell.isCorrect || cell.answer?.trim()); return <button key={index} type="button" className={`${revealed && cell.isCorrect ? "selected-correct" : ""} role-${cell.role ?? "text"} background-${cell.background ?? "white"}`} style={{ gridColumn: cell.columnSpan && cell.columnSpan > 1 ? `span ${cell.columnSpan}` : undefined, gridRow: cell.rowSpan && cell.rowSpan > 1 ? `span ${cell.rowSpan}` : undefined, color: cell.textColor ?? (cell.background === "black" ? "white" : "black"), fontSize: `${(cell.fontSize ?? 17) / W * 100}cqw`, fontWeight: cell.bold ? 800 : 500, textAlign: cell.textAlign ?? "center", justifyContent: cell.textAlign === "left" ? "flex-start" : cell.textAlign === "right" ? "flex-end" : "center", alignItems: cell.verticalAlign === "top" ? "flex-start" : cell.verticalAlign === "bottom" ? "flex-end" : "center", borderRightWidth: cell.borderWidth ?? 1, borderBottomWidth: cell.borderWidth ?? 1 }} disabled={!cellInteractive} onClick={() => toggleCell(table, index)}><ReaderCell cell={cell}/></button>; })}
         </div>;
       })}
-      {lines.filter((item) => item.pageId === pageId).map((item) => { const stepId = `lines:${item.id}`; const revealed = completed.includes(stepId); const staticLine = item.interactive === false && !item.answer.trim(); const style = { left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%`, width: `${item.width / W * 100}%`, height: `${item.lineCount * item.lineSpacing / H * 100}%` }; const rules = Array.from({ length: item.lineCount }, (_, index) => <span key={index} style={{ top: `${(index + 1) / item.lineCount * 100}%` }}/>); if (staticLine) return <div key={item.id} className="worksheet-answer-lines reader static" style={style}>{rules}</div>; return <button key={item.id} type="button" className="worksheet-answer-lines reader" style={style} onClick={() => toggleStep(stepId)}>{rules}{revealed && <div className="worksheet-answer-copy" style={{ fontSize: `${item.answerFontSize / W * 100}cqw`, lineHeight: answerLineHeight(item), fontWeight: item.answerBold ? 800 : 400, textAlign: item.answerTextAlign ?? "left" }}>{item.answer}</div>}</button>; })}
+      {lines.filter((item) => item.pageId === pageId).map((item) => { const stepId = `lines:${item.id}`; const revealed = completed.includes(stepId); const staticLine = item.interactive === false && !item.answer.trim(); const style = { left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%`, width: `${item.width / W * 100}%`, height: `${item.lineCount * item.lineSpacing / H * 100}%` }; const rules = Array.from({ length: item.lineCount }, (_, index) => <span key={index} style={{ top: `${(index + 1) / item.lineCount * 100}%` }}/>); if (staticLine) return <div key={item.id} className="worksheet-answer-lines reader static" style={style}>{rules}</div>; return <button key={item.id} type="button" className="worksheet-answer-lines reader" style={style} onClick={() => toggleStep(stepId)}>{rules}{revealed && <WorksheetAnswerCopy item={item}/>}</button>; })}
       {checkBoxes.filter((item) => item.pageId === pageId).map((item) => <div key={item.id} className={`worksheet-checkbox-mark reader ${item.checked ? "checked" : ""}`} style={{ left: `${item.x / W * 100}%`, top: `${item.y / H * 100}%`, width: `${item.size / W * 100}%`, height: `${item.size / H * 100}%`, fontSize: `${item.size / W * 100}cqw` }}/>)}
     </div></div>}
   </div>;

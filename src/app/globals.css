@@ -9993,7 +9993,7 @@ textarea {
 .worksheet-answer-lines::before { content: ""; position: absolute; inset: -10px -8px; z-index: 0; background: transparent; }
 .worksheet-answer-lines.selected { outline: 2px dashed #2f658e; outline-offset: 5px; }
 .worksheet-answer-lines > span { position: absolute; left: 0; right: 0; z-index: 1; height: 1px; border-top: .45px solid #111; }
-.worksheet-answer-copy { position: absolute; inset: 1px 4px auto; z-index: 1; white-space: pre-wrap; overflow-wrap: break-word; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; text-align: left; pointer-events: none; }
+.worksheet-answer-copy { position: absolute; inset: 0 4px auto; z-index: 1; padding: 0; border: 0; white-space: pre-wrap; overflow-wrap: break-word; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; text-align: left; pointer-events: none; }
 .worksheet-answer-editor { min-height: 100%; outline: 0; caret-color: #ed18e8; pointer-events: auto; cursor: text; }
 .worksheet-answer-lines.reader { cursor: pointer; }
 .worksheet-answer-lines.static { cursor: move; }
@@ -10145,7 +10145,7 @@ textarea {
 .worksheet-cell-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 6px; min-height: 32px; }
 .worksheet-cell-toolbar .worksheet-checkbox input { min-height: 0; }
 .worksheet-cell-toolbar .worksheet-cell-answer { flex: 1 1 260px; }
-.worksheet-text-box { min-height: 0; font-family: "Times New Roman", Times, serif; }
+.worksheet-text-box, .worksheet-reader-text { min-height: 0; font-family: "Times New Roman", Times, serif; }
 .worksheet-textarea { display: block; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; padding: 1px 3px; resize: none; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; line-height: var(--worksheet-text-line-height, 1.1); text-align: inherit; white-space: pre-wrap; overflow: hidden; }
 .worksheet-wrapped-text, .worksheet-reader-text, .worksheet-reader-text-content { box-sizing: border-box; height: 100%; overflow: hidden; white-space: pre-wrap; line-height: var(--worksheet-text-line-height, 1.1); }
 .worksheet-reader-text-content { width: 100%; }
@@ -10158,7 +10158,6 @@ textarea {
 .worksheet-page-image.layout-behind { z-index: 2; }
 .worksheet-page-image.layout-wrap { z-index: 4; }
 .worksheet-page-image.layout-front { z-index: 6; }
-.worksheet-page-image.selected { z-index: 8; }
 .worksheet-page-image > img { object-fit: contain; pointer-events: none; }
 .worksheet-page-image.selected { outline: 2px dashed #3976bf; outline-offset: 4px; }
 .worksheet-page-image.reader { cursor: default; }
@@ -10173,6 +10172,12 @@ textarea {
 .worksheet-text-move-edge.right { right: -5px; }
 .worksheet-text-move-edge.bottom { bottom: -5px; }
 .worksheet-text-move-edge.left { left: -5px; }
+.worksheet-editor .worksheet-text-box > .tree-analysis-text-resize { z-index: 7; }
+.worksheet-editor .worksheet-score-box > .worksheet-score-resize { pointer-events: auto; z-index: 7; cursor: nwse-resize; }
+.worksheet-editor .worksheet-canvas:focus { outline: none; }
+.worksheet-context-menu { position: fixed; z-index: 100; display: grid; min-width: 190px; padding: 5px; border: 1px solid var(--border); border-radius: 8px; background: white; box-shadow: 0 8px 24px #0002; }
+.worksheet-context-menu button { padding: 8px 12px; border: 0; background: white; text-align: left; cursor: pointer; }
+.worksheet-context-menu button:hover { background: #eef5fa; }
 .worksheet-image-toolbar .worksheet-checkbox { display: flex; flex-direction: row; align-items: center; gap: 7px; }
 .worksheet-main-title-score { position: absolute; right: 4.05cqw; bottom: 1.95cqw; display: flex; align-items: center; gap: .35cqw; font-family: Arial, Helvetica, sans-serif; font-size: 1.72cqw; font-weight: 400; }
 .worksheet-main-title-score-box { display: grid; width: 7.9cqw; height: 3.18cqw; justify-items: end; align-items: center; border: .11cqw solid #111; background: #fff; }
