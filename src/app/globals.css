@@ -10146,6 +10146,10 @@ textarea {
 .worksheet-cell-toolbar .worksheet-checkbox input { min-height: 0; }
 .worksheet-cell-toolbar .worksheet-cell-answer { flex: 1 1 260px; }
 .worksheet-text-box, .worksheet-reader-text { min-height: 0; font-family: "Times New Roman", Times, serif; }
+.worksheet-text-box, .worksheet-reader-text { height: var(--worksheet-text-fit-height, auto) !important; }
+.worksheet-text-box .worksheet-textarea,
+.worksheet-text-box .worksheet-wrapped-text,
+.worksheet-reader-text .worksheet-reader-text-content { height: auto; min-height: 1lh; padding: .05em .15em; overflow: visible; }
 .worksheet-textarea { display: block; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; padding: 1px 3px; resize: none; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; line-height: var(--worksheet-text-line-height, 1.1); text-align: inherit; white-space: pre-wrap; overflow: hidden; }
 .worksheet-wrapped-text, .worksheet-reader-text, .worksheet-reader-text-content { box-sizing: border-box; height: 100%; overflow: hidden; white-space: pre-wrap; line-height: var(--worksheet-text-line-height, 1.1); }
 .worksheet-reader-text-content { width: 100%; }

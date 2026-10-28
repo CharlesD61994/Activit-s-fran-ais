@@ -10,7 +10,8 @@ import type { Sentence, TreeAnalysisTable, TreeAnalysisTableCell, TreeAnalysisTe
 import { isFixedWorksheetTable, normalizedColumnWidths, normalizedRowHeights, worksheetTableWidth } from "@/lib/worksheet-tables";
 import { worksheetDimensionAsset } from "@/lib/worksheet-dimensions";
 import { worksheetTextWrap } from "@/lib/worksheet-images";
-import { worksheetAnswerLineHeight } from "@/lib/worksheet-layout";
+import { worksheetAnswerLineHeight, worksheetVerticalLength } from "@/lib/worksheet-layout";
+import { useWorksheetTextHeight } from "@/components/worksheet-text-layout";
 import { useWorksheetAnswerBaseline } from "@/components/worksheet-answer-layout";
 import { renderSharedAnnotatedText } from "@/components/grammar/shared-annotated-text";
 
@@ -31,6 +32,7 @@ const WORKSHEET_TEXT_LINE_HEIGHT = 1.1;
 
 function ReaderText({ box, wrap }: { box: TreeAnalysisTextBox; wrap: ReturnType<typeof worksheetTextWrap> }) {
   const contentRef = useRef<HTMLDivElement>(null);
+  useWorksheetTextHeight(contentRef);
   const [lineCenters, setLineCenters] = useState<number[]>([]);
   useLayoutEffect(() => {
     const element = contentRef.current;
@@ -60,7 +62,7 @@ function ReaderText({ box, wrap }: { box: TreeAnalysisTextBox; wrap: ReturnType<
     const observer = new ResizeObserver(measure); observer.observe(element);
     return () => observer.disconnect();
   }, [box.annotations, box.fontSize, box.height, box.showLineNumbers, box.text, box.width, wrap]);
-  return <>{box.showLineNumbers&&<div className="worksheet-line-numbers" aria-hidden>{lineCenters.map((top,index)=>(index+1)%5===0?<span key={index} style={{top}}>{index+1}</span>:null)}</div>}<div ref={contentRef} className="worksheet-reader-text-content">{wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} style={{ width: `${wrap.width / box.width * 100}%`, height: `${wrap.height / box.height * 100}%`, "--worksheet-wrap-top": `${wrap.marginTop / Math.max(1, wrap.height) * 100}%` } as React.CSSProperties}/>}<>{renderSharedAnnotatedText(box.text,box.annotations,"tree-analysis-framed-text")}</></div></>;
+  return <>{box.showLineNumbers&&<div className="worksheet-line-numbers" aria-hidden>{lineCenters.map((top,index)=>(index+1)%5===0?<span key={index} style={{top}}>{index+1}</span>:null)}</div>}<div ref={contentRef} className="worksheet-reader-text-content">{wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} style={{ width: `${wrap.width / box.width * 100}%`, height: worksheetVerticalLength(wrap.height), "--worksheet-wrap-top": `${wrap.marginTop / Math.max(1, wrap.height) * 100}%` } as React.CSSProperties}/>}<>{renderSharedAnnotatedText(box.text,box.annotations,"tree-analysis-framed-text")}</></div></>;
 }
 
 function ReaderCell({ cell }: { cell: TreeAnalysisTableCell }) {
