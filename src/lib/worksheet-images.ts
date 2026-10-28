@@ -1,4 +1,26 @@
 import type { TreeAnalysisTextBox, WorksheetImage } from "@/types";
+import { WORKSHEET_WIDTH, WORKSHEET_HEIGHT } from "./worksheet-layout";
+
+export type ImageResizeCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+export function resizeWorksheetImage(image: WorksheetImage, dx: number, dy: number, corner: ImageResizeCorner, proportional = true) {
+  const left = corner.endsWith("left");
+  const top = corner.startsWith("top");
+  const maxWidth = left ? image.x + image.width : WORKSHEET_WIDTH - image.x;
+  const maxHeight = top ? image.y + image.height : WORKSHEET_HEIGHT - image.y;
+  const requestedWidth = image.width + (left ? -dx : dx);
+  const requestedHeight = image.height + (top ? -dy : dy);
+  const clamp = (value: number, max: number) => Math.max(Math.min(24, max), Math.min(value, max));
+  let width = clamp(requestedWidth, maxWidth);
+  let height = clamp(requestedHeight, maxHeight);
+  if (proportional) {
+    const maxScale = Math.min(maxWidth / image.width, maxHeight / image.height);
+    const minScale = Math.min(maxScale, Math.max(24 / image.width, 24 / image.height));
+    const requestedScale = Math.abs(dx / image.width) >= Math.abs(dy / image.height) ? requestedWidth / image.width : requestedHeight / image.height;
+    const scale = Math.max(minScale, Math.min(maxScale, requestedScale));
+    width = image.width * scale; height = image.height * scale;
+  }
+  return { ...image, x: left ? image.x + image.width - width : image.x, y: top ? image.y + image.height - height : image.y, width, height };
+}
 
 export type WorksheetTextWrap = {
   side: "left" | "right";

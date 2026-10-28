@@ -5,7 +5,7 @@ import type { RefObject } from "react";
 import { WORKSHEET_HEIGHT } from "@/lib/worksheet-layout";
 
 /** Fit old and new boxes to their rendered text, independent of saved heights. */
-export function useWorksheetTextHeight(ref: RefObject<HTMLDivElement | null>, onHeight?: (height: number) => void) {
+export function useWorksheetTextHeight(ref: RefObject<HTMLDivElement | null>, onHeight?: (height: number) => void, revision = 0) {
   const callback = useRef(onHeight);
   callback.current = onHeight;
   useLayoutEffect(() => {
@@ -28,5 +28,5 @@ export function useWorksheetTextHeight(ref: RefObject<HTMLDivElement | null>, on
     const observer = new ResizeObserver(measure);
     observer.observe(content);
     return () => { disposed = true; observer.disconnect(); };
-  }, [ref]);
+  }, [ref, revision]);
 }

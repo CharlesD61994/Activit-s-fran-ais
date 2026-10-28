@@ -2,13 +2,14 @@
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlignCenter, AlignJustify, AlignLeft, ArrowDown, ArrowUp, Bold, Check, ChevronDown, ChevronUp, Grid3X3, ImagePlus, Merge, Plus, Printer, Save, Split, X } from "lucide-react";
+import { AlignCenter, AlignJustify, AlignLeft, ArrowDown, ArrowUp, Bold, Check, ChevronDown, ChevronUp, Grid3X3, ImagePlus, Merge, Plus, Printer, Save, Split, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { SchoolLevel, Sentence, SentenceDifficulty, TreeAnalysisDocumentPage, TreeAnalysisQuestionBadge, TreeAnalysisScoreBox, TreeAnalysisTable, TreeAnalysisTableCell, TreeAnalysisTextBox, WorksheetAnswerLines, WorksheetCheckboxMark, WorksheetDimensionBand, WorksheetImage } from "@/types";
 import { createWorksheetTable, isFixedWorksheetTable, normalizedColumnWidths, normalizedRowHeights, tableTemplateLabel, worksheetTableWidth, type WorksheetTableTemplate } from "@/lib/worksheet-tables";
 import { worksheetDimensionAsset } from "@/lib/worksheet-dimensions";
-import { worksheetTextWrap } from "@/lib/worksheet-images";
+import { resizeWorksheetImage, worksheetTextWrap, type ImageResizeCorner } from "@/lib/worksheet-images";
+import { useDocumentHistory } from "@/components/use-document-history";
 import { boundedWorksheetDelta, worksheetAnswerLineHeight, worksheetVerticalLength } from "@/lib/worksheet-layout";
 import { useWorksheetTextHeight } from "@/components/worksheet-text-layout";
 import { pasteWorksheetPlainText, useWorksheetAnswerBaseline } from "@/components/worksheet-answer-layout";
@@ -20,6 +21,12 @@ type DragKind = MovableKind | "text-resize" | "lines-resize" | "score-resize" | 
 type DragState = { kind: DragKind; id: string; offsetX: number; offsetY: number } | null;
 type SelectedItem = { kind: MovableKind; id: string };
 type WorksheetElement = TreeAnalysisTextBox | TreeAnalysisScoreBox | TreeAnalysisTable | TreeAnalysisQuestionBadge | WorksheetAnswerLines | WorksheetCheckboxMark | WorksheetDimensionBand | WorksheetImage;
+type WorksheetDocument = {
+  title: string; levelId: string; difficulty: SentenceDifficulty; tags: string[];
+  pages: TreeAnalysisDocumentPage[]; textBoxes: TreeAnalysisTextBox[]; scoreBoxes: TreeAnalysisScoreBox[];
+  tables: TreeAnalysisTable[]; badges: TreeAnalysisQuestionBadge[]; answerLines: WorksheetAnswerLines[];
+  checkBoxes: WorksheetCheckboxMark[]; dimensionBands: WorksheetDimensionBand[]; images: WorksheetImage[]; readerOrder: string[];
+};
 type MarqueeState = { startX: number; startY: number; x: number; y: number };
 type TableDialogState = { kind: WorksheetTableTemplate; rows: number; columns: number; maxPoints: number; dimension: WorksheetDimensionBand["dimension"] };
 
@@ -39,6 +46,7 @@ const difficultyLabels: Record<SentenceDifficulty, string> = { easy: "Facile", m
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const ALIGNMENT_TOLERANCE = 6;
 const WORKSHEET_TEXT_LINE_HEIGHT = 1.1;
+const imageResizeCornerLabels: Record<ImageResizeCorner, string> = { "top-left": "coin supérieur gauche", "top-right": "coin supérieur droit", "bottom-left": "coin inférieur gauche", "bottom-right": "coin inférieur droit" };
 const answerLineHeight = (item: WorksheetAnswerLines) => worksheetAnswerLineHeight(item.lineSpacing);
 
 function renderedLineCenters(element: HTMLElement) {
@@ -69,7 +77,11 @@ function WorksheetLineNumbers({ centers }: { centers: number[] }) {
 
 function WorksheetEditableText({ box, wrap, onCommit, onSelect, onSelection, onHeight }: { box: TreeAnalysisTextBox; wrap: ReturnType<typeof worksheetTextWrap>; onCommit: (text: string) => void; onSelect: () => void; onSelection: (range: SharedTextRange | null) => void; onHeight: (height: number) => void }) {
   const contentRef = useRef<HTMLDivElement>(null);
-  useWorksheetTextHeight(contentRef, onHeight);
+  const [contentRevision, setContentRevision] = useState(0);
+  const editing = useRef(false);
+  const markup = useRef({ text: box.text, annotations: box.annotations });
+  if (!editing.current) markup.current = { text: box.text, annotations: box.annotations };
+  useWorksheetTextHeight(contentRef, onHeight, contentRevision);
   const [lineCenters, setLineCenters] = useState<number[]>([]);
 
   useLayoutEffect(() => {
@@ -83,11 +95,13 @@ function WorksheetEditableText({ box, wrap, onCommit, onSelect, onSelection, onH
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [box.annotations, box.fontSize, box.height, box.showLineNumbers, box.text, box.width, wrap]);
+  }, [box.annotations, box.fontSize, box.height, box.showLineNumbers, box.text, box.width, wrap, contentRevision]);
+
 
   return <>
     {box.showLineNumbers && <WorksheetLineNumbers centers={lineCenters}/>}
     <div
+      key={contentRevision}
       ref={contentRef}
       className={`tree-analysis-text-content ${wrap ? "worksheet-wrapped-text" : "worksheet-textarea"}`}
       contentEditable
@@ -95,20 +109,26 @@ function WorksheetEditableText({ box, wrap, onCommit, onSelect, onSelection, onH
       spellCheck
       onPaste={pasteWorksheetPlainText}
       onPointerDown={(event)=>{event.stopPropagation();onSelect();}}
+      onFocus={()=>{editing.current=true;}}
       onInput={(event)=>onCommit(event.currentTarget.innerText.replace(/\r/g,""))}
+      onBlur={(event)=>{editing.current=false;onCommit(event.currentTarget.innerText.replace(/\r/g,""));setContentRevision((value)=>value+1);}}
       onMouseUp={(event)=>onSelection(captureSharedTextSelection(event.currentTarget))}
       onKeyUp={(event)=>onSelection(captureSharedTextSelection(event.currentTarget))}
     >
       {wrap && <span className={`worksheet-text-wrap-space ${wrap.side}`} contentEditable={false} style={{width:`${wrap.width/box.width*100}%`,height:worksheetVerticalLength(wrap.height),"--worksheet-wrap-top":`${wrap.marginTop/Math.max(1,wrap.height)*100}%`} as React.CSSProperties}/>}
-      {renderSharedAnnotatedText(box.text, box.annotations, "tree-analysis-framed-text")}
+      {renderSharedAnnotatedText(markup.current.text, markup.current.annotations, "tree-analysis-framed-text")}
     </div>
   </>;
 }
 
 function WorksheetTableCellEditor({ cell, onTextChange }: { cell: TreeAnalysisTableCell; onTextChange: (text: string) => void }) {
+  const editing = useRef(false);
+  const markup = useRef(cell.text);
+  const [revision, setRevision] = useState(0);
+  if (!editing.current) markup.current = cell.text;
   const style = { fontSize:`${(cell.fontSize??17)/W*100}cqw`, textAlign:cell.textAlign??"center" as const, fontWeight:cell.bold?800:500, alignSelf: cell.verticalAlign === "top" ? "flex-start" : cell.verticalAlign === "bottom" ? "flex-end" : "center" };
   if (cell.role === "header" || cell.role === "total") return <div className="worksheet-table-static-cell" style={style}>{cell.text}</div>;
-  return <div className="worksheet-table-editable-copy" contentEditable suppressContentEditableWarning spellCheck onPaste={pasteWorksheetPlainText} style={style} onBlur={(event)=>onTextChange(event.currentTarget.innerText.replace(/\r/g,""))}>{cell.text}</div>;
+  return <div key={revision} className="worksheet-table-editable-copy" contentEditable suppressContentEditableWarning spellCheck onPaste={pasteWorksheetPlainText} style={style} onFocus={()=>{editing.current=true;}} onInput={(event)=>onTextChange(event.currentTarget.innerText.replace(/\r/g,""))} onBlur={(event)=>{editing.current=false;onTextChange(event.currentTarget.innerText.replace(/\r/g,""));setRevision((value)=>value+1);}}>{markup.current}</div>;
 }
 
 function WorksheetAnswerLinesEditor({ item, onSelect, onCommit }: { item: WorksheetAnswerLines; onSelect: () => void; onCommit: (patch: Partial<WorksheetAnswerLines>) => void }) {
@@ -162,27 +182,20 @@ function WorksheetAnswerLinesEditor({ item, onSelect, onCommit }: { item: Worksh
 }
 
 export function WorksheetEditor({ initialSentence, levels, onSave, controlledTitle, onTitleChange }: Props) {
-  const [internalTitle, setInternalTitle] = useState(initialSentence?.title ?? "");
+  const history = useDocumentHistory<WorksheetDocument>(() => ({
+    title: initialSentence?.title ?? "", levelId: initialSentence?.levelId ?? levels[0]?.id ?? "", difficulty: initialSentence?.difficulty ?? "medium", tags: initialSentence?.tags ?? [],
+    pages: initialSentence?.treeAnalysisDocumentPages?.length ? initialSentence.treeAnalysisDocumentPages.map((page) => {
+      const defaults = defaultPage(page.id);
+      return { ...defaults, ...page, header: { ...defaults.header!, ...page.header }, mainTitle: { ...defaults.mainTitle!, ...page.mainTitle }, taskCallout: { ...defaults.taskCallout!, ...page.taskCallout }, orientation: "portrait", template: "teaching_document" };
+    }) : [defaultPage("page-1")],
+    textBoxes: initialSentence?.treeAnalysisTextBoxes ?? [], scoreBoxes: initialSentence?.treeAnalysisScoreBoxes ?? [], tables: initialSentence?.treeAnalysisTables ?? [], badges: initialSentence?.treeAnalysisQuestionBadges ?? [], answerLines: initialSentence?.worksheetAnswerLines ?? [], checkBoxes: initialSentence?.worksheetCheckBoxes ?? [], dimensionBands: initialSentence?.worksheetDimensionBands ?? [], images: initialSentence?.worksheetImages ?? [], readerOrder: initialSentence?.worksheetReaderOrder ?? []
+  }));
+  const { title: internalTitle, levelId, difficulty, tags, pages, textBoxes, scoreBoxes, tables, badges, answerLines, checkBoxes, dimensionBands, images, readerOrder } = history.value;
+  const { title: setInternalTitle, levelId: setLevelId, difficulty: setDifficulty, tags: setTags, pages: setPages, textBoxes: setTextBoxes, scoreBoxes: setScoreBoxes, tables: setTables, badges: setBadges, answerLines: setAnswerLines, checkBoxes: setCheckBoxes, dimensionBands: setDimensionBands, images: setImages, readerOrder: setReaderOrder } = history.setters;
   const title = controlledTitle ?? internalTitle;
-  const setTitle = onTitleChange ?? setInternalTitle;
-  const [levelId, setLevelId] = useState(initialSentence?.levelId ?? levels[0]?.id ?? "");
-  const [difficulty, setDifficulty] = useState<SentenceDifficulty>(initialSentence?.difficulty ?? "medium");
-  const [tags, setTags] = useState<string[]>(initialSentence?.tags ?? []);
+  const setTitle = (value: string) => { setInternalTitle(value); onTitleChange?.(value); };
   const [tagInput, setTagInput] = useState("");
-  const [pages, setPages] = useState<TreeAnalysisDocumentPage[]>(() => initialSentence?.treeAnalysisDocumentPages?.length ? initialSentence.treeAnalysisDocumentPages.map((page) => {
-    const defaults = defaultPage(page.id);
-    return { ...defaults, ...page, header: { ...defaults.header!, ...page.header }, mainTitle: { ...defaults.mainTitle!, ...page.mainTitle }, taskCallout: { ...defaults.taskCallout!, ...page.taskCallout }, orientation: "portrait", template: "teaching_document" };
-  }) : [defaultPage("page-1")]);
   const [activePageId, setActivePageId] = useState(() => initialSentence?.treeAnalysisDocumentPages?.[0]?.id ?? "page-1");
-  const [textBoxes, setTextBoxes] = useState<TreeAnalysisTextBox[]>(initialSentence?.treeAnalysisTextBoxes ?? []);
-  const [scoreBoxes, setScoreBoxes] = useState<TreeAnalysisScoreBox[]>(initialSentence?.treeAnalysisScoreBoxes ?? []);
-  const [tables, setTables] = useState<TreeAnalysisTable[]>(initialSentence?.treeAnalysisTables ?? []);
-  const [badges, setBadges] = useState<TreeAnalysisQuestionBadge[]>(initialSentence?.treeAnalysisQuestionBadges ?? []);
-  const [answerLines, setAnswerLines] = useState<WorksheetAnswerLines[]>(initialSentence?.worksheetAnswerLines ?? []);
-  const [checkBoxes, setCheckBoxes] = useState<WorksheetCheckboxMark[]>(initialSentence?.worksheetCheckBoxes ?? []);
-  const [dimensionBands, setDimensionBands] = useState<WorksheetDimensionBand[]>(initialSentence?.worksheetDimensionBands ?? []);
-  const [images, setImages] = useState<WorksheetImage[]>(initialSentence?.worksheetImages ?? []);
-  const [readerOrder, setReaderOrder] = useState<string[]>(initialSentence?.worksheetReaderOrder ?? []);
   const [selected, setSelected] = useState<{ kind: MovableKind; id: string } | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [marquee, setMarquee] = useState<MarqueeState | null>(null);
@@ -196,6 +209,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
   const [textSelection, setTextSelection] = useState<SharedTextRange | null>(null);
   const textSelectionRef = useRef<SharedTextRange | null>(null);
   const drag = useRef<DragState>(null);
+  const imageResize = useRef<{ image: WorksheetImage; x: number; y: number; corner: ImageResizeCorner } | null>(null);
   const marqueeRef = useRef<MarqueeState | null>(null);
   const groupOrigins = useRef<Record<string, { x: number; y: number }>>({});
   const suppressCanvasClickRef = useRef(false);
@@ -205,6 +219,24 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
+
+  function undoLastAction() {
+    const previous = history.past[history.past.length - 1];
+    if (!previous) return;
+    history.undo();
+    onTitleChange?.(previous.title);
+    if (!previous.pages.some((page) => page.id === activePageId)) setActivePageId(previous.pages[0].id);
+    setSelected(null); setSelectedItems([]); setSelectedCells([]); setContextMenu(null);
+    textSelectionRef.current = null; setTextSelection(null);
+    drag.current = null; imageResize.current = null;
+    requestAnimationFrame(() => canvasRef.current?.focus({ preventScroll: true }));
+  }
+
+  function commitAnswerPatch(id: string, patch: Partial<WorksheetAnswerLines>) {
+    const update = (items: WorksheetAnswerLines[]) => items.map((line) => line.id === id ? { ...line, ...patch, interactive: patch.answer?.trim() ? true : line.interactive } : line);
+    if (patch.answer === undefined) history.updateDerived("answerLines", update);
+    else setAnswerLines(update);
+  }
 
   function updateTextSelection(range: SharedTextRange | null) {
     textSelectionRef.current = range;
@@ -289,6 +321,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
 
   function applyTextFormat(box: TreeAnalysisTextBox, patch: { bold?: boolean; fontScale?: number }) {
     const range = textSelectionRef.current ?? textSelection;
+    if (document.activeElement instanceof HTMLElement && document.activeElement.isContentEditable) document.activeElement.blur();
     if (!range || range.start === range.end) {
       setTextBoxes((items) => items.map((item) => item.id === box.id ? { ...item, bold: patch.bold ?? item.bold, fontSize: patch.fontScale ? item.fontSize * patch.fontScale : item.fontSize } : item));
       return;
@@ -443,10 +476,14 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
     groupOrigins.current = Object.fromEntries(movableItems().filter((candidate) => movingSelection.some((chosen) => chosen.kind === candidate.kind && chosen.id === candidate.id)).map((candidate) => [`${candidate.kind}:${candidate.id}`, { x: candidate.x, y: candidate.y }]));
     setSelected({ kind, id: item.id }); event.currentTarget.setPointerCapture(event.pointerId);
   }
-  function beginResize(event: React.PointerEvent, kind: "text-resize" | "lines-resize" | "score-resize" | "table-resize" | "image-resize", item: { id: string; width: number; height?: number }) {
+  function beginResize(event: React.PointerEvent, kind: "text-resize" | "lines-resize" | "score-resize" | "table-resize" | "image-resize", item: { id: string; width: number; height?: number }, corner: ImageResizeCorner = "bottom-right") {
     event.preventDefault();
     event.stopPropagation();
     const rect = canvasRef.current?.getBoundingClientRect(); if (!rect) return;
+    if (kind === "image-resize") {
+      const image = images.find((candidate) => candidate.id === item.id);
+      if (image) imageResize.current = { image, corner, x: (event.clientX - rect.left) * W / rect.width, y: (event.clientY - rect.top) * H / rect.height };
+    }
     drag.current = { kind, id: item.id, offsetX: (event.clientX - rect.left) * W / rect.width - item.width, offsetY: (event.clientY - rect.top) * H / rect.height - (item.height ?? 0) };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -474,7 +511,15 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
     if (state.kind === "text-resize") { setTextBoxes((items) => items.map((item) => item.id === state.id ? { ...item, width: clamp(x, 80, W - item.x) } : item)); return; }
     if (state.kind === "lines-resize") { setAnswerLines((items) => items.map((item) => item.id === state.id ? { ...item, width: clamp(x, 80, W - item.x) } : item)); return; }
     if (state.kind === "score-resize") { setScoreBoxes((items) => items.map((item) => item.id === state.id ? { ...item, width: clamp(x, 54, W - item.x), height: clamp(y, 28, 100) } : item)); return; }
-    if (state.kind === "image-resize") { setImages((items) => items.map((item) => item.id === state.id ? { ...item, width: clamp(x, 40, W - item.x), height: clamp(y, 40, H - item.y) } : item)); return; }
+    if (state.kind === "image-resize") {
+      const origin = imageResize.current;
+      if (origin) {
+        const dx = (event.clientX - rect.left) * W / rect.width - origin.x;
+        const dy = (event.clientY - rect.top) * H / rect.height - origin.y;
+        setImages((items) => items.map((item) => item.id === state.id ? resizeWorksheetImage(origin.image, dx, dy, origin.corner, !event.shiftKey) : item));
+      }
+      return;
+    }
     if (state.kind === "table-resize") {
       setTables((items) => items.map((item) => {
         if (item.id !== state.id || isFixedWorksheetTable(item)) return item;
@@ -534,7 +579,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
       marqueeRef.current = null;
       setMarquee(null);
     }
-    drag.current = null; groupOrigins.current = {}; setAlignmentGuides({});
+    drag.current = null; imageResize.current = null; groupOrigins.current = {}; setAlignmentGuides({});
   }
   function updateSelectedTable(patch: Partial<TreeAnalysisTable>) {
     if (!selected || selected.kind !== "table") return;
@@ -661,6 +706,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
         ".worksheet-checkbox-delete",
         ".worksheet-image-delete",
         ".worksheet-image-resize",
+        ".worksheet-image-controls",
         ".worksheet-band-delete",
         ".worksheet-score-delete",
         ".worksheet-score-resize"
@@ -708,6 +754,14 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
   const selectedInlineStyle = selectedTextStyle(selectedText);
 
   return <div className="worksheet-editor tree-analysis-editor"
+    onPointerDownCapture={(event) => { if (event.button === 0) history.beginAction(); }}
+    onInputCapture={(event) => history.beginAction(event.target)}
+    onKeyDownCapture={(event) => {
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z") {
+        event.preventDefault(); event.stopPropagation(); undoLastAction();
+      } else if (editingTarget(event.target) && event.key === "Enter") history.beginAction(event.target);
+      else if (!editingTarget(event.target) && !event.repeat) history.beginAction();
+    }}
     onClickCapture={(event) => { if (!(event.target as HTMLElement).closest(".worksheet-context-menu")) setContextMenu(null); }}
     onKeyDown={handleCanvasKey}
     onCopy={(event) => { if (!editingTarget(event.target) && chosenElements().length) { event.preventDefault(); copyChosen(); event.clipboardData.setData("text/plain", "Éléments de la feuille Alinéa"); } }}
@@ -725,7 +779,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
     }}>
     {contextMenu && <div className="worksheet-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}><button role="menuitem" type="button" disabled={!selected} onClick={copyChosen}>Copier la sélection</button><button role="menuitem" type="button" disabled={!copiedElements.current.length} onClick={pasteChosen}>Coller la sélection</button></div>}
     <Card className="tree-analysis-builder-card">
-      <div className="worksheet-topbar"><div className="worksheet-title-zone"><div className="worksheet-page-tabs">{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
+      <div className="worksheet-topbar"><div className="worksheet-title-zone"><div className="worksheet-page-tabs">{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" disabled={!history.canUndo} title="Annuler la dernière action (Ctrl+Z)" onMouseDown={(event)=>event.preventDefault()} onClick={undoLastAction}><Undo2 size={17}/> Annuler</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
       <div className="tree-analysis-quick-add"><Button type="button" onClick={addText}><span className="tree-analysis-add-icon">T</span> Texte</Button><Button type="button" variant="secondary" onClick={addScore}><span className="tree-analysis-add-icon">/x</span> Points</Button><Button type="button" variant="secondary" onClick={openTableDialog}><Grid3X3 size={17}/> Tableau</Button><Button type="button" variant="secondary" onClick={openRubricDialog}><Grid3X3 size={17}/> Grille de notation</Button><Button type="button" variant="secondary" onClick={addBadge}><span className="tree-analysis-add-icon">1</span> Numéro</Button><Button type="button" variant="secondary" onClick={addLines}><span className="tree-analysis-add-icon">━</span> Lignes de réponse</Button><Button type="button" variant="secondary" onClick={()=>setBandDialog("Compréhension")}><span className="tree-analysis-add-icon worksheet-band-icon">C</span> Bandeau de lecture</Button><Button type="button" variant="secondary" onClick={()=>imageInputRef.current?.click()}><ImagePlus size={17}/> Image</Button><input ref={imageInputRef} className="worksheet-image-input" type="file" accept="image/*" onChange={(event)=>{importImage(event.target.files?.[0]);event.target.value="";}}/></div>
       <button type="button" className="worksheet-settings-toggle" onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen}><span>Paramètres de la feuille</span><small>{levelId ? levels.find((level)=>level.id===levelId)?.name : "Niveau"} · {difficultyLabels[difficulty]} · {tags.length} tag{tags.length>1?"s":""}</small>{settingsOpen?<ChevronUp size={18}/>:<ChevronDown size={18}/>}</button>
       {settingsOpen&&<div className="worksheet-settings-panel"><div className="tree-analysis-builder-meta worksheet-meta-grid"><label>Titre<input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Niveau<select value={levelId} onChange={(event) => setLevelId(event.target.value)}>{levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label><label>Difficulté<select value={difficulty} onChange={(event) => setDifficulty(event.target.value as SentenceDifficulty)}>{Object.entries(difficultyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><div className="worksheet-tag-editor"><label>Tags<input value={tagInput} onChange={(event)=>setTagInput(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"){event.preventDefault();addTag();}}} placeholder="Ex. Test sur les inférences"/></label><Button type="button" variant="secondary" onClick={addTag}>Ajouter</Button></div></div><div className="worksheet-tag-list">{tags.map((tag)=><button type="button" key={tag} onClick={()=>setTags((current)=>current.filter((item)=>item!==tag))}>{tag}<X size={13}/></button>)}</div></div>}
@@ -764,7 +818,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
       </div>}
       {tableDialog&&<div className="worksheet-dialog-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setTableDialog(null);}}><div className="worksheet-dialog" role="dialog" aria-modal="true" aria-labelledby="worksheet-table-title"><div className="worksheet-dialog-heading"><div><span className="eyebrow">Ajouter à la page</span><h3 id="worksheet-table-title">{["compact_rubric","rubric"].includes(tableDialog.kind)?"Créer une grille de notation":"Créer un tableau pédagogique"}</h3></div><button type="button" onClick={()=>setTableDialog(null)} aria-label="Fermer"><X size={20}/></button></div><label>Modèle<select value={tableDialog.kind} onChange={(event)=>setTableDialog((current)=>current?{...current,kind:event.target.value as WorksheetTableTemplate}:current)}>{((["compact_rubric","rubric"].includes(tableDialog.kind)?["compact_rubric","rubric"]:["free","structured","choice","sequence","association"]) as WorksheetTableTemplate[]).map((kind)=><option key={kind} value={kind}>{tableTemplateLabel(kind)}</option>)}</select></label>{!["choice","compact_rubric","rubric"].includes(tableDialog.kind)&&<label>Nombre de rangées<input type="number" min="1" max="12" value={tableDialog.rows} onChange={(event)=>setTableDialog((current)=>current?{...current,rows:Number(event.target.value)}:current)}/></label>}{!["structured","sequence","association","compact_rubric"].includes(tableDialog.kind)&&<label>{tableDialog.kind==="rubric"?"Nombre de niveaux":"Nombre de colonnes"}<input type="number" min="1" max="8" value={tableDialog.columns} onChange={(event)=>setTableDialog((current)=>current?{...current,columns:Number(event.target.value)}:current)}/></label>}{["compact_rubric","rubric"].includes(tableDialog.kind)&&<><label>Dimension<select value={tableDialog.dimension} onChange={(event)=>setTableDialog((current)=>current?{...current,dimension:event.target.value as WorksheetDimensionBand["dimension"]}:current)}>{["Compréhension","Interprétation","Réaction","Appréciation"].map((item)=><option key={item}>{item}</option>)}</select></label><label>Maximum de points<input type="number" min="1" max="20" value={tableDialog.maxPoints} onChange={(event)=>setTableDialog((current)=>current?{...current,maxPoints:Number(event.target.value)}:current)}/></label></>}<p>{["compact_rubric","rubric"].includes(tableDialog.kind)?"La grille reprend les dimensions fixes du document de référence; seul son contenu est modifiable.":"Le modèle sera entièrement modifiable après son insertion."}</p><div className="worksheet-dialog-actions"><Button type="button" variant="secondary" onClick={()=>setTableDialog(null)}>Annuler</Button><Button type="button" onClick={addTable}><Grid3X3 size={17}/> Ajouter le tableau</Button></div></div></div>}
       {bandDialog&&<div className="worksheet-dialog-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setBandDialog(null);}}><div className="worksheet-dialog worksheet-band-dialog" role="dialog" aria-modal="true" aria-labelledby="worksheet-band-title"><div className="worksheet-dialog-heading"><div><span className="eyebrow">Bandeau de lecture</span><h3 id="worksheet-band-title">Choisir la dimension</h3></div><button type="button" onClick={()=>setBandDialog(null)} aria-label="Fermer"><X size={20}/></button></div><div className="worksheet-band-choices">{(["Compréhension","Interprétation","Réaction","Appréciation"] as WorksheetDimensionBand["dimension"][]).map((dimension)=><button key={dimension} type="button" className={bandDialog===dimension?"active":""} onClick={()=>setBandDialog(dimension)}><Image src={worksheetDimensionAsset(dimension).src} alt={dimension} width={worksheetDimensionAsset(dimension).width} height={worksheetDimensionAsset(dimension).height} unoptimized/></button>)}</div><div className="worksheet-dialog-actions"><Button type="button" variant="secondary" onClick={()=>setBandDialog(null)}>Annuler</Button><Button type="button" onClick={addDimensionBand}>Ajouter le bandeau</Button></div></div></div>}
-      <div className={`tree-analysis-workspace tree-print-${printMode}`}><div className="tree-analysis-page-shell builder"><div ref={canvasRef} tabIndex={0} aria-label="Page de la feuille" className="tree-analysis-page tree-analysis-canvas portrait document-template worksheet-canvas" style={{"--page-margin-top":`${activePage.margins.top/H*100}%`,"--page-margin-right":`${activePage.margins.right/W*100}%`,"--page-margin-bottom":`${activePage.margins.bottom/H*100}%`,"--page-margin-left":`${activePage.margins.left/W*100}%`} as React.CSSProperties} onPointerDown={beginMarquee} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} onClick={(event) => { if(suppressCanvasClickRef.current)return; if(event.target === event.currentTarget&&!marquee) {setSelected(null);setSelectedItems([]);} }}>
+      <div className={`tree-analysis-workspace tree-print-${printMode}`}><div className="tree-analysis-page-shell builder"><div key={history.revision} ref={canvasRef} tabIndex={0} aria-label="Page de la feuille" className="tree-analysis-page tree-analysis-canvas portrait document-template worksheet-canvas" style={{"--page-margin-top":`${activePage.margins.top/H*100}%`,"--page-margin-right":`${activePage.margins.right/W*100}%`,"--page-margin-bottom":`${activePage.margins.bottom/H*100}%`,"--page-margin-left":`${activePage.margins.left/W*100}%`} as React.CSSProperties} onPointerDown={beginMarquee} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} onClick={(event) => { if(suppressCanvasClickRef.current)return; if(event.target === event.currentTarget&&!marquee) {setSelected(null);setSelectedItems([]);} }}>
         {alignmentGuides.x !== undefined && <div className="tree-analysis-alignment-guide vertical" style={{left:`${alignmentGuides.x/W*100}%`}}/>}
         {alignmentGuides.y !== undefined && <div className="tree-analysis-alignment-guide horizontal" style={{top:`${alignmentGuides.y/H*100}%`}}/>}
         {marquee&&<div className="worksheet-selection-marquee" style={{left:`${Math.min(marquee.startX,marquee.x)/W*100}%`,top:`${Math.min(marquee.startY,marquee.y)/H*100}%`,width:`${Math.abs(marquee.x-marquee.startX)/W*100}%`,height:`${Math.abs(marquee.y-marquee.startY)/H*100}%`}}/>}
@@ -773,12 +827,16 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
         {(activePage.mainTitle?.enabled ?? true) && <div className="tree-analysis-document-title-banner" style={{left:`${(activePage.margins.left-53)/W*100}%`,right:`${(activePage.margins.right-53)/W*100}%`,top:`${76/H*100}%`}}><div className="tree-analysis-document-title-line">{activePage.mainTitle?.prefix} <span>–</span> {activePage.mainTitle?.title}</div><div className="tree-analysis-document-title-label">{activePage.mainTitle?.subtitle}</div>{activePage.mainTitle?.scoreTotal!==undefined&&<div className="worksheet-main-title-score"><span>Total&nbsp;:</span><span className="worksheet-main-title-score-box"><b>/{activePage.mainTitle.scoreTotal}</b></span></div>}</div>}
         {activePage.taskCallout?.enabled && <div className="worksheet-task-callout" style={{left:`${(activePage.margins.left-10)/W*100}%`,right:`${(activePage.margins.right-53)/W*100}%`,top:`${160/H*100}%`}}><Image className="worksheet-task-label-image" src="/worksheet-assets/ta-tache.png" alt="TA TÂCHE" width={80} height={32} unoptimized/><span className="worksheet-task-arrow" aria-hidden/><p>{activePage.taskCallout.text}</p></div>}
         {badges.filter((item) => item.pageId === activePageId).map((item) => <div key={item.id} data-worksheet-kind="badge" data-worksheet-id={item.id} className="tree-analysis-question-badge" style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`}} onPointerDown={(event) => beginDrag(event,"badge",item)} onDoubleClick={() => { const value=window.prompt("Numéro",String(item.number)); if(value) setBadges((items)=>items.map((badge)=>badge.id===item.id?{...badge,number:Number(value)}:badge)); }}><span>{item.number}</span><button type="button" aria-label="Supprimer le numéro" onClick={(event)=>{event.stopPropagation();setBadges((items)=>items.filter((badge)=>badge.id!==item.id));if(selected?.id===item.id)setSelected(null);}}><X size={10}/></button></div>)}
-        {textBoxes.filter((item) => item.pageId === activePageId).map((item) => <div key={item.id} data-worksheet-kind="text" data-worksheet-id={item.id} className={`tree-analysis-text-box worksheet-text-box ${selected?.kind === "text" && selected.id === item.id ? "selected" : ""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${item.width/W*100}%`,height:`${item.height/H*100}%`,fontSize:`${item.fontSize/W*100}cqw`,fontWeight:item.bold?800:400,textAlign:item.textAlign,"--worksheet-text-line-height":WORKSHEET_TEXT_LINE_HEIGHT} as React.CSSProperties} onPointerDown={(event)=>beginDrag(event,"text",item)} onClick={() => selectTextBox(item.id)}>{selected?.kind==="text"&&selected.id===item.id&&<><button type="button" className="tree-analysis-text-delete" aria-label="Supprimer la boîte" onClick={(event)=>{event.stopPropagation();setTextBoxes((items)=>items.filter((box)=>box.id!==item.id));setSelected(null);}}><X size={14}/></button><span className="tree-analysis-text-resize" onPointerDown={(event)=>beginResize(event,"text-resize",item)}/><span className="worksheet-text-move-edge top" onPointerDown={(event)=>beginDrag(event,"text",item)}/><span className="worksheet-text-move-edge right" onPointerDown={(event)=>beginDrag(event,"text",item)}/><span className="worksheet-text-move-edge bottom" onPointerDown={(event)=>beginDrag(event,"text",item)}/><span className="worksheet-text-move-edge left" onPointerDown={(event)=>beginDrag(event,"text",item)}/></>}<WorksheetEditableText box={item} wrap={worksheetTextWrap(item,images)} onSelect={()=>selectTextBox(item.id)} onSelection={updateTextSelection} onHeight={(height)=>setTextBoxes((items)=>items.map((box)=>box.id===item.id&&Math.abs(box.height-height)>.25?{...box,height}:box))} onCommit={(text)=>commitText(item,text)}/></div>)}
-        {images.filter((item)=>item.pageId===activePageId).map((item)=>{const mode=item.layoutMode??(item.wrapText?"wrap":"front");return <div key={item.id} data-worksheet-kind="image" data-worksheet-id={item.id} className={`worksheet-page-image layout-${mode} ${selected?.kind==="image"&&selected.id===item.id?"selected":""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${item.width/W*100}%`,height:`${item.height/H*100}%`}} onPointerDown={(event)=>beginDrag(event,"image",item)} onClick={()=>setSelected({kind:"image",id:item.id})}><Image src={item.src} alt={item.alt} fill sizes="50vw" unoptimized/>{selected?.kind==="image"&&selected.id===item.id&&<><button type="button" className="tree-analysis-text-delete worksheet-image-delete" aria-label="Supprimer l’image" onClick={(event)=>{event.stopPropagation();setImages((items)=>items.filter((image)=>image.id!==item.id));setSelected(null);}}><X size={14}/></button><span className="tree-analysis-text-resize worksheet-image-resize" onPointerDown={(event)=>beginResize(event,"image-resize",item)}/></>}</div>;})}
+        {textBoxes.filter((item) => item.pageId === activePageId).map((item) => <div key={item.id} data-worksheet-kind="text" data-worksheet-id={item.id} className={`tree-analysis-text-box worksheet-text-box ${selected?.kind === "text" && selected.id === item.id ? "selected" : ""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${item.width/W*100}%`,height:`${item.height/H*100}%`,fontSize:`${item.fontSize/W*100}cqw`,fontWeight:item.bold?800:400,textAlign:item.textAlign,"--worksheet-text-line-height":WORKSHEET_TEXT_LINE_HEIGHT} as React.CSSProperties} onPointerDown={(event)=>beginDrag(event,"text",item)} onClick={() => selectTextBox(item.id)}>{selected?.kind==="text"&&selected.id===item.id&&<><button type="button" className="tree-analysis-text-delete" aria-label="Supprimer la boîte" onClick={(event)=>{event.stopPropagation();setTextBoxes((items)=>items.filter((box)=>box.id!==item.id));setSelected(null);}}><X size={14}/></button><span className="tree-analysis-text-resize" onPointerDown={(event)=>beginResize(event,"text-resize",item)}/><span className="worksheet-text-move-edge top" onPointerDown={(event)=>beginDrag(event,"text",item)}/><span className="worksheet-text-move-edge right" onPointerDown={(event)=>beginDrag(event,"text",item)}/><span className="worksheet-text-move-edge bottom" onPointerDown={(event)=>beginDrag(event,"text",item)}/><span className="worksheet-text-move-edge left" onPointerDown={(event)=>beginDrag(event,"text",item)}/></>}<WorksheetEditableText box={item} wrap={worksheetTextWrap(item,images)} onSelect={()=>selectTextBox(item.id)} onSelection={updateTextSelection} onHeight={(height)=>history.updateDerived("textBoxes",(items)=>items.map((box)=>box.id===item.id&&Math.abs(box.height-height)>.25?{...box,height}:box))} onCommit={(text)=>commitText(item,text)}/></div>)}
+        {images.filter((item)=>item.pageId===activePageId).map((item)=>{const mode=item.layoutMode??(item.wrapText?"wrap":"front");return <div key={item.id} data-worksheet-kind="image" data-worksheet-id={item.id} className={`worksheet-page-image layout-${mode} ${selected?.kind==="image"&&selected.id===item.id?"selected":""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${item.width/W*100}%`,height:`${item.height/H*100}%`}} onPointerDown={(event)=>beginDrag(event,"image",item)} onClick={()=>setSelected({kind:"image",id:item.id})}><Image src={item.src} alt={item.alt} fill sizes="50vw" unoptimized/></div>;})}
+        {selectedImage && <div className="worksheet-image-controls" style={{left:`${selectedImage.x/W*100}%`,top:`${selectedImage.y/H*100}%`,width:`${selectedImage.width/W*100}%`,height:`${selectedImage.height/H*100}%`}}>
+          <button type="button" className="tree-analysis-text-delete worksheet-image-delete" aria-label="Supprimer l’image" onClick={(event)=>{event.stopPropagation();setImages((items)=>items.filter((image)=>image.id!==selectedImage.id));setSelected(null);}}><X size={14}/></button>
+          {(["top-left","top-right","bottom-left","bottom-right"] as ImageResizeCorner[]).map((corner)=><button key={corner} type="button" className={`tree-analysis-text-resize worksheet-image-resize corner-${corner}`} aria-label={`Redimensionner l’image : ${imageResizeCornerLabels[corner]}`} title="Glisse pour redimensionner. Maj permet de modifier les proportions." onPointerDown={(event)=>beginResize(event,"image-resize",selectedImage,corner)}/>)}
+        </div>}
         {scoreBoxes.filter((item) => (item.pageId ?? pages[0]?.id) === activePageId).map((item) => <div key={item.id} data-worksheet-kind="score" data-worksheet-id={item.id} className={`tree-analysis-score-box worksheet-score-box ${selected?.kind==="score"&&selected.id===item.id?"selected":""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${(item.width??120)/W*100}%`,height:`${(item.height??42)/H*100}%`,fontSize:`${Math.max(12,Math.min((item.height??42)*.46,(item.width??120)/(String(item.total).length+5)))/W*100}cqw`}} onPointerDown={(event) => beginDrag(event,"score",item)} onClick={()=>setSelected({kind:"score",id:item.id})} onDoubleClick={() => { const total=window.prompt("Total de points",String(item.total)); if(total===null)return; const earned=window.prompt("Points obtenus dans le corrigé (vide pour laisser une ligne)",item.earned===undefined?"":String(item.earned)); setScoreBoxes((items)=>items.map((box)=>box.id===item.id?{...box,total:Math.max(1,Number(total)||1),earned:earned?.trim()?Number(earned):undefined}:box)); }}><span>{item.earned ?? "___"} / {item.total}</span>{selected?.kind==="score"&&selected.id===item.id&&<><button type="button" className="tree-analysis-text-delete worksheet-score-delete" aria-label="Supprimer les points" onClick={(event)=>{event.stopPropagation();setScoreBoxes((items)=>items.filter((box)=>box.id!==item.id));setSelected(null);}}><X size={13}/></button><span className="tree-analysis-text-resize worksheet-score-resize" onPointerDown={(event)=>beginResize(event,"score-resize",{...item,width:item.width??120,height:item.height??42})}/></>}</div>)}
         {dimensionBands.filter((item)=>item.pageId===activePageId).map((item)=>{const asset=worksheetDimensionAsset(item.dimension);return <div key={item.id} data-worksheet-kind="band" data-worksheet-id={item.id} className={`worksheet-dimension-band ${selected?.kind==="band"&&selected.id===item.id?"selected":""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${asset.width/W*100}%`,height:`${asset.height/H*100}%`}} onPointerDown={(event)=>beginDrag(event,"band",item)} onClick={()=>setSelected({kind:"band",id:item.id})}><Image src={asset.src} alt={item.dimension} width={asset.width} height={asset.height} unoptimized/>{selected?.kind==="band"&&selected.id===item.id&&<button type="button" className="tree-analysis-text-delete worksheet-band-delete" onClick={(event)=>{event.stopPropagation();setDimensionBands((items)=>items.filter((band)=>band.id!==item.id));setSelected(null);}}><X size={13}/></button>}</div>;})}
         {tables.filter((item) => (item.pageId ?? pages[0]?.id) === activePageId).map((table) => {const tableWidth=worksheetTableWidth(table);return <div key={table.id} data-worksheet-kind="table" data-worksheet-id={table.id} className={`tree-analysis-activity-table worksheet-activity-table ${isFixedWorksheetTable(table)?"fixed-format":""} ${selected?.kind === "table" && selected.id === table.id ? "selected" : ""}`} style={{left:`${table.x/W*100}%`,top:`${table.y/H*100}%`,width:`${tableWidth/W*100}%`,gridTemplateColumns:normalizedColumnWidths(table).map((value)=>`${value/tableWidth}fr`).join(" "),gridTemplateRows:normalizedRowHeights(table).map((value)=>`${value/W*100}cqw`).join(" ")}} onPointerDown={(event) => beginDrag(event,"table",table)} onClick={() => {setSelected({kind:"table",id:table.id});if(selected?.id!==table.id)setSelectedCells([]);}}>{table.cells.map((cell,index) => cell.columnSpan===0?null:<div key={index} className={`tree-analysis-table-cell worksheet-table-cell ${cell.isCorrect?"correct":""} ${selected?.id===table.id&&selectedCells.includes(index)?"cell-selected":""} role-${cell.role??"text"} background-${cell.background??"white"}`} style={{gridColumn:cell.columnSpan&&cell.columnSpan>1?`span ${cell.columnSpan}`:undefined,gridRow:cell.rowSpan&&cell.rowSpan>1?`span ${cell.rowSpan}`:undefined,color:cell.textColor??(cell.background==="black"?"white":"black"),alignItems:cell.verticalAlign==="top"?"flex-start":cell.verticalAlign==="bottom"?"flex-end":"center",justifyContent:cell.textAlign==="left"?"flex-start":cell.textAlign==="right"?"flex-end":"center",borderRightWidth:cell.borderWidth??1,borderBottomWidth:cell.borderWidth??1}} onClick={(event)=>{event.stopPropagation();selectTableCell(table.id,index,event.shiftKey);setSelected({kind:"table",id:table.id});}}><WorksheetTableCellEditor cell={cell} onTextChange={(text)=>setTables((items)=>items.map((item)=>item.id===table.id?{...item,cells:item.cells.map((candidate,i)=>i===index?{...candidate,text}:candidate)}:item))}/></div>)}{selected?.kind==="table"&&selected.id===table.id&&<><button type="button" className="tree-analysis-delete-table" aria-label="Supprimer le tableau" onClick={(event)=>{event.stopPropagation();setTables((items)=>items.filter((item)=>item.id!==table.id));setSelected(null);}}><X size={13}/></button><span className="worksheet-table-move-edge top" onPointerDown={(event)=>beginDrag(event,"table",table)}/><span className="worksheet-table-move-edge right" onPointerDown={(event)=>beginDrag(event,"table",table)}/><span className="worksheet-table-move-edge bottom" onPointerDown={(event)=>beginDrag(event,"table",table)}/><span className="worksheet-table-move-edge left" onPointerDown={(event)=>beginDrag(event,"table",table)}/>{!isFixedWorksheetTable(table)&&<span className="tree-analysis-text-resize worksheet-table-resize" onPointerDown={(event)=>beginResize(event,"table-resize",{id:table.id,width:tableWidth,height:normalizedRowHeights(table).reduce((sum,value)=>sum+value,0)})}/>}</>}</div>;})}
-        {answerLines.filter((item) => item.pageId === activePageId).map((item) => <div key={item.id} data-worksheet-kind="lines" data-worksheet-id={item.id} className={`worksheet-answer-lines ${item.interactive===false&&!item.answer.trim()?"static":""} ${selected?.kind === "lines" && selected.id === item.id ? "selected" : ""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${item.width/W*100}%`,height:`${item.lineCount*item.lineSpacing/H*100}%`}} onPointerDown={(event) => beginDrag(event,"lines",item)} onClick={() => setSelected({kind:"lines",id:item.id})}>{Array.from({length:item.lineCount},(_,index)=><span key={index} style={{top:`${(index+1)/item.lineCount*100}%`}}/>)}{printMode==="answer"&&<WorksheetAnswerLinesEditor item={item} onSelect={()=>setSelected({kind:"lines",id:item.id})} onCommit={(patch)=>setAnswerLines((items)=>items.map((line)=>line.id===item.id?{...line,...patch,interactive:patch.answer?.trim()?true:line.interactive}:line))}/>} {selected?.kind==="lines"&&selected.id===item.id&&<><button type="button" className="tree-analysis-text-delete worksheet-lines-delete" aria-label="Supprimer les lignes" onClick={(event)=>{event.stopPropagation();setAnswerLines((items)=>items.filter((line)=>line.id!==item.id));setSelected(null);}}><X size={14}/></button><span className="tree-analysis-text-resize worksheet-lines-resize" onPointerDown={(event)=>beginResize(event,"lines-resize",item)}/></>}</div>)}
+        {answerLines.filter((item) => item.pageId === activePageId).map((item) => <div key={item.id} data-worksheet-kind="lines" data-worksheet-id={item.id} className={`worksheet-answer-lines ${item.interactive===false&&!item.answer.trim()?"static":""} ${selected?.kind === "lines" && selected.id === item.id ? "selected" : ""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${item.width/W*100}%`,height:`${item.lineCount*item.lineSpacing/H*100}%`}} onPointerDown={(event) => beginDrag(event,"lines",item)} onClick={() => setSelected({kind:"lines",id:item.id})}>{Array.from({length:item.lineCount},(_,index)=><span key={index} style={{top:`${(index+1)/item.lineCount*100}%`}}/>)}{printMode==="answer"&&<WorksheetAnswerLinesEditor item={item} onSelect={()=>setSelected({kind:"lines",id:item.id})} onCommit={(patch)=>commitAnswerPatch(item.id,patch)}/>} {selected?.kind==="lines"&&selected.id===item.id&&<><button type="button" className="tree-analysis-text-delete worksheet-lines-delete" aria-label="Supprimer les lignes" onClick={(event)=>{event.stopPropagation();setAnswerLines((items)=>items.filter((line)=>line.id!==item.id));setSelected(null);}}><X size={14}/></button><span className="tree-analysis-text-resize worksheet-lines-resize" onPointerDown={(event)=>beginResize(event,"lines-resize",item)}/></>}</div>)}
         {checkBoxes.filter((item) => item.pageId === activePageId).map((item) => <div key={item.id} data-worksheet-kind="check" data-worksheet-id={item.id} role="button" tabIndex={0} className={`worksheet-checkbox-mark ${selected?.kind==="check"&&selected.id===item.id?"selected":""} ${printMode==="answer"&&item.checked?"checked":""}`} style={{left:`${item.x/W*100}%`,top:`${item.y/H*100}%`,width:`${item.size/W*100}%`,height:`${item.size/H*100}%`,fontSize:`${item.size/W*100}cqw`}} onPointerDown={(event)=>beginDrag(event,"check",item)} onClick={(event)=>{event.stopPropagation();setSelected({kind:"check",id:item.id});}} onDoubleClick={(event)=>{event.stopPropagation();setCheckBoxes((items)=>items.map((box)=>box.id===item.id?{...box,checked:!box.checked}:box));}} aria-label="Case à cocher">{selected?.kind==="check"&&selected.id===item.id&&<span className="tree-analysis-text-delete worksheet-checkbox-delete" onPointerDown={(event)=>event.stopPropagation()} onClick={(event)=>{event.stopPropagation();setCheckBoxes((items)=>items.filter((box)=>box.id!==item.id));setSelected(null);}}><X size={10}/></span>}</div>)}
       </div></div></div>
     </Card>

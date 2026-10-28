@@ -10167,6 +10167,14 @@ textarea {
 .worksheet-page-image.reader { cursor: default; }
 .worksheet-image-delete { top: -11px; right: -11px; }
 .worksheet-image-resize { right: -5px; bottom: -5px; }
+.worksheet-image-controls { position: absolute; z-index: 52; pointer-events: none; }
+.worksheet-image-controls > button { pointer-events: auto; }
+.worksheet-image-controls .worksheet-image-delete { top: -30px; right: -10px; }
+.worksheet-image-controls .worksheet-image-resize { z-index: 2; padding: 0; }
+.worksheet-image-controls .corner-top-left { left: -5px; right: auto; top: -5px; bottom: auto; cursor: nwse-resize; }
+.worksheet-image-controls .corner-top-right { left: auto; right: -5px; top: -5px; bottom: auto; cursor: nesw-resize; }
+.worksheet-image-controls .corner-bottom-left { left: -5px; right: auto; top: auto; bottom: -5px; cursor: nesw-resize; }
+.worksheet-image-controls .corner-bottom-right { cursor: nwse-resize; }
 .worksheet-text-move-edge { position: absolute; z-index: 5; display: block; cursor: move; }
 .worksheet-text-move-edge.top,
 .worksheet-text-move-edge.bottom { left: -5px; right: -5px; height: 10px; }
@@ -10177,6 +10185,7 @@ textarea {
 .worksheet-text-move-edge.bottom { bottom: -5px; }
 .worksheet-text-move-edge.left { left: -5px; }
 .worksheet-editor .worksheet-text-box > .tree-analysis-text-resize { z-index: 7; }
+.worksheet-editor .worksheet-text-box > .tree-analysis-text-delete { z-index: 8; }
 .worksheet-editor .worksheet-score-box > .worksheet-score-resize { pointer-events: auto; z-index: 7; cursor: nwse-resize; }
 .worksheet-editor .worksheet-canvas:focus { outline: none; }
 .worksheet-context-menu { position: fixed; z-index: 100; display: grid; min-width: 190px; padding: 5px; border: 1px solid var(--border); border-radius: 8px; background: white; box-shadow: 0 8px 24px #0002; }
