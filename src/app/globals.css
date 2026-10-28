@@ -10203,6 +10203,7 @@ textarea {
 .worksheet-line-numbers span { position: absolute; right: 0; transform: translateY(-50%); }
 .worksheet-score-box { display: grid; min-width: 0; min-height: 0; place-items: center; font-weight: 750; }
 .worksheet-score-box.selected { outline: 2px dashed #3976bf; outline-offset: 4px; }
+.worksheet-score-guide { opacity: .75; border-color: #3976bf; }
 .worksheet-score-delete, .worksheet-band-delete { top: -11px !important; right: -11px !important; }
 .worksheet-score-resize, .worksheet-band-resize, .worksheet-table-resize { right: -6px; bottom: -6px; }
 .worksheet-dimension-band { position: absolute; z-index: 4; display: block; box-sizing: border-box; padding: 0; border: 0; background: transparent; cursor: grab; }

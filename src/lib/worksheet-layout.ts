@@ -6,6 +6,18 @@ export function worksheetVerticalLength(spacing: number) {
 }
 export const worksheetAnswerLineHeight = worksheetVerticalLength;
 
+type WorksheetBounds = { x: number; y: number; width: number; height: number };
+export function snapWorksheetBox(moving: WorksheetBounds, targets: WorksheetBounds[], vertical: number[], horizontal: number[], tolerance = 6) {
+  const edges = (start: number, size: number) => [start, start + size / 2, start + size];
+  const match = (start: number, size: number, candidates: number[]) => {
+    const closest = edges(start, size).flatMap((edge) => candidates.map((guide) => ({ guide, offset: guide - edge }))).sort((a, b) => Math.abs(a.offset) - Math.abs(b.offset))[0];
+    return closest && Math.abs(closest.offset) <= tolerance ? closest : undefined;
+  };
+  const x = match(moving.x, moving.width, [...vertical, ...targets.flatMap((target) => edges(target.x, target.width))]);
+  const y = match(moving.y, moving.height, [...horizontal, ...targets.flatMap((target) => edges(target.y, target.height))]);
+  return { x: moving.x + (x?.offset ?? 0), y: moving.y + (y?.offset ?? 0), guides: { x: x?.guide, y: y?.guide } };
+}
+
 export function boundedWorksheetDelta(items: Array<{ x: number; y: number; width: number; height: number }>, dx: number, dy: number) {
   if (!items.length) return { dx: 0, dy: 0 };
   const minX = Math.min(...items.map((item) => item.x));

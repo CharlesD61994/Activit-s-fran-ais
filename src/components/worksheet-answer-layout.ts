@@ -21,7 +21,8 @@ export function useWorksheetAnswerBaseline(ref: RefObject<HTMLElement | null>, i
       const lineHeight = parseFloat(style.lineHeight);
       // Store a font-relative offset so print clones also scale with the page.
       const fontSize = parseFloat(style.fontSize);
-      if (fontSize > 0) element.style.top = `${(lineHeight - baseline) / fontSize}em`;
+      // Leave a small gap above the rule, including under descending letters.
+      if (fontSize > 0) element.style.top = `${(lineHeight - baseline) / fontSize - .25}em`;
     };
     measure();
     void document.fonts?.ready.then(measure);
