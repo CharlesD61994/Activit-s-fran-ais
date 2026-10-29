@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlignCenter, AlignJustify, AlignLeft, ArrowDown, ArrowUp, Bold, Check, ChevronDown, ChevronUp, Grid3X3, ImagePlus, ListChecks, Merge, Plus, Printer, Save, Split, Undo2, Redo2, X } from "lucide-react";
+import { AlignCenter, AlignJustify, AlignLeft, ArrowDown, ArrowUp, Bold, Check, ChevronDown, ChevronUp, Grid3X3, ImagePlus, FileDown, ListChecks, Merge, Plus, Printer, Save, Split, Undo2, Redo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { SchoolLevel, Sentence, SentenceDifficulty, TreeAnalysisDocumentPage, TreeAnalysisQuestionBadge, TreeAnalysisScoreBox, TreeAnalysisTable, TreeAnalysisTableCell, TreeAnalysisTextBox, WorksheetAnswerLines, WorksheetCheckboxMark, WorksheetDimensionBand, WorksheetImage } from "@/types";
@@ -11,6 +11,7 @@ import { worksheetDimensionAsset } from "@/lib/worksheet-dimensions";
 import { resizeWorksheetImage, worksheetTextWrap, type ImageResizeCorner } from "@/lib/worksheet-images";
 import { WorksheetScoreContent } from "@/components/worksheet-score-content";
 import { worksheetScoreFontSize, worksheetScoreLineWidth } from "@/lib/worksheet-scores";
+import { cloneWorksheetPage } from "@/lib/worksheet-page-clone";
 import { useDocumentHistory } from "@/components/use-document-history";
 import { boundedWorksheetDelta, DEFAULT_WORKSHEET_LINE_SPACING, worksheetSpacingFromMm, worksheetSpacingInMm, snapWorksheetBox, worksheetAnswerLineHeight, worksheetPasteDelta, worksheetPointFromClient, worksheetVerticalLength } from "@/lib/worksheet-layout";
 import { useWorksheetTextHeight } from "@/components/worksheet-text-layout";
@@ -202,6 +203,8 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [marquee, setMarquee] = useState<MarqueeState | null>(null);
   const [alignmentGuides, setAlignmentGuides] = useState<{ x?: number; y?: number }>({});
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [printMode, setPrintMode] = useState<"student" | "answer">("student");
   const [tableDialog, setTableDialog] = useState<TableDialogState | null>(null);
   const [bandDialog, setBandDialog] = useState<WorksheetDimensionBand["dimension"] | null>(null);
@@ -713,40 +716,42 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
     setTagInput("");
   }
 
-  async function printDocument() {
-    if (!canvasRef.current) return;
+  async function collectWorksheetPages() {
     const previousPageId = activePageId;
     const waitForRender = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    const cleanPrintClone = (clone: HTMLElement) => {
-      clone.classList.add("worksheet-print-clone");
-      clone.querySelectorAll(".selected,.cell-selected").forEach((element) => element.classList.remove("selected", "cell-selected"));
-      clone.querySelectorAll("[contenteditable]").forEach((element) => {
-        element.removeAttribute("contenteditable");
-        element.removeAttribute("spellcheck");
-      });
-      clone.querySelectorAll([
-        "button",
-        ".tree-analysis-text-delete",
-        ".tree-analysis-text-resize",
-        ".tree-analysis-text-move-handle",
-        ".tree-analysis-alignment-guide",
-        ".tree-analysis-delete-table",
-        ".worksheet-selection-marquee",
-        ".worksheet-group-selection-outline",
-        ".worksheet-text-move-edge",
-        ".worksheet-table-move-edge",
-        ".worksheet-table-resize",
-        ".worksheet-lines-delete",
-        ".worksheet-lines-resize",
-        ".worksheet-checkbox-delete",
-        ".worksheet-image-delete",
-        ".worksheet-image-resize",
-        ".worksheet-image-controls",
-        ".worksheet-band-delete",
-        ".worksheet-score-delete",
-        ".worksheet-score-resize"
-      ].join(",")).forEach((element) => element.remove());
-    };
+    const clones: HTMLElement[] = [];
+    if (document.activeElement instanceof HTMLElement && document.activeElement.isContentEditable) document.activeElement.blur();
+    await document.fonts.ready;
+    try {
+      for (const page of pages) {
+        setActivePageId(page.id);
+        await waitForRender();
+        if (!canvasRef.current) throw new Error("La feuille n’est pas prête.");
+        clones.push(cloneWorksheetPage(canvasRef.current));
+      }
+      return clones;
+    } finally {
+      setActivePageId(previousPageId);
+      await waitForRender();
+    }
+  }
+
+  async function exportPdf() {
+    if (exportingPdf) return;
+    setExportingPdf(true); setExportError(null);
+    try {
+      const { downloadWorksheetPdf } = await import("@/lib/worksheet-pdf");
+      const clones = await collectWorksheetPages();
+      await downloadWorksheetPdf(clones, title, printMode);
+    } catch (error) {
+      console.error("Worksheet PDF export failed", error);
+      setExportError("Le PDF n’a pas pu être créé. Réessaie une fois les images chargées.");
+    } finally { setExportingPdf(false); }
+  }
+
+  async function printDocument() {
+    if (!canvasRef.current) return;
+
     document.querySelector(".worksheet-print-root")?.remove();
     document.querySelector("#worksheet-print-page-style")?.remove();
     const printStyle = document.createElement("style");
@@ -756,17 +761,8 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
     const printRoot = document.createElement("div");
     printRoot.className = "worksheet-print-root";
     document.body.appendChild(printRoot);
-    for (const page of pages) {
-      setActivePageId(page.id);
-      await waitForRender();
-      const canvas = canvasRef.current;
-      if (!canvas) continue;
-      const clone = canvas.cloneNode(true) as HTMLElement;
-      cleanPrintClone(clone);
-      printRoot.appendChild(clone);
-    }
-    setActivePageId(previousPageId);
-    await waitForRender();
+    const clones = await collectWorksheetPages();
+    clones.forEach((clone) => printRoot.appendChild(clone));
     const cleanup = () => {
       printRoot.remove();
       printStyle.remove();
@@ -829,8 +825,9 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
       setContextMenu({ x: Math.min(event.clientX, window.innerWidth - 210), y: Math.min(event.clientY, window.innerHeight - 100), pasteAt: rect ? worksheetPointFromClient(rect, event.clientX, event.clientY) : null });
     }}>
     {contextMenu && <div className="worksheet-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}><button role="menuitem" type="button" disabled={!selected} onClick={copyChosen}>Copier la sélection</button><button role="menuitem" type="button" disabled={!copiedElements.current.length} onClick={() => pasteChosen(contextMenu.pasteAt)}>Coller la sélection</button></div>}
+    {exportError && <p role="alert">{exportError}</p>}
     <Card className="tree-analysis-builder-card">
-      <div className="worksheet-topbar"><div className="worksheet-title-zone"><div className="worksheet-page-tabs">{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
+      <div className="worksheet-topbar"><div className="worksheet-title-zone"><div className="worksheet-page-tabs">{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" disabled={exportingPdf} onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" variant="secondary" disabled={exportingPdf} onClick={exportPdf} aria-label="Exporter en PDF" title="Télécharger toutes les pages telles qu’affichées"><FileDown size={17}/>{exportingPdf ? "PDF…" : "PDF"}</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
       <div className="tree-analysis-quick-add"><details ref={historyMenuRef} className="worksheet-history-menu"><summary title="Historique : annuler ou rétablir" aria-label="Historique"><Undo2 size={17}/><span className="worksheet-history-label">Historique</span><ChevronDown size={14}/></summary><div role="menu" aria-label="Historique des modifications"><button type="button" role="menuitem" disabled={!history.canUndo} onMouseDown={(event)=>event.preventDefault()} onClick={()=>restoreHistory("undo")}><Undo2 size={17}/> Annuler <kbd>Ctrl+Z</kbd></button><button type="button" role="menuitem" disabled={!history.canRedo} onMouseDown={(event)=>event.preventDefault()} onClick={()=>restoreHistory("redo")}><Redo2 size={17}/> Rétablir <kbd>Ctrl+Y</kbd></button></div></details>{insertTools.map((tool) => insertTool(tool))}<details ref={moreToolsRef} className="worksheet-more-tools worksheet-history-menu"><summary title="Autres outils" aria-label="Autres outils"><Plus size={17}/><ChevronDown size={14}/></summary><div role="menu" aria-label="Autres outils">{insertTools.filter((tool) => tool.secondary).map((tool) => insertTool(tool, true))}</div></details><input ref={imageInputRef} className="worksheet-image-input" type="file" accept="image/*" onChange={(event)=>{importImage(event.target.files?.[0]);event.target.value="";}}/></div>
       <button type="button" className="worksheet-settings-toggle" onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen}><span>Paramètres de la feuille</span><small>{levelId ? levels.find((level)=>level.id===levelId)?.name : "Niveau"} · {difficultyLabels[difficulty]} · {tags.length} tag{tags.length>1?"s":""}</small>{settingsOpen?<ChevronUp size={18}/>:<ChevronDown size={18}/>}</button>
       {settingsOpen&&<div className="worksheet-settings-panel"><div className="tree-analysis-builder-meta worksheet-meta-grid"><label>Titre<input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Niveau<select value={levelId} onChange={(event) => setLevelId(event.target.value)}>{levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label><label>Difficulté<select value={difficulty} onChange={(event) => setDifficulty(event.target.value as SentenceDifficulty)}>{Object.entries(difficultyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><div className="worksheet-tag-editor"><label>Tags<input value={tagInput} onChange={(event)=>setTagInput(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"){event.preventDefault();addTag();}}} placeholder="Ex. Test sur les inférences"/></label><Button type="button" variant="secondary" onClick={addTag}>Ajouter</Button></div></div><div className="worksheet-tag-list">{tags.map((tag)=><button type="button" key={tag} onClick={()=>setTags((current)=>current.filter((item)=>item!==tag))}>{tag}<X size={13}/></button>)}</div></div>}

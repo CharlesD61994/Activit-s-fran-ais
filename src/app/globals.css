@@ -9992,6 +9992,10 @@ textarea {
 .worksheet-answer-lines { position: absolute; z-index: 8; display: block; padding: 0; border: 0; background: rgba(255,255,255,.001); color: #111; cursor: move; }
 .worksheet-answer-lines::before { content: ""; position: absolute; inset: -10px -8px; z-index: 0; background: transparent; }
 .worksheet-answer-lines.selected { outline: 2px dashed #2f658e; outline-offset: 5px; }
+.worksheet-pdf-capture .tree-analysis-page::after,
+.worksheet-pdf-capture .worksheet-answer-lines::before,
+.worksheet-pdf-capture .worksheet-activity-table::after { display: none !important; }
+.worksheet-pdf-capture .tree-analysis-print-safe-guide { display: none !important; }
 .worksheet-answer-lines > span { position: absolute; left: 0; right: 0; z-index: 1; height: 1px; border-top: .45px solid #111; }
 .worksheet-answer-copy { position: absolute; inset: 0 4px auto; z-index: 1; padding: 0; border: 0; white-space: pre-wrap; overflow-wrap: break-word; color: #ed18e8; font-family: Arial, Helvetica, sans-serif; font-weight: 400; text-align: left; pointer-events: none; }
 .worksheet-answer-editor { min-height: 100%; outline: 0; caret-color: #ed18e8; pointer-events: auto; cursor: text; }
