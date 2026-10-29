@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { boundedWorksheetDelta, snapWorksheetBox, worksheetAnswerLineHeight, worksheetPasteDelta, worksheetPointFromClient } from "./worksheet-layout";
+import { boundedWorksheetDelta, DEFAULT_WORKSHEET_LINE_SPACING, snapWorksheetBox, worksheetAnswerLineHeight, worksheetPasteDelta, worksheetPointFromClient, worksheetSpacingFromMm, worksheetSpacingInMm } from "./worksheet-layout";
 
 describe("worksheet portrait layout", () => {
+  it("spaces new answer rules by 9 mm on a full-size Letter page", () => {
+    expect(worksheetSpacingInMm(DEFAULT_WORKSHEET_LINE_SPACING)).toBeCloseTo(9);
+    const spacingInPixels = parseFloat(worksheetAnswerLineHeight(DEFAULT_WORKSHEET_LINE_SPACING)) / 100 * (8.5 * 96);
+    expect(spacingInPixels / 96 * 25.4).toBeCloseTo(9);
+    expect(worksheetSpacingFromMm(worksheetSpacingInMm(20))).toBeCloseTo(20);
+  });
   it("converts the mouse position using the current page size and scroll position", () => {
     expect(worksheetPointFromClient({ left: 100, top: -200, width: 528, height: 684 }, 364, 142)).toEqual({ x: 528, y: 408 });
     expect(worksheetPointFromClient({ left: 100, top: -200, width: 528, height: 684 }, 50, 142)).toBeNull();

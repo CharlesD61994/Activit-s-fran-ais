@@ -429,6 +429,7 @@ export type WorksheetAnswerLines = {
   y: number;
   width: number;
   lineCount: number;
+  /** Vertical worksheet units; use worksheetSpacingFromMm for physical distances. */
   lineSpacing: number;
   answer: string;
   answerFontSize: number;

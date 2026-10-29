@@ -1,6 +1,10 @@
 // Existing worksheet coordinates use a 1056 × 816 grid on a portrait page.
 export const WORKSHEET_WIDTH = 1056;
 export const WORKSHEET_HEIGHT = 816;
+const WORKSHEET_PAGE_HEIGHT_MM = 11 * 25.4;
+export const worksheetSpacingInMm = (spacing: number) => spacing / WORKSHEET_HEIGHT * WORKSHEET_PAGE_HEIGHT_MM;
+export const worksheetSpacingFromMm = (millimeters: number) => millimeters / WORKSHEET_PAGE_HEIGHT_MM * WORKSHEET_HEIGHT;
+export const DEFAULT_WORKSHEET_LINE_SPACING = worksheetSpacingFromMm(9);
 export function worksheetVerticalLength(spacing: number) {
   return `${spacing / WORKSHEET_HEIGHT * (11 / 8.5) * 100}cqw`;
 }
