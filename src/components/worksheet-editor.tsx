@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlignCenter, AlignJustify, AlignLeft, ArrowDown, ArrowUp, Bold, Check, ChevronDown, ChevronUp, Grid3X3, ImagePlus, FileDown, ListChecks, Merge, Plus, Printer, Save, Split, Undo2, Redo2, X } from "lucide-react";
+import { AlignCenter, AlignJustify, AlignLeft, ArrowDown, ArrowUp, Bold, Check, Eye, ChevronDown, ChevronUp, Grid3X3, ImagePlus, FileDown, ListChecks, Merge, Plus, Printer, Save, Split, Undo2, Redo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { SchoolLevel, Sentence, SentenceDifficulty, TreeAnalysisDocumentPage, TreeAnalysisQuestionBadge, TreeAnalysisScoreBox, TreeAnalysisTable, TreeAnalysisTableCell, TreeAnalysisTextBox, WorksheetAnswerLines, WorksheetCheckboxMark, WorksheetDimensionBand, WorksheetImage } from "@/types";
@@ -218,6 +218,9 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
   const marqueeRef = useRef<MarqueeState | null>(null);
   const groupOrigins = useRef<Record<string, { x: number; y: number }>>({});
   const suppressCanvasClickRef = useRef(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const topbarRef = useRef<HTMLDivElement>(null);
+  const toolsRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const copiedElements = useRef<Array<{ kind: MovableKind; item: WorksheetElement }>>([]);
   const pasteOffset = useRef(0);
@@ -228,6 +231,21 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
 
   const historyMenuRef = useRef<HTMLDetailsElement>(null);
   const moreToolsRef = useRef<HTMLDetailsElement>(null);
+
+  useLayoutEffect(() => {
+    const editor = editorRef.current;
+    const topbar = topbarRef.current;
+    const tools = toolsRef.current;
+    if (!editor || !topbar || !tools) return;
+    const measure = () => {
+      editor.style.setProperty("--worksheet-topbar-height", `${topbar.getBoundingClientRect().height}px`);
+      editor.style.setProperty("--worksheet-tools-height", `${tools.getBoundingClientRect().height}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(topbar); observer.observe(tools);
+    return () => observer.disconnect();
+  }, []);
 
   function restoreHistory(direction: "undo" | "redo") {
     const previous = direction === "undo" ? history.past[history.past.length - 1] : history.future[0];
@@ -796,7 +814,7 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
   ];
   const insertTool = (tool: typeof insertTools[number], inMenu = false) => <Button key={tool.id} type="button" variant={tool.id === "text" ? "primary" : "secondary"} className={!inMenu && tool.secondary ? "worksheet-tool-secondary" : undefined} role={inMenu ? "menuitem" : undefined} title={tool.label} aria-label={tool.label} onClick={() => { tool.action(); if (moreToolsRef.current) moreToolsRef.current.open = false; }}>{tool.icon}<span className={inMenu ? undefined : "worksheet-tool-label"}>{tool.label}</span></Button>;
 
-  return <div className="worksheet-editor tree-analysis-editor"
+  return <div ref={editorRef} className="worksheet-editor tree-analysis-editor"
     onPointerDownCapture={(event) => { if (event.button === 0) history.beginAction(); }}
     onInputCapture={(event) => history.beginAction(event.target)}
     onKeyDownCapture={(event) => {
@@ -827,8 +845,17 @@ export function WorksheetEditor({ initialSentence, levels, onSave, controlledTit
     {contextMenu && <div className="worksheet-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}><button role="menuitem" type="button" disabled={!selected} onClick={copyChosen}>Copier la sélection</button><button role="menuitem" type="button" disabled={!copiedElements.current.length} onClick={() => pasteChosen(contextMenu.pasteAt)}>Coller la sélection</button></div>}
     {exportError && <p role="alert">{exportError}</p>}
     <Card className="tree-analysis-builder-card">
-      <div className="worksheet-topbar"><div className="worksheet-title-zone"><div className="worksheet-page-tabs">{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" onClick={addPage}><Plus size={15}/> Page</button></div></div><div className="tree-analysis-builder-tools"><Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"}>Aperçu élève</Button><Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"}><Check size={17}/> Corrigé</Button><Button type="button" variant="secondary" disabled={exportingPdf} onClick={printDocument}><Printer size={17}/> Imprimer</Button><Button type="button" variant="secondary" disabled={exportingPdf} onClick={exportPdf} aria-label="Exporter en PDF" title="Télécharger toutes les pages telles qu’affichées"><FileDown size={17}/>{exportingPdf ? "PDF…" : "PDF"}</Button><Button type="button" onClick={save}><Save size={17}/> Enregistrer</Button></div></div>
-      <div className="tree-analysis-quick-add"><details ref={historyMenuRef} className="worksheet-history-menu"><summary title="Historique : annuler ou rétablir" aria-label="Historique"><Undo2 size={17}/><span className="worksheet-history-label">Historique</span><ChevronDown size={14}/></summary><div role="menu" aria-label="Historique des modifications"><button type="button" role="menuitem" disabled={!history.canUndo} onMouseDown={(event)=>event.preventDefault()} onClick={()=>restoreHistory("undo")}><Undo2 size={17}/> Annuler <kbd>Ctrl+Z</kbd></button><button type="button" role="menuitem" disabled={!history.canRedo} onMouseDown={(event)=>event.preventDefault()} onClick={()=>restoreHistory("redo")}><Redo2 size={17}/> Rétablir <kbd>Ctrl+Y</kbd></button></div></details>{insertTools.map((tool) => insertTool(tool))}<details ref={moreToolsRef} className="worksheet-more-tools worksheet-history-menu"><summary title="Autres outils" aria-label="Autres outils"><Plus size={17}/><ChevronDown size={14}/></summary><div role="menu" aria-label="Autres outils">{insertTools.filter((tool) => tool.secondary).map((tool) => insertTool(tool, true))}</div></details><input ref={imageInputRef} className="worksheet-image-input" type="file" accept="image/*" onChange={(event)=>{importImage(event.target.files?.[0]);event.target.value="";}}/></div>
+      <div ref={topbarRef} className="worksheet-topbar">
+        <div className="worksheet-title-zone"><div className="worksheet-page-tabs">{pages.map((page,index) => <button key={page.id} type="button" className={page.id === activePageId ? "active" : ""} onClick={() => setActivePageId(page.id)}>Page {index + 1}</button>)}<button type="button" title="Ajouter une page" onClick={addPage}><Plus size={15}/> Page</button></div></div>
+        <div className="tree-analysis-builder-tools">
+          <Button type="button" variant="secondary" onClick={() => setPrintMode("student")} aria-pressed={printMode === "student"} aria-label="Aperçu élève" title="Aperçu élève"><Eye size={15}/><span className="worksheet-action-label">Aperçu élève</span></Button>
+          <Button type="button" variant="secondary" onClick={() => setPrintMode("answer")} aria-pressed={printMode === "answer"} aria-label="Corrigé" title="Corrigé"><Check size={15}/><span className="worksheet-action-label">Corrigé</span></Button>
+          <Button type="button" variant="secondary" className="worksheet-action-optional" disabled={exportingPdf} onClick={printDocument} aria-label="Imprimer" title="Imprimer"><Printer size={15}/><span className="worksheet-action-label">Imprimer</span></Button>
+          <Button type="button" variant="secondary" disabled={exportingPdf} onClick={exportPdf} aria-label="Exporter en PDF" title="Télécharger toutes les pages telles qu’affichées"><FileDown size={15}/><span className="worksheet-action-label worksheet-pdf-label">{exportingPdf ? "PDF…" : "PDF"}</span></Button>
+          <Button type="button" className="worksheet-action-optional" onClick={save} aria-label="Enregistrer" title="Enregistrer"><Save size={15}/><span className="worksheet-action-label">Enregistrer</span></Button>
+        </div>
+      </div>
+      <div ref={toolsRef} className="tree-analysis-quick-add"><details ref={historyMenuRef} className="worksheet-history-menu"><summary title="Historique : annuler ou rétablir" aria-label="Historique"><Undo2 size={17}/><span className="worksheet-history-label">Historique</span><ChevronDown size={14}/></summary><div role="menu" aria-label="Historique des modifications"><button type="button" role="menuitem" disabled={!history.canUndo} onMouseDown={(event)=>event.preventDefault()} onClick={()=>restoreHistory("undo")}><Undo2 size={17}/> Annuler <kbd>Ctrl+Z</kbd></button><button type="button" role="menuitem" disabled={!history.canRedo} onMouseDown={(event)=>event.preventDefault()} onClick={()=>restoreHistory("redo")}><Redo2 size={17}/> Rétablir <kbd>Ctrl+Y</kbd></button></div></details>{insertTools.map((tool) => insertTool(tool))}<details ref={moreToolsRef} className="worksheet-more-tools worksheet-history-menu"><summary title="Autres outils" aria-label="Autres outils"><Plus size={17}/><ChevronDown size={14}/></summary><div role="menu" aria-label="Autres outils">{insertTools.filter((tool) => tool.secondary).map((tool) => insertTool(tool, true))}</div></details><input ref={imageInputRef} className="worksheet-image-input" type="file" accept="image/*" onChange={(event)=>{importImage(event.target.files?.[0]);event.target.value="";}}/></div>
       <button type="button" className="worksheet-settings-toggle" onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen}><span>Paramètres de la feuille</span><small>{levelId ? levels.find((level)=>level.id===levelId)?.name : "Niveau"} · {difficultyLabels[difficulty]} · {tags.length} tag{tags.length>1?"s":""}</small>{settingsOpen?<ChevronUp size={18}/>:<ChevronDown size={18}/>}</button>
       {settingsOpen&&<div className="worksheet-settings-panel"><div className="tree-analysis-builder-meta worksheet-meta-grid"><label>Titre<input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>Niveau<select value={levelId} onChange={(event) => setLevelId(event.target.value)}>{levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label><label>Difficulté<select value={difficulty} onChange={(event) => setDifficulty(event.target.value as SentenceDifficulty)}>{Object.entries(difficultyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><div className="worksheet-tag-editor"><label>Tags<input value={tagInput} onChange={(event)=>setTagInput(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"){event.preventDefault();addTag();}}} placeholder="Ex. Test sur les inférences"/></label><Button type="button" variant="secondary" onClick={addTag}>Ajouter</Button></div></div><div className="worksheet-tag-list">{tags.map((tag)=><button type="button" key={tag} onClick={()=>setTags((current)=>current.filter((item)=>item!==tag))}>{tag}<X size={13}/></button>)}</div></div>}
       <button type="button" className="worksheet-header-controls-toggle" onClick={() => setHeaderControlsOpen((value) => !value)} aria-expanded={headerControlsOpen}><span>Présentation de la page</span>{headerControlsOpen?<ChevronUp size={18}/>:<ChevronDown size={18}/>}</button>
